@@ -29,19 +29,20 @@ import org.junit.jupiter.api.Test;
 /** EF-DA-01 (pastilles) et EF-DA-03 (taux de confirmation par jour). */
 class DashboardQueryServiceTest {
 
-    private static final ZoneId CASABLANCA = ZoneId.of("Africa/Casablanca");
-    private static final Instant NOW = Instant.parse("2026-11-17T15:00:00Z"); // 16:00 à Casablanca
+    /** Fuseau aux règles fixes (UTC+1) : le test ne dépend pas de la version de tzdata du JDK. */
+    private static final ZoneId SENIOR_ZONE = ZoneId.of("Africa/Lagos");
+    private static final Instant NOW = Instant.parse("2026-11-17T15:00:00Z"); // 16:00 heure locale
     private static final LocalDate TODAY = LocalDate.of(2026, 11, 17);
 
     private final DoseService doses = mock(DoseService.class);
     private final CognitiveService cognitive = mock(CognitiveService.class);
     private final DashboardQueryService service =
-            new DashboardQueryService(doses, cognitive, Clock.fixed(NOW, CASABLANCA));
+            new DashboardQueryService(doses, cognitive, Clock.fixed(NOW, SENIOR_ZONE));
     private final UUID seniorId = UUID.randomUUID();
 
     @Test
     void todayShowsOnePillPerDoseWithItsColour() {
-        when(doses.zoneOf(seniorId)).thenReturn(CASABLANCA);
+        when(doses.zoneOf(seniorId)).thenReturn(SENIOR_ZONE);
         when(doses.dosesOfDay(seniorId, TODAY)).thenReturn(List.of(
                 dose("2026-11-17T07:00:00Z", DoseStatus.CONFIRME),
                 dose("2026-11-17T11:00:00Z", DoseStatus.SANS_REPONSE),
@@ -62,7 +63,7 @@ class DashboardQueryServiceTest {
 
     @Test
     void historyCountsOnlyClosedDosesInTheRate() {
-        when(doses.zoneOf(seniorId)).thenReturn(CASABLANCA);
+        when(doses.zoneOf(seniorId)).thenReturn(SENIOR_ZONE);
         when(doses.dosesBetween(seniorId, TODAY.minusDays(6), TODAY)).thenReturn(List.of(
                 // J-1 : 3 confirmées, 1 sans réponse → 75 %
                 dose("2026-11-16T07:00:00Z", DoseStatus.CONFIRME),
@@ -73,7 +74,7 @@ class DashboardQueryServiceTest {
                 dose("2026-11-17T07:00:00Z", DoseStatus.CONFIRME),
                 dose("2026-11-17T19:00:00Z", DoseStatus.EN_ATTENTE),
                 dose("2026-11-17T20:00:00Z", DoseStatus.DESACTIVE),
-                // 23:30 UTC le 16 = 00:30 le 17 à Casablanca : compté le 17.
+                // 23:30 UTC le 16 = 00:30 le 17 en heure locale (UTC+1) : compté le 17.
                 dose("2026-11-16T23:30:00Z", DoseStatus.SANS_REPONSE)));
         when(cognitive.history(eq(seniorId), any(), any()))
                 .thenReturn(new SessionHistoryDto(CognitiveDtos.AVERTISSEMENT, List.of()));

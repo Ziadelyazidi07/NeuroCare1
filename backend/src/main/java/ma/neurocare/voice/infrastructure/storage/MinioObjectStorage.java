@@ -35,6 +35,7 @@ public class MinioObjectStorage implements ObjectStorage {
     private final MinioClient signer;
     private final NeuroCareProperties.Storage config;
     private final Clock clock;
+    private volatile boolean bucketsReady;
 
     public MinioObjectStorage(NeuroCareProperties properties, Clock clock) {
         this.config = properties.storage();
@@ -51,22 +52,31 @@ public class MinioObjectStorage implements ObjectStorage {
                 .build();
     }
 
-    /** Crée les buckets au démarrage ; une indisponibilité de MinIO n'empêche pas le backend de démarrer. */
+    /**
+     * Crée les buckets au démarrage. Si MinIO n'est pas encore prêt, le backend démarre quand même et
+     * la création est retentée au premier dépôt de fichier.
+     */
     @PostConstruct
     void ensureBuckets() {
+        boolean ready = true;
         for (String bucket : List.of(config.voiceSamplesBucket(), config.audioAssetsBucket())) {
             try {
                 if (!client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
                     client.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
                 }
             } catch (Exception e) {
+                ready = false;
                 log.warn("Bucket {} non vérifié (MinIO indisponible ?) : {}", bucket, e.getClass().getSimpleName());
             }
         }
+        bucketsReady = ready;
     }
 
     @Override
     public void put(String bucket, String key, byte[] content, String contentType) {
+        if (!bucketsReady) {
+            ensureBuckets();
+        }
         try {
             client.putObject(PutObjectArgs.builder()
                     .bucket(bucket).object(key)

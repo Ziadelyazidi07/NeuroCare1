@@ -161,7 +161,7 @@ public class ReportIT extends AbstractIntegrationTest {
         return normalize(all.toString());
     }
 
-    static String normalize(String text) {
+    public static String normalize(String text) {
         return text.replaceAll("\\s+", " ").trim();
     }
 }

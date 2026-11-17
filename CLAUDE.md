@@ -24,3 +24,7 @@ Toute l'architecture, le SQL, les endpoints et les règles sont dans `docs/cahie
 ## Environnement local
 - `mvn` n'est pas dans le PATH : utiliser `backend/mvnw` (Maven Wrapper).
 - JDK 21 non installé : utiliser le JDK 25 (`C:\Program Files\Eclipse Adoptium\jdk-25.0.2.10-hotspot`) — le pom compile avec `--release 21`.
+- tzdata du JDK 25 local (2025b) en retard sur l'image Docker (2026e) et PostgreSQL (2026f) : les règles
+  d'`Africa/Casablanca` diffèrent (UTC+1 contre UTC+0 en nov. 2026). Les tests unitaires utilisent un fuseau
+  aux règles fixes ; ne pas y coder en dur le décalage de Casablanca. La référence est l'image Docker.
+- Stack complète : `cd infra && docker compose up -d --build` (ports hôtes dans `infra/.env`). Démo : `docs/demo.md`.

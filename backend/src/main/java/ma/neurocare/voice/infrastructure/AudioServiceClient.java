@@ -75,7 +75,10 @@ public class AudioServiceClient {
                               CircuitBreakerRegistry circuitBreakers, RetryRegistry retries,
                               TimeLimiterRegistry timeLimiters) {
         NeuroCareProperties.Audio audio = properties.audio();
+        // HTTP/1.1 explicite : en HTTP/2 par défaut, le client JDK envoie « Upgrade: h2c » sur http://,
+        // que uvicorn (le serveur du microservice) rejette en 400.
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(2))
                 .build());
         factory.setReadTimeout(audio.timeout());

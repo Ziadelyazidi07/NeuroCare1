@@ -45,6 +45,7 @@ class AudioServiceClientResilienceTest {
     private final AtomicInteger calls = new AtomicInteger();
     private final AtomicReference<String> lastKey = new AtomicReference<>();
     private final AtomicReference<String> lastBody = new AtomicReference<>();
+    private final AtomicReference<String> lastUpgrade = new AtomicReference<>("non lu");
 
     private HttpServer server;
     private AudioServiceClient client;
@@ -93,6 +94,8 @@ class AudioServiceClientResilienceTest {
         assertThat(lastKey.get()).isEqualTo(KEY);
         assertThat(lastBody.get()).contains("\"text\":\"Bonjour\"").contains("\"language\":\"fr\"");
         assertThat(calls.get()).isEqualTo(1);
+        // Régression : pas de demande de passage en HTTP/2 (h2c), refusée par uvicorn.
+        assertThat(lastUpgrade.get()).isNull();
     }
 
     @Test
@@ -151,6 +154,7 @@ class AudioServiceClientResilienceTest {
         calls.incrementAndGet();
         lastKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Key"));
         lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+        lastUpgrade.set(exchange.getRequestHeaders().getFirst("Upgrade"));
         switch (mode.get()) {
             case OK -> respond(exchange, 200, "audio/mpeg", "MP3");
             case ERROR_500 -> respond(exchange, 500, "application/json", "{\"code\":\"ENGINE_UNAVAILABLE\"}");

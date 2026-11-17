@@ -3,6 +3,7 @@
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: neurocare
       POSTGRES_USER: neurocare
@@ -17,6 +18,7 @@ services:
 
   minio:
     image: minio/minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_USER:?MINIO_USER requis}
@@ -28,6 +30,7 @@ services:
     build:
       context: ../audio-service
       target: runtime
+    restart: unless-stopped
     environment:
       INTERNAL_KEY: ${AUDIO_INTERNAL_KEY:?AUDIO_INTERNAL_KEY requis}
       TTS_ENGINE: espeak          # espeak | none
@@ -37,6 +40,7 @@ services:
 
   backend:
     build: ../backend
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,7 +62,9 @@ services:
       NEUROCARE_STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-http://localhost:9000}
       MINIO_USER: ${MINIO_USER}
       MINIO_PASSWORD: ${MINIO_PASSWORD}
+      NEUROCARE_PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
     ports: ["${BACKEND_PORT:-8080}:8080"]
+    # Sonde /actuator/health définie dans le Dockerfile (HEALTHCHECK).
 
 volumes:
   pgdata: {}
