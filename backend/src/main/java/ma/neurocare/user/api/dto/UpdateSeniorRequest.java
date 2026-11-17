@@ -15,5 +15,6 @@ public record UpdateSeniorRequest(
         Boolean contrasteEleve,
         @Min(1) @Max(240) Short delaiSansReponseMin,
         @Size(max = 120) String contactUrgenceNom,
-        @Pattern(regexp = Patterns.E164, message = "doit être au format E.164") String contactUrgenceTel) {
+        @Pattern(regexp = Patterns.E164, message = "doit être au format E.164") String contactUrgenceTel,
+        @Min(1900) @Max(2100) Short anneeNaissance) {
 }

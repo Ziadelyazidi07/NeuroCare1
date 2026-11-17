@@ -19,6 +19,7 @@ public record SeniorDto(
         String contactUrgenceNom,
         String contactUrgenceTel,
         boolean donneesFictives,
+        Short anneeNaissance,
         LienDto lien) {
 
     public record LienDto(String lienParente, String surnomSenior, boolean consentementValide,

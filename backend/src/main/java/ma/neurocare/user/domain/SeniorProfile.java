@@ -52,6 +52,10 @@ public class SeniorProfile extends BaseEntity {
     @Column(name = "donnees_fictives", nullable = false)
     private boolean donneesFictives;
 
+    /** Année de naissance seulement (minimisation, cahier §13.2) : sert à afficher l'âge. */
+    @Column(name = "annee_naissance")
+    private Short anneeNaissance;
+
     public SeniorProfile(UUID seniorUserId) {
         super(seniorUserId);
     }

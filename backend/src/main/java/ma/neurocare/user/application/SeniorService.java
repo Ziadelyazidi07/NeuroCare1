@@ -58,6 +58,7 @@ public class SeniorService {
         profile.setContactUrgenceNom(request.contactUrgenceNom());
         profile.setContactUrgenceTel(request.contactUrgenceTel());
         profile.setDonneesFictives(Boolean.TRUE.equals(request.donneesFictives()));
+        profile.setAnneeNaissance(request.anneeNaissance());
         profiles.save(profile);
 
         CaregiverLinkView link = linkService.createLink(senior.getId(), aidantId,
@@ -109,6 +110,9 @@ public class SeniorService {
         if (request.contactUrgenceTel() != null) {
             profile.setContactUrgenceTel(request.contactUrgenceTel());
         }
+        if (request.anneeNaissance() != null) {
+            profile.setAnneeNaissance(request.anneeNaissance());
+        }
         return mapper.toDto(senior, profile, linkFor(seniorId, caller));
     }
 
@@ -121,6 +125,14 @@ public class SeniorService {
         return profiles.findAllById(seniorIds).stream()
                 .collect(Collectors.toMap(SeniorProfile::getId, p -> new SeniorReminderSettings(
                         p.getId(), ZoneId.of(p.getFuseau()), p.getDelaiSansReponseMin())));
+    }
+
+    /** Pour le module report : en-tête du rapport hebdomadaire. */
+    @Transactional(readOnly = true)
+    public SeniorReportProfile reportProfile(UUID seniorId) {
+        SeniorProfile profile = loadProfile(seniorId);
+        return new SeniorReportProfile(seniorId, loadUser(seniorId).getNomComplet(), profile.getAnneeNaissance(),
+                profile.isDonneesFictives(), ZoneId.of(profile.getFuseau()));
     }
 
     /** Pour le module voice : nom et langue du senior. */
