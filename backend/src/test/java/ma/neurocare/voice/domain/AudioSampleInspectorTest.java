@@ -38,6 +38,26 @@ public class AudioSampleInspectorTest {
     }
 
     @Test
+    void m4aFromPhoneRecordersIsAcceptedWithItsDuration() {
+        AudioSampleInspector.SampleInfo info = AudioSampleInspector.check(m4a(12_000, 1000, 0));
+        assertThat(info.format()).isEqualTo(Format.M4A);
+        assertThat(info.format().extension()).isEqualTo("m4a");
+        assertThat(info.durationSeconds()).isCloseTo(12.0, org.assertj.core.data.Offset.offset(0.001));
+
+        // mvhd version 1 (durées sur 64 bits)
+        assertThat(AudioSampleInspector.check(m4a(15 * 44_100L, 44_100, 1)).durationSeconds())
+                .isCloseTo(15.0, org.assertj.core.data.Offset.offset(0.001));
+        assertThatThrownBy(() -> AudioSampleInspector.check(m4a(5_000, 1000, 0)))
+                .isInstanceOf(InvalidSampleException.class).hasMessageContaining("entre 10 et 30 secondes");
+    }
+
+    @Test
+    void m4aWithoutMoovIsRejected() {
+        byte[] onlyFtyp = java.util.Arrays.copyOf(m4a(12_000, 1000, 0), 24);
+        assertThatThrownBy(() -> AudioSampleInspector.check(onlyFtyp)).isInstanceOf(InvalidSampleException.class);
+    }
+
+    @Test
     void durationOutsideTenToThirtySecondsIsRejected() {
         assertThatThrownBy(() -> AudioSampleInspector.check(wav(5))).isInstanceOf(InvalidSampleException.class)
                 .hasMessageContaining("entre 10 et 30 secondes");
@@ -51,7 +71,7 @@ public class AudioSampleInspectorTest {
 
         byte[] png = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0};
         assertThatThrownBy(() -> AudioSampleInspector.check(png)).isInstanceOf(InvalidSampleException.class)
-                .hasMessageContaining("WAV et MP3");
+                .hasMessageContaining("WAV, MP3 et M4A");
     }
 
     @Test
@@ -70,6 +90,23 @@ public class AudioSampleInspectorTest {
         b.put("fmt ".getBytes(StandardCharsets.US_ASCII)).putInt(16).putShort((short) 1).putShort((short) 1)
                 .putInt(rate).putInt(rate * 2).putShort((short) 2).putShort((short) 16);
         b.put("data".getBytes(StandardCharsets.US_ASCII)).putInt(dataSize);
+        return b.array();
+    }
+
+    /** M4A minimal : boîtes ftyp, free, puis moov/mvhd (version 0 ou 1) et quelques octets de données. */
+    public static byte[] m4a(long duration, int timescale, int version) {
+        int mvhdSize = version == 1 ? 120 : 108;
+        ByteBuffer b = ByteBuffer.allocate(24 + 16 + 8 + mvhdSize + 64).order(ByteOrder.BIG_ENDIAN);
+        b.putInt(24).put("ftyp".getBytes(StandardCharsets.US_ASCII)).put("M4A ".getBytes(StandardCharsets.US_ASCII))
+                .putInt(0).put("isomM4A ".getBytes(StandardCharsets.US_ASCII));
+        b.putInt(16).put("free".getBytes(StandardCharsets.US_ASCII)).putLong(0);
+        b.putInt(8 + mvhdSize).put("moov".getBytes(StandardCharsets.US_ASCII));
+        b.putInt(mvhdSize).put("mvhd".getBytes(StandardCharsets.US_ASCII)).put((byte) version).put(new byte[3]);
+        if (version == 1) {
+            b.putLong(0).putLong(0).putInt(timescale).putLong(duration);
+        } else {
+            b.putInt(0).putInt(0).putInt(timescale).putInt((int) duration);
+        }
         return b.array();
     }
 

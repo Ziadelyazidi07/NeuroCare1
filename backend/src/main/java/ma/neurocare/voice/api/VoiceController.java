@@ -5,6 +5,8 @@ import java.util.UUID;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import ma.neurocare.common.exception.BusinessException;
+import ma.neurocare.medication.application.MedicationService;
 import ma.neurocare.security.CurrentUser;
 import ma.neurocare.voice.api.dto.VoiceDtos.AudioPreviewDto;
 import ma.neurocare.voice.api.dto.VoiceDtos.SignedAudioUrlDto;
@@ -34,8 +36,9 @@ public class VoiceController {
 
     private final VoiceService voiceService;
     private final AudioGenerationService audioGeneration;
+    private final MedicationService medicationService;
 
-    @Operation(summary = "Upload de l'échantillon vocal (WAV/MP3, 10–30 s, ≤ 5 Mo) — AIDANT lié + VOIX",
+    @Operation(summary = "Upload de l'échantillon vocal (WAV/MP3/M4A, 10–30 s, ≤ 5 Mo) — AIDANT lié + VOIX",
             description = "Réponse 202 : le profil est EN_COURS puis passe PRET ou ECHEC.")
     @PostMapping(path = "/seniors/{seniorId}/voice-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@accessPolicy.canUploadVoice(#seniorId, authentication)")
@@ -71,6 +74,19 @@ public class VoiceController {
                     return new AudioPreviewDto(asset.getId(), result.source(), result.texte(), url.url(), url.expireLe());
                 })
                 .orElseGet(() -> new AudioPreviewDto(null, result.source(), result.texte(), null, null));
+    }
+
+    @Operation(summary = "Audio du rappel d'un traitement pour le téléphone du senior (cache uniquement)",
+            description = "Téléchargé à l'avance pour les rappels hors ligne (cahier §9.5). 404 si aucun "
+                    + "fichier n'est prêt : l'application joue alors son audio générique embarqué.")
+    @GetMapping("/me/medications/{medicationId}/audio")
+    public SignedAudioUrlDto myMedicationAudio(@PathVariable UUID medicationId) {
+        if (!CurrentUser.get().userId().equals(medicationService.seniorIdOf(medicationId))) {
+            throw BusinessException.notFound("Traitement introuvable.");
+        }
+        SignedUrl url = audioGeneration.cachedSignedUrl(medicationId)
+                .orElseThrow(() -> BusinessException.notFound("Aucun audio prêt pour ce traitement."));
+        return new SignedAudioUrlDto(url.url(), url.expireLe());
     }
 
     @Operation(summary = "URL signée (5 min) vers un fichier audio")

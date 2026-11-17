@@ -70,12 +70,25 @@ class VoiceIT extends AbstractIntegrationTest {
         awaitUntil("profil ECHEC", () -> "ECHEC".equals(profileStatus()));
 
         String medicationId = createMedication();
+        // Rien en cache pour le téléphone du senior : 404, il jouera son audio embarqué.
+        mvc.perform(bearer(get("/api/v1/me/medications/{id}/audio", medicationId), pairDevice(aidant, seniorId)))
+                .andExpect(status().isNotFound());
         // Niveau 3 : aucun fichier serveur, l'application joue son audio générique embarqué.
         mvc.perform(bearer(post("/api/v1/medications/{id}/audio/preview", medicationId), aidant))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.source").value("PREENREGISTRE"))
                 .andExpect(jsonPath("$.url").doesNotExist())
                 .andExpect(jsonPath("$.texte").value(org.hamcrest.Matchers.startsWith("Baba")));
+    }
+
+    @Test
+    void phoneRecordingInM4aIsAccepted() throws Exception {
+        giveConsent(aidant, seniorId, "VOIX", true);
+        mvc.perform(bearer(multipart("/api/v1/seniors/{id}/voice-profile", seniorId)
+                        .file(new MockMultipartFile("file", "enregistrement.m4a", "audio/mp4",
+                                AudioSampleInspectorTest.m4a(12_000, 1000, 0))), aidant))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.statut").value("EN_COURS"));
     }
 
     @Test

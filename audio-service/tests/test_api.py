@@ -35,6 +35,19 @@ def mp3_bytes(seconds: float, kbps: int = 64) -> bytes:
     return header + b"\x00" * (int(seconds * kbps * 1000 / 8) - 4)
 
 
+def m4a_bytes(duration: int, timescale: int = 1000, version: int = 0) -> bytes:
+    """M4A minimal : ftyp puis moov/mvhd, comme produit par les enregistreurs iOS/Android."""
+    if version == 1:
+        mvhd_body = bytes([1, 0, 0, 0]) + bytes(16) + struct.pack(">IQ", timescale, duration)
+    else:
+        mvhd_body = bytes(4) + bytes(8) + struct.pack(">II", timescale, duration)
+    mvhd_body += bytes(80)
+    mvhd = struct.pack(">I", 8 + len(mvhd_body)) + b"mvhd" + mvhd_body
+    moov = struct.pack(">I", 8 + len(mvhd)) + b"moov" + mvhd
+    ftyp = struct.pack(">I", 24) + b"ftypM4A " + bytes(4) + b"isomM4A "
+    return ftyp + moov + bytes(64)
+
+
 class FakeTts:
     name = "fake-tts"
 
@@ -185,6 +198,21 @@ def test_wav_and_mp3_durations():
     info = inspect(mp3_bytes(20))
     assert info.format == "mp3"
     assert info.duration_seconds == pytest.approx(20, abs=0.1)
+
+
+def test_m4a_from_phone_recorders():
+    assert inspect(m4a_bytes(12_000)).format == "m4a"
+    assert inspect(m4a_bytes(12_000)).duration_seconds == pytest.approx(12)
+    assert inspect(m4a_bytes(15 * 44_100, 44_100, version=1)).duration_seconds == pytest.approx(15)
+    with pytest.raises(InvalidAudio):
+        inspect(m4a_bytes(12_000)[:24])
+
+
+def test_enroll_accepts_m4a(tmp_path):
+    response = client(tmp_path).post("/voices", files={"file": ("s.m4a", m4a_bytes(12_000), "audio/mp4")},
+                                     headers=HEADERS)
+    assert response.status_code == 201
+    assert response.json()["status"] == "READY"
 
 
 def test_id3_tag_is_skipped():

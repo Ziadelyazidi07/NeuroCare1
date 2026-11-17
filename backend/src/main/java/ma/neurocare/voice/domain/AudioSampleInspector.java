@@ -21,7 +21,9 @@ public final class AudioSampleInspector {
 
     public enum Format {
         WAV("audio/wav", "wav"),
-        MP3("audio/mpeg", "mp3");
+        MP3("audio/mpeg", "mp3"),
+        /** AAC en conteneur MP4 : format produit par les enregistreurs iOS et Android. */
+        M4A("audio/mp4", "m4a");
 
         private final String mediaType;
         private final String extension;
@@ -69,11 +71,14 @@ public final class AudioSampleInspector {
         if (data.length >= 12 && ascii(data, 0, "RIFF") && ascii(data, 8, "WAVE")) {
             return new SampleInfo(Format.WAV, wavDuration(data));
         }
+        if (data.length >= 12 && ascii(data, 4, "ftyp")) {
+            return new SampleInfo(Format.M4A, mp4Duration(data));
+        }
         int offset = skipId3(data);
         if (data.length >= offset + 4 && (data[offset] & 0xFF) == 0xFF && (data[offset + 1] & 0xE0) == 0xE0) {
             return new SampleInfo(Format.MP3, mp3Duration(data, offset));
         }
-        throw new InvalidSampleException("Format non reconnu : seuls les fichiers WAV et MP3 sont acceptés.");
+        throw new InvalidSampleException("Format non reconnu : seuls les fichiers WAV, MP3 et M4A sont acceptés.");
     }
 
     private static double wavDuration(byte[] data) {
@@ -99,6 +104,56 @@ public final class AudioSampleInspector {
             pos = (int) next;
         }
         throw new InvalidSampleException("Fichier WAV sans données audio.");
+    }
+
+    /** Durée MP4 lue dans la boîte {@code moov/mvhd} (échelle de temps et durée). */
+    private static double mp4Duration(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN);
+        int moov = findBox(data, buffer, 0, data.length, "moov");
+        if (moov < 0) {
+            throw new InvalidSampleException("Fichier M4A incomplet.");
+        }
+        long moovSize = Integer.toUnsignedLong(buffer.getInt(moov));
+        int mvhd = findBox(data, buffer, moov + 8, (int) Math.min(data.length, moov + moovSize), "mvhd");
+        if (mvhd < 0 || mvhd + 32 > data.length) {
+            throw new InvalidSampleException("Fichier M4A sans durée.");
+        }
+        int version = data[mvhd + 8] & 0xFF;
+        long timescale;
+        long duration;
+        if (version == 1) {
+            if (mvhd + 40 > data.length) {
+                throw new InvalidSampleException("Fichier M4A sans durée.");
+            }
+            timescale = Integer.toUnsignedLong(buffer.getInt(mvhd + 28));
+            duration = buffer.getLong(mvhd + 32);
+        } else {
+            timescale = Integer.toUnsignedLong(buffer.getInt(mvhd + 20));
+            duration = Integer.toUnsignedLong(buffer.getInt(mvhd + 24));
+        }
+        if (timescale == 0) {
+            throw new InvalidSampleException("Fichier M4A sans durée.");
+        }
+        return (double) duration / timescale;
+    }
+
+    /** Position de la première boîte MP4 {@code type} entre {@code from} et {@code to}, ou -1. */
+    private static int findBox(byte[] data, ByteBuffer buffer, int from, int to, String type) {
+        int pos = from;
+        while (pos + 8 <= to) {
+            long size = Integer.toUnsignedLong(buffer.getInt(pos));
+            if (ascii(data, pos + 4, type)) {
+                return pos;
+            }
+            if (size == 1 && pos + 16 <= to) {
+                size = buffer.getLong(pos + 8);
+            }
+            if (size < 8 || pos + size > Integer.MAX_VALUE) {
+                return -1;
+            }
+            pos += (int) size;
+        }
+        return -1;
     }
 
     private static int skipId3(byte[] data) {

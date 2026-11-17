@@ -84,6 +84,13 @@ class VoiceCloneIT extends AbstractIntegrationTest {
 
         // Le senior obtient une nouvelle URL signée pour cet audio.
         String senior = pairDevice(aidant, seniorId);
+        // … et peut télécharger à l'avance l'audio de son traitement pour les rappels hors ligne.
+        mvc.perform(bearer(get("/api/v1/me/medications/{id}/audio", medicationId), senior))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value(org.hamcrest.Matchers.containsString("sig=")));
+        String otherSenior = pairDevice(aidant, createSenior(aidant));
+        mvc.perform(bearer(get("/api/v1/me/medications/{id}/audio", medicationId), otherSenior))
+                .andExpect(status().isNotFound());
         mvc.perform(bearer(get("/api/v1/audio/{id}", assetId), senior))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.url").value(org.hamcrest.Matchers.containsString("sig=")));
