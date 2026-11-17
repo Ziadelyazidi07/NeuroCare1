@@ -39,6 +39,16 @@ public class CaregiverLinkService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<CaregiverLinkView> findLinkById(UUID linkId) {
+        return links.findById(linkId).map(CaregiverLinkView::of);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CaregiverLinkView> linksOfSenior(UUID seniorId) {
+        return links.findBySeniorId(seniorId).stream().map(CaregiverLinkView::of).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<CaregiverLinkView> linksOfCaregiver(UUID aidantId) {
         return links.findByAidantIdOrderByDateCreationAsc(aidantId).stream().map(CaregiverLinkView::of).toList();
     }

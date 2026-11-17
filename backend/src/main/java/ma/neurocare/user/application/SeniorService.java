@@ -123,6 +123,12 @@ public class SeniorService {
                         p.getId(), ZoneId.of(p.getFuseau()), p.getDelaiSansReponseMin())));
     }
 
+    /** Pour le module voice : nom et langue du senior. */
+    @Transactional(readOnly = true)
+    public SeniorAudioProfile audioProfile(UUID seniorId) {
+        return new SeniorAudioProfile(seniorId, loadUser(seniorId).getNomComplet(), loadProfile(seniorId).getLangue());
+    }
+
     /** Pour les autres modules : nom affiché du senior. */
     @Transactional(readOnly = true)
     public String displayName(UUID seniorId) {

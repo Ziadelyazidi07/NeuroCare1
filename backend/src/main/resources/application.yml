@@ -47,6 +47,34 @@ management:
       probes:
         enabled: true
 
+# Appels au microservice audio (cahier §10.2) : Retry(CircuitBreaker(TimeLimiter(appel))).
+resilience4j:
+  circuitbreaker:
+    instances:
+      audio:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: PT30S
+        permitted-number-of-calls-in-half-open-state: 2
+        # Un refus métier (langue non prise en charge, voix inconnue) n'est pas une panne.
+        ignore-exceptions:
+          - ma.neurocare.voice.infrastructure.AudioServiceRejectedException
+  retry:
+    instances:
+      audio:
+        max-attempts: 2
+        wait-duration: PT0.5S
+        ignore-exceptions:
+          - ma.neurocare.voice.infrastructure.AudioServiceRejectedException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+  timelimiter:
+    instances:
+      audio:
+        timeout-duration: ${neurocare.audio.timeout:PT20S}
+        cancel-running-future: true
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -72,9 +100,14 @@ neurocare:
     internal-key: ${NEUROCARE_AUDIO_INTERNAL_KEY:}
     timeout: PT20S
   storage:
+    provider: ${NEUROCARE_STORAGE_PROVIDER:minio}          # minio | local
     endpoint: ${NEUROCARE_STORAGE_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${NEUROCARE_STORAGE_PUBLIC_ENDPOINT:http://localhost:9000}
+    region: us-east-1
     access-key: ${MINIO_USER:}
     secret-key: ${MINIO_PASSWORD:}
+    local-dir: ${NEUROCARE_STORAGE_LOCAL_DIR:./data/storage}
+    public-base-url: ${NEUROCARE_PUBLIC_BASE_URL:http://localhost:8080}
     voice-samples-bucket: voice-samples
     audio-assets-bucket: audio-assets
     signed-url-ttl: PT5M

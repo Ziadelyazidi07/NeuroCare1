@@ -2,6 +2,7 @@ package ma.neurocare.notification.application;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,9 @@ import ma.neurocare.notification.application.PushNotificationService.PushResult;
 import ma.neurocare.reminder.application.ReminderEvents.DoseReminderDue;
 import ma.neurocare.reminder.application.ReminderEvents.DoseStatusChanged;
 import ma.neurocare.reminder.domain.DoseStatus;
+import ma.neurocare.voice.application.AudioGenerationService;
+import ma.neurocare.voice.domain.AudioSource;
+import ma.neurocare.voice.infrastructure.storage.ObjectStorage.SignedUrl;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
@@ -33,19 +37,21 @@ public class NotificationService {
     private final PushNotificationService push;
     private final DeviceService deviceService;
     private final CaregiverLinkService linkService;
+    private final AudioGenerationService audioGeneration;
 
     /** Rappel au senior : le payload contient le nom du médicament pour l'affichage (cahier §9.3). */
     @Async(AsyncConfig.PUSH_EXECUTOR)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onDoseReminderDue(DoseReminderDue event) {
+        String audioUrl = audioUrlFor(event.medicationId());
         Map<String, String> data = Map.of(
                 "doseId", event.doseId().toString(),
                 "medication", event.nomMedicament() == null ? "" : event.nomMedicament(),
                 "datePrevue", event.datePrevue().toString(),
                 "relance", Boolean.toString(event.relance()),
-                // L'URL signée de l'audio personnalisé sera ajoutée avec le module VOICE ;
-                // vide → l'application joue l'audio préenregistré (repli niveau 3).
-                "audioUrl", "");
+                "audioUrl", audioUrl,
+                // URL vide → l'application joue son audio générique embarqué (repli niveau 3).
+                "audioSource", audioUrl.isEmpty() ? AudioSource.PREENREGISTRE.name() : "FICHIER");
         sendToUser(event.seniorId(), new PushMessage(DOSE_REMINDER, data));
     }
 
@@ -66,6 +72,26 @@ public class NotificationService {
                 "couleur", event.couleur());
         for (UUID aidantId : linkService.caregiversWithHealthAccess(event.seniorId())) {
             sendToUser(aidantId, new PushMessage(DOSE_NO_RESPONSE, data));
+        }
+    }
+
+    /**
+     * URL signée de l'audio déjà en cache. Aucune génération ici : le rappel ne doit jamais attendre le
+     * service audio (ENF-05). Si rien n'est prêt, la génération est relancée pour les prochains rappels.
+     */
+    private String audioUrlFor(UUID medicationId) {
+        if (medicationId == null) {
+            return "";
+        }
+        try {
+            Optional<SignedUrl> url = audioGeneration.cachedSignedUrl(medicationId);
+            if (url.isEmpty()) {
+                audioGeneration.audioForMedicationAsync(medicationId);
+            }
+            return url.map(SignedUrl::url).orElse("");
+        } catch (RuntimeException e) {
+            log.warn("URL audio indisponible : {}", e.getClass().getSimpleName());
+            return "";
         }
     }
 

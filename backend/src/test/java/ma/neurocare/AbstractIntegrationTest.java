@@ -75,6 +75,43 @@ public abstract class AbstractIntegrationTest {
         return read(registerAndLogin(randomPhone()), "$.accessToken");
     }
 
+    /** Appaire un téléphone au senior et renvoie le token d'appareil. */
+    protected String pairDevice(String aidantToken, String seniorId) throws Exception {
+        MvcResult code = mvc.perform(bearer(post("/api/v1/seniors/{id}/pairing-codes", seniorId), aidantToken))
+                .andExpect(status().isCreated()).andReturn();
+        MvcResult redeemed = mvc.perform(post("/api/v1/auth/pairing/redeem")
+                        .with(r -> {
+                            r.setRemoteAddr(randomIp());
+                            return r;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("code", read(code, "$.code"), "plateforme", "ANDROID"))))
+                .andExpect(status().isOk()).andReturn();
+        return read(redeemed, "$.deviceToken");
+    }
+
+    /** Enregistre un consentement par l'aidant, en présence du senior. */
+    protected void giveConsent(String aidantToken, String seniorId, String type, boolean accorde) throws Exception {
+        mvc.perform(bearer(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .put("/api/v1/seniors/{id}/consents/{type}", seniorId, type), aidantToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("accorde", accorde, "versionTexte", "v1",
+                                "presenceSeniorConfirmee", true))))
+                .andExpect(status().isOk());
+    }
+
+    /** Attend qu'une condition asynchrone devienne vraie (génération audio, enrôlement vocal…). */
+    protected static void awaitUntil(String what, java.util.concurrent.Callable<Boolean> condition) throws Exception {
+        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(15).toNanos();
+        while (System.nanoTime() < deadline) {
+            if (Boolean.TRUE.equals(condition.call())) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("Délai dépassé en attendant : " + what);
+    }
+
     /** Crée un senior pour l'aidant et renvoie son identifiant. */
     protected String createSenior(String aidantToken) throws Exception {
         MvcResult result = mvc.perform(bearer(post("/api/v1/seniors"), aidantToken)

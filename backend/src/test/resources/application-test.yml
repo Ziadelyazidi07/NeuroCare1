@@ -4,3 +4,11 @@ neurocare:
     secret: test-only-secret-0123456789-abcdefghijklmnopqrstuvwxyz
   reminder:
     scheduling-enabled: false   # les tests appellent ReminderService directement
+  storage:
+    provider: local
+    local-dir: target/test-storage
+    public-base-url: http://localhost
+  audio:
+    base-url: http://127.0.0.1:9      # aucun service : chaque appel échoue → chaîne de repli
+    internal-key: test-internal-key
+    timeout: PT2S

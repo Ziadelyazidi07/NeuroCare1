@@ -89,6 +89,20 @@ public class MedicationService {
                 .orElseThrow(() -> BusinessException.notFound("Traitement introuvable."));
     }
 
+    // ---------- Vues pour le module voice ----------
+
+    @Transactional(readOnly = true)
+    public MedicationAudioInfo audioInfo(UUID medicationId) {
+        Medication m = medications.findById(medicationId)
+                .orElseThrow(() -> BusinessException.notFound("Traitement introuvable."));
+        return new MedicationAudioInfo(m.getId(), m.getSeniorId(), m.getNomMedicament(), m.getCreePar(), m.isActif());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> activeMedicationIds(UUID seniorId) {
+        return medications.findActiveWithSchedules(seniorId).stream().map(Medication::getId).toList();
+    }
+
     // ---------- Vues pour le moteur de rappel ----------
 
     @Transactional(readOnly = true)

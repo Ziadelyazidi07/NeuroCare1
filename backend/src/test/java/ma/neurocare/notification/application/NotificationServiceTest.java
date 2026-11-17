@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import ma.neurocare.consent.application.CaregiverLinkService;
@@ -18,6 +19,8 @@ import ma.neurocare.notification.application.PushNotificationService.PushResult;
 import ma.neurocare.reminder.application.ReminderEvents.DoseReminderDue;
 import ma.neurocare.reminder.application.ReminderEvents.DoseStatusChanged;
 import ma.neurocare.reminder.domain.DoseStatus;
+import ma.neurocare.voice.application.AudioGenerationService;
+import ma.neurocare.voice.infrastructure.storage.ObjectStorage.SignedUrl;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -26,10 +29,12 @@ class NotificationServiceTest {
     private final PushNotificationService push = mock(PushNotificationService.class);
     private final DeviceService devices = mock(DeviceService.class);
     private final CaregiverLinkService links = mock(CaregiverLinkService.class);
-    private final NotificationService service = new NotificationService(push, devices, links);
+    private final AudioGenerationService audio = mock(AudioGenerationService.class);
+    private final NotificationService service = new NotificationService(push, devices, links, audio);
 
     private final UUID seniorId = UUID.randomUUID();
     private final UUID doseId = UUID.randomUUID();
+    private final UUID medicationId = UUID.randomUUID();
     private final Instant prevue = Instant.parse("2026-11-17T07:00:00Z");
 
     @Test
@@ -37,7 +42,7 @@ class NotificationServiceTest {
         when(devices.activeFcmTokens(seniorId)).thenReturn(List.of("tok-a", "tok-b"));
         when(push.send(any(), any())).thenReturn(PushResult.SENT);
 
-        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, "Metformine 500", prevue, false));
+        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, medicationId, "Metformine 500", prevue, false));
 
         ArgumentCaptor<PushMessage> message = ArgumentCaptor.forClass(PushMessage.class);
         verify(push).send(eq("tok-a"), message.capture());
@@ -46,7 +51,28 @@ class NotificationServiceTest {
         assertThat(message.getValue().data())
                 .containsEntry("doseId", doseId.toString())
                 .containsEntry("medication", "Metformine 500")
-                .containsEntry("relance", "false");
+                .containsEntry("relance", "false")
+                .containsEntry("audioUrl", "")
+                .containsEntry("audioSource", "PREENREGISTRE");
+        // Rien en cache : génération relancée en tâche de fond pour les prochains rappels.
+        verify(audio).audioForMedicationAsync(medicationId);
+    }
+
+    @Test
+    void cachedAudioUrlIsIncludedWithoutGenerating() {
+        when(devices.activeFcmTokens(seniorId)).thenReturn(List.of("tok"));
+        when(push.send(any(), any())).thenReturn(PushResult.SENT);
+        when(audio.cachedSignedUrl(medicationId)).thenReturn(Optional.of(
+                new SignedUrl("https://minio/audio-assets/x.mp3?sig", prevue.plusSeconds(300))));
+
+        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, medicationId, "X", prevue, false));
+
+        ArgumentCaptor<PushMessage> message = ArgumentCaptor.forClass(PushMessage.class);
+        verify(push).send(eq("tok"), message.capture());
+        assertThat(message.getValue().data())
+                .containsEntry("audioUrl", "https://minio/audio-assets/x.mp3?sig")
+                .containsEntry("audioSource", "FICHIER");
+        verify(audio, never()).audioForMedicationAsync(any());
     }
 
     @Test
@@ -54,7 +80,7 @@ class NotificationServiceTest {
         when(devices.activeFcmTokens(seniorId)).thenReturn(List.of("stale"));
         when(push.send(eq("stale"), any())).thenReturn(PushResult.INVALID_TOKEN);
 
-        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, "X", prevue, true));
+        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, medicationId, "X", prevue, true));
 
         verify(devices).forgetFcmToken("stale");
     }
@@ -88,7 +114,7 @@ class NotificationServiceTest {
         when(devices.activeFcmTokens(seniorId)).thenReturn(List.of("tok"));
         when(push.send(any(), any())).thenThrow(new IllegalStateException("réseau"));
 
-        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, "X", prevue, false));
+        service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, medicationId, "X", prevue, false));
 
         verify(devices, never()).forgetFcmToken(any());
     }

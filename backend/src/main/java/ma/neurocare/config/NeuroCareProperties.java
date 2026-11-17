@@ -44,7 +44,16 @@ public record NeuroCareProperties(
     public record Audio(String baseUrl, String internalKey, Duration timeout) {
     }
 
-    public record Storage(String endpoint, String accessKey, String secretKey,
+    /**
+     * @param provider        {@code minio} (S3) ou {@code local} (disque, raccourci hackathon §16.2 et tests)
+     * @param endpoint        URL interne de MinIO (réseau Docker)
+     * @param publicEndpoint  URL de MinIO vue par les téléphones (hôte des URL signées)
+     * @param region          région S3 (évite un appel réseau lors de la signature)
+     * @param localDir        répertoire du stockage local
+     * @param publicBaseUrl   URL publique du backend (URL signées du stockage local)
+     */
+    public record Storage(String provider, String endpoint, String publicEndpoint, String region,
+                          String accessKey, String secretKey, String localDir, String publicBaseUrl,
                           String voiceSamplesBucket, String audioAssetsBucket, Duration signedUrlTtl) {
     }
 

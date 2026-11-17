@@ -6,6 +6,7 @@ import ma.neurocare.security.JwtAuthFilter;
 import ma.neurocare.security.JwtService;
 import ma.neurocare.security.ProblemSecurityHandlers;
 import ma.neurocare.security.TokenHasher;
+import ma.neurocare.voice.infrastructure.storage.LocalObjectStorage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -51,6 +52,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.POST, API + "/auth/logout").hasAnyRole("AIDANT", "MEDECIN")
                         .requestMatchers(API + "/auth/**").permitAll()
+                        // URL signées du stockage local : la signature HMAC + expiration tient lieu d'autorisation.
+                        .requestMatchers(HttpMethod.GET, LocalObjectStorage.FILES_PATH).permitAll()
                         .requestMatchers("/actuator/health/**", "/v3/api-docs/**",
                                 "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .requestMatchers(API + "/me/devices").hasAnyRole("SENIOR", "AIDANT")

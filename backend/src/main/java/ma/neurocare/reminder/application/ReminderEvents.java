@@ -16,8 +16,8 @@ public final class ReminderEvents {
     }
 
     /** Une prise est due (premier envoi) ou à relancer : push vers le téléphone du senior. */
-    public record DoseReminderDue(UUID doseId, UUID seniorId, String nomMedicament, Instant datePrevue,
-                                  boolean relance) {
+    public record DoseReminderDue(UUID doseId, UUID seniorId, UUID medicationId, String nomMedicament,
+                                  Instant datePrevue, boolean relance) {
     }
 
     /** Changement de statut d'une prise (CONFIRME, SANS_REPONSE…). */

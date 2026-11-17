@@ -169,17 +169,15 @@ public class ReminderService {
     public int dispatchDue(Instant now) {
         List<DoseEvent> due = doses.findDueForNotification(now);
         List<DoseEvent> relances = doses.findDueForRelance(now.minus(properties.reminder().relanceAfter()));
-        Map<UUID, String> names = medicationNames(due, relances);
+        Map<UUID, ScheduleSlot> slots = slotsOf(due, relances);
 
         due.forEach(dose -> {
             dose.markNotificationSent();
-            events.publishEvent(new DoseReminderDue(dose.getId(), dose.getSeniorId(),
-                    names.get(dose.getScheduleId()), dose.getDatePrevue(), false));
+            events.publishEvent(reminderEvent(dose, slots.get(dose.getScheduleId()), false));
         });
         relances.forEach(dose -> {
             dose.markRelanceSent();
-            events.publishEvent(new DoseReminderDue(dose.getId(), dose.getSeniorId(),
-                    names.get(dose.getScheduleId()), dose.getDatePrevue(), true));
+            events.publishEvent(reminderEvent(dose, slots.get(dose.getScheduleId()), true));
         });
         return due.size() + relances.size();
     }
@@ -205,13 +203,18 @@ public class ReminderService {
     // ---------- Utilitaires ----------
 
     @SafeVarargs
-    private Map<UUID, String> medicationNames(Collection<DoseEvent>... groups) {
+    private Map<UUID, ScheduleSlot> slotsOf(Collection<DoseEvent>... groups) {
         Set<UUID> scheduleIds = new HashSet<>();
         for (Collection<DoseEvent> group : groups) {
             group.forEach(d -> scheduleIds.add(d.getScheduleId()));
         }
         return medicationService.slotsByIds(scheduleIds).stream()
-                .collect(Collectors.toMap(ScheduleSlot::scheduleId, ScheduleSlot::nomMedicament));
+                .collect(Collectors.toMap(ScheduleSlot::scheduleId, Function.identity()));
+    }
+
+    private static DoseReminderDue reminderEvent(DoseEvent dose, ScheduleSlot slot, boolean relance) {
+        return new DoseReminderDue(dose.getId(), dose.getSeniorId(), slot == null ? null : slot.medicationId(),
+                slot == null ? null : slot.nomMedicament(), dose.getDatePrevue(), relance);
     }
 
     static DoseScheduleCalculator.Slot toCalculatorSlot(ScheduleSlot slot) {

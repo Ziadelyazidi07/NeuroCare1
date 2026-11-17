@@ -16,6 +16,22 @@ public class AsyncConfig {
 
     public static final String PUSH_EXECUTOR = "pushExecutor";
 
+    public static final String AUDIO_EXECUTOR = "audioExecutor";
+
+    /** Génération audio et enrôlement vocal : appels lents au microservice, isolés des envois push. */
+    @Bean(name = AUDIO_EXECUTOR)
+    Executor audioExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("audio-");
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(500);
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+        return executor;
+    }
+
     @Bean(name = PUSH_EXECUTOR)
     Executor pushExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

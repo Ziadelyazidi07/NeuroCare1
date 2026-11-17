@@ -25,9 +25,14 @@ services:
     ports: ["${MINIO_PORT:-9000}:9000", "${MINIO_CONSOLE_PORT:-9001}:9001"]
 
   audio-service:
-    build: ../audio-service
+    build:
+      context: ../audio-service
+      target: runtime
     environment:
       INTERNAL_KEY: ${AUDIO_INTERNAL_KEY:?AUDIO_INTERNAL_KEY requis}
+      TTS_ENGINE: espeak          # espeak | none
+      CLONING_ENGINE: none        # point d'extension XTTS v2 (GPU)
+    volumes: ["audiodata:/data"]
     # non exposé à Internet : accessible uniquement depuis le réseau compose
 
   backend:
@@ -47,7 +52,10 @@ services:
       NEUROCARE_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET requis}
       NEUROCARE_AUDIO_BASE_URL: http://audio-service:8000
       NEUROCARE_AUDIO_INTERNAL_KEY: ${AUDIO_INTERNAL_KEY}
+      NEUROCARE_STORAGE_PROVIDER: minio
       NEUROCARE_STORAGE_ENDPOINT: http://minio:9000
+      # Hôte des URL signées vu par les téléphones (IP du poste en démo locale).
+      NEUROCARE_STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-http://localhost:9000}
       MINIO_USER: ${MINIO_USER}
       MINIO_PASSWORD: ${MINIO_PASSWORD}
     ports: ["${BACKEND_PORT:-8080}:8080"]
@@ -55,3 +63,4 @@ services:
 volumes:
   pgdata: {}
   miniodata: {}
+  audiodata: {}
