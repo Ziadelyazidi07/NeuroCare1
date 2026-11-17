@@ -1,0 +1,11 @@
+# Profil prod : documentation interactive désactivée, logs sobres.
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    ma.neurocare: INFO

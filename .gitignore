@@ -1,0 +1,26 @@
+# Secrets
+.env
+*.env.local
+**/secrets/
+firebase*.json
+
+# Java / Maven
+backend/target/
+*.class
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / Expo
+node_modules/
+.expo/

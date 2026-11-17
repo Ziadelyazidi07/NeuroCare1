@@ -1,0 +1,4 @@
+# Profil dev : PostgreSQL Docker local (H2 interdit), logs SQL au besoin.
+logging:
+  level:
+    ma.neurocare: DEBUG

@@ -1,0 +1,7 @@
+# Profil demo : délais réduits pour le scénario de 3 min (cahier §9.6), données fictives.
+neurocare:
+  reminder:
+    tick: PT10S
+    relance-after: PT30S
+    default-timeout: PT1M
+    lookahead-hours: 48

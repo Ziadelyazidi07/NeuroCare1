@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: neurocare-backend
+  profiles:
+    default: dev
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/neurocare}
+    username: ${SPRING_DATASOURCE_USERNAME:neurocare}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # le schéma est géré uniquement par Flyway
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+neurocare:
+  timezone: Africa/Casablanca
+  jwt:
+    secret: ${NEUROCARE_JWT_SECRET:}
+    access-ttl: PT15M
+    refresh-ttl: P30D
+  reminder:
+    tick: PT1M
+    relance-after: PT10M
+    default-timeout: PT30M
+    lookahead-hours: 48
+  audio:
+    base-url: ${NEUROCARE_AUDIO_BASE_URL:http://localhost:8000}
+    internal-key: ${NEUROCARE_AUDIO_INTERNAL_KEY:}
+    timeout: PT20S
+  storage:
+    endpoint: ${NEUROCARE_STORAGE_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_USER:}
+    secret-key: ${MINIO_PASSWORD:}
+    voice-samples-bucket: voice-samples
+    audio-assets-bucket: audio-assets
+    signed-url-ttl: PT5M
