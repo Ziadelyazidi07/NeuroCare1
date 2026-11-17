@@ -30,7 +30,8 @@ class NotificationServiceTest {
     private final DeviceService devices = mock(DeviceService.class);
     private final CaregiverLinkService links = mock(CaregiverLinkService.class);
     private final AudioGenerationService audio = mock(AudioGenerationService.class);
-    private final NotificationService service = new NotificationService(push, devices, links, audio);
+    private final AlertPublisher alerts = mock(AlertPublisher.class);
+    private final NotificationService service = new NotificationService(push, devices, links, audio, alerts);
 
     private final UUID seniorId = UUID.randomUUID();
     private final UUID doseId = UUID.randomUUID();
@@ -83,6 +84,8 @@ class NotificationServiceTest {
         service.onDoseReminderDue(new DoseReminderDue(doseId, seniorId, medicationId, "X", prevue, true));
 
         verify(devices).forgetFcmToken("stale");
+        // L'aidant est prévenu en temps réel que le téléphone du senior ne reçoit plus les rappels.
+        verify(alerts).deviceUnreachable(seniorId);
     }
 
     @Test

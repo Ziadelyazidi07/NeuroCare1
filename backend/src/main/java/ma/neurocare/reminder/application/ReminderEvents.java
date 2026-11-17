@@ -26,11 +26,7 @@ public final class ReminderEvents {
 
         /** Couleur de pastille du tableau de bord (EF-DA-01). */
         public String couleur() {
-            return switch (statut) {
-                case CONFIRME -> "VERT";
-                case SANS_REPONSE -> "ORANGE";
-                case EN_ATTENTE, DESACTIVE -> "GRIS";
-            };
+            return statut.couleur();
         }
     }
 }

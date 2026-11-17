@@ -38,6 +38,7 @@ public class NotificationService {
     private final DeviceService deviceService;
     private final CaregiverLinkService linkService;
     private final AudioGenerationService audioGeneration;
+    private final AlertPublisher alerts;
 
     /** Rappel au senior : le payload contient le nom du médicament pour l'affichage (cahier §9.3). */
     @Async(AsyncConfig.PUSH_EXECUTOR)
@@ -52,7 +53,9 @@ public class NotificationService {
                 "audioUrl", audioUrl,
                 // URL vide → l'application joue son audio générique embarqué (repli niveau 3).
                 "audioSource", audioUrl.isEmpty() ? AudioSource.PREENREGISTRE.name() : "FICHIER");
-        sendToUser(event.seniorId(), new PushMessage(DOSE_REMINDER, data));
+        if (sendToUser(event.seniorId(), new PushMessage(DOSE_REMINDER, data))) {
+            alerts.deviceUnreachable(event.seniorId());
+        }
     }
 
     /**
@@ -95,20 +98,24 @@ public class NotificationService {
         }
     }
 
-    void sendToUser(UUID userId, PushMessage message) {
+    /** @return {@code true} si un token a été refusé par FCM (appareil injoignable) */
+    boolean sendToUser(UUID userId, PushMessage message) {
         List<String> tokens = deviceService.activeFcmTokens(userId);
         if (tokens.isEmpty()) {
             log.debug("Aucun appareil joignable pour un message {}", message.type());
-            return;
+            return false;
         }
+        boolean invalidToken = false;
         for (String token : tokens) {
             try {
                 if (push.send(token, message) == PushResult.INVALID_TOKEN) {
                     deviceService.forgetFcmToken(token);
+                    invalidToken = true;
                 }
             } catch (RuntimeException e) {
                 log.warn("Échec d'envoi push {} : {}", message.type(), e.getClass().getSimpleName());
             }
         }
+        return invalidToken;
     }
 }

@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import ma.neurocare.audit.application.AuditHealthRead;
 import ma.neurocare.reminder.api.dto.DoseDtos.ConfirmRequest;
 import ma.neurocare.reminder.api.dto.DoseDtos.DoseDto;
 import ma.neurocare.reminder.api.dto.DoseDtos.SyncRequest;
@@ -44,6 +45,7 @@ public class DoseController {
     @Operation(summary = "Prises d'une journée (AIDANT lié + PARTAGE_FAMILIAL, ou SENIOR)")
     @GetMapping("/seniors/{seniorId}/doses")
     @PreAuthorize("@accessPolicy.canReadDoses(#seniorId, authentication)")
+    @AuditHealthRead("READ_DOSES")
     public List<DoseDto> dosesOfDay(@PathVariable UUID seniorId,
                                     @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return doseService.dosesOfDay(seniorId, date);

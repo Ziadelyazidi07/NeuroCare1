@@ -28,7 +28,7 @@ public final class CurrentUser {
         throw new BusinessException(ErrorCode.UNAUTHENTICATED, "Authentification requise.");
     }
 
-    static Authentication toAuthentication(AuthenticatedUser user) {
+    public static Authentication toAuthentication(AuthenticatedUser user) {
         return UsernamePasswordAuthenticationToken.authenticated(user, null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())));
     }

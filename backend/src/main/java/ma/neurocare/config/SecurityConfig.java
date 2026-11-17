@@ -59,7 +59,9 @@ public class SecurityConfig {
                         .requestMatchers(API + "/me/devices").hasAnyRole("SENIOR", "AIDANT")
                         .requestMatchers(API + "/me/**").hasRole("SENIOR")
                         .requestMatchers(HttpMethod.POST, API + "/seniors").hasRole("AIDANT")
-                        .requestMatchers("/ws/**").authenticated()
+                        // Poignée de main WebSocket publique : l'authentification se fait à la trame
+                        // STOMP CONNECT (StompSecurityInterceptor, cahier §8.4).
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new DeviceTokenFilter(deviceTokenAuthenticator, tokenHasher),
                         UsernamePasswordAuthenticationFilter.class)

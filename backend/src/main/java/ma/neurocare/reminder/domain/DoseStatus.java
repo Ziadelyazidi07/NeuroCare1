@@ -13,4 +13,13 @@ public enum DoseStatus {
     public boolean isFinal() {
         return this != EN_ATTENTE;
     }
+
+    /** Pastille du tableau de bord (EF-DA-01) : vert, orange, gris. */
+    public String couleur() {
+        return switch (this) {
+            case CONFIRME -> "VERT";
+            case SANS_REPONSE -> "ORANGE";
+            case EN_ATTENTE, DESACTIVE -> "GRIS";
+        };
+    }
 }

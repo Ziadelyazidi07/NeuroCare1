@@ -61,6 +61,20 @@ public class DoseService {
                 day.plusDays(1).atStartOfDay(zone).toInstant()));
     }
 
+    /** Prises du {@code firstDay} au {@code lastDay} inclus (jours locaux du senior). */
+    @Transactional(readOnly = true)
+    public List<DoseDto> dosesBetween(UUID seniorId, LocalDate firstDay, LocalDate lastDay) {
+        ZoneId zone = settings(seniorId).zone();
+        return toDtos(doses.findForSenior(seniorId, firstDay.atStartOfDay(zone).toInstant(),
+                lastDay.plusDays(1).atStartOfDay(zone).toInstant()));
+    }
+
+    /** Fuseau du senior (jours du tableau de bord). */
+    @Transactional(readOnly = true)
+    public ZoneId zoneOf(UUID seniorId) {
+        return settings(seniorId).zone();
+    }
+
     @Transactional(readOnly = true)
     public List<DoseDto> today(UUID seniorId) {
         return dosesOfDay(seniorId, LocalDate.now(clock.withZone(settings(seniorId).zone())));
