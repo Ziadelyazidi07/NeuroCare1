@@ -8,7 +8,10 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Requête invalide"),
+    PAIRING_CODE_INVALID(HttpStatus.BAD_REQUEST, "Code d'appairage invalide"),
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Authentification requise"),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Identifiants invalides"),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "Refresh token invalide"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "Accès refusé"),
     CONSENT_REQUIRED(HttpStatus.FORBIDDEN, "Consentement requis"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Ressource introuvable"),

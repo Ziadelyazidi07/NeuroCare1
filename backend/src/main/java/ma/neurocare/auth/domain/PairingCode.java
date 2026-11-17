@@ -9,27 +9,25 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import ma.neurocare.common.domain.BaseEntity;
 
 /**
- * Code d'appairage à 6 chiffres du téléphone senior, haché, valable 10 min
- * (table {@code pairing_codes}, EF-AU-04).
+ * Code d'appairage à 6 chiffres du téléphone senior, stocké sous forme d'empreinte HMAC,
+ * à usage unique et valable 10 min (table {@code pairing_codes}, EF-AU-04).
  */
 @Entity
 @Table(name = "pairing_codes")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PairingCode extends BaseEntity {
 
     @Column(name = "senior_id", nullable = false, updatable = false)
     private UUID seniorId;
 
-    @Column(name = "code_hash", nullable = false, length = 64)
+    @Column(name = "code_hash", nullable = false, length = 64, updatable = false)
     private String codeHash;
 
-    @Column(name = "expire_le", nullable = false)
+    @Column(name = "expire_le", nullable = false, updatable = false)
     private Instant expireLe;
 
     @Column(name = "utilise", nullable = false)
@@ -39,5 +37,13 @@ public class PairingCode extends BaseEntity {
         this.seniorId = seniorId;
         this.codeHash = codeHash;
         this.expireLe = expireLe;
+    }
+
+    public boolean isUsable(Instant now) {
+        return !utilise && expireLe.isAfter(now);
+    }
+
+    public void consume() {
+        this.utilise = true;
     }
 }

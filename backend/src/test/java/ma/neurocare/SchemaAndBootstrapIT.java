@@ -10,29 +10,17 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Livrable de l'étape 1 : le contexte démarre sur PostgreSQL 16, Flyway crée le schéma V1,
  * Hibernate le valide ({@code ddl-auto: validate}), Swagger et health sont accessibles.
  */
-@Testcontainers(disabledWithoutDocker = true)
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfig.class)
-class SchemaAndBootstrapIT {
+class SchemaAndBootstrapIT extends AbstractIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbc;
-
-    @Autowired
-    MockMvc mvc;
 
     @Test
     void flywayCreatesAllTables() {

@@ -1,6 +1,11 @@
 package ma.neurocare.config;
 
+import ma.neurocare.security.DeviceTokenAuthenticator;
+import ma.neurocare.security.DeviceTokenFilter;
+import ma.neurocare.security.JwtAuthFilter;
+import ma.neurocare.security.JwtService;
 import ma.neurocare.security.ProblemSecurityHandlers;
+import ma.neurocare.security.TokenHasher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Chaîne de filtres stateless (cahier §8.2).
@@ -22,7 +28,8 @@ import org.springframework.security.web.SecurityFilterChain;
  *   <li>{@code /me/devices} est ouvert à SENIOR et AIDANT (déclaré avant la règle {@code /me/**} réservée au SENIOR).</li>
  * </ul>
  *
- * <p>Les filtres {@code JwtAuthFilter} et {@code DeviceTokenFilter} sont ajoutés à l'étape 2.
+ * <p>Les filtres sont instanciés ici (et non déclarés en {@code @Component}) pour ne pas être
+ * enregistrés une seconde fois comme filtres servlet par Spring Boot.
  */
 @Configuration
 @EnableMethodSecurity
@@ -31,7 +38,9 @@ public class SecurityConfig {
     private static final String API = "/api/v1";
 
     @Bean
-    SecurityFilterChain api(HttpSecurity http, ProblemSecurityHandlers problemHandlers) throws Exception {
+    SecurityFilterChain api(HttpSecurity http, ProblemSecurityHandlers problemHandlers, JwtService jwtService,
+                            DeviceTokenAuthenticator deviceTokenAuthenticator, TokenHasher tokenHasher)
+            throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -49,6 +58,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, API + "/seniors").hasRole("AIDANT")
                         .requestMatchers("/ws/**").authenticated()
                         .anyRequest().authenticated())
+                .addFilterBefore(new DeviceTokenFilter(deviceTokenAuthenticator, tokenHasher),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(problemHandlers)
                         .accessDeniedHandler(problemHandlers))

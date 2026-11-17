@@ -40,6 +40,9 @@ public class ConsentHistory {
     @Column(name = "accorde", nullable = false, updatable = false)
     private boolean accorde;
 
+    @Column(name = "version_texte", nullable = false, updatable = false, length = 20)
+    private String versionTexte;
+
     @Column(name = "auteur_id", nullable = false, updatable = false)
     private UUID auteurId;
 
@@ -50,9 +53,11 @@ public class ConsentHistory {
     @Column(name = "horodatage", nullable = false, updatable = false)
     private Instant horodatage = Instant.now();
 
-    public ConsentHistory(Consent consent, boolean accorde, UUID auteurId, ConsentChannel canal) {
+    public ConsentHistory(Consent consent, boolean accorde, String versionTexte, UUID auteurId,
+                          ConsentChannel canal) {
         this.consent = consent;
         this.accorde = accorde;
+        this.versionTexte = versionTexte;
         this.auteurId = auteurId;
         this.canal = canal;
     }

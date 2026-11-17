@@ -9,34 +9,50 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import ma.neurocare.common.domain.BaseEntity;
 
 /**
  * Refresh token stocké haché en SHA-256 (table {@code refresh_tokens}, cahier §8.1).
+ * Tous les tokens issus d'une même connexion partagent un {@code familyId} :
+ * la réutilisation d'un token déjà consommé révoque toute la famille.
  */
 @Entity
 @Table(name = "refresh_tokens")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RefreshToken extends BaseEntity {
 
     @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(name = "family_id", nullable = false, updatable = false)
+    private UUID familyId;
+
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64, updatable = false)
     private String tokenHash;
 
-    @Column(name = "expire_le", nullable = false)
+    @Column(name = "expire_le", nullable = false, updatable = false)
     private Instant expireLe;
 
     @Column(name = "revoque", nullable = false)
     private boolean revoque;
 
-    public RefreshToken(UUID userId, String tokenHash, Instant expireLe) {
+    @Column(name = "date_creation", nullable = false, updatable = false)
+    private Instant dateCreation;
+
+    public RefreshToken(UUID userId, UUID familyId, String tokenHash, Instant createdAt, Instant expireLe) {
         this.userId = userId;
+        this.familyId = familyId;
         this.tokenHash = tokenHash;
+        this.dateCreation = createdAt;
         this.expireLe = expireLe;
+    }
+
+    public boolean isExpired(Instant now) {
+        return !expireLe.isAfter(now);
+    }
+
+    public void revoke() {
+        this.revoque = true;
     }
 }

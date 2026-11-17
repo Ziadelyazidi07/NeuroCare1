@@ -1,0 +1,4 @@
+# Profil de test : secret factice réservé aux tests (jamais utilisé hors de src/test).
+neurocare:
+  jwt:
+    secret: test-only-secret-0123456789-abcdefghijklmnopqrstuvwxyz
