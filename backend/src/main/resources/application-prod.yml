@@ -9,3 +9,7 @@ logging:
   level:
     root: INFO
     ma.neurocare: INFO
+
+neurocare:
+  push:
+    provider: ${NEUROCARE_PUSH_PROVIDER:fcm}

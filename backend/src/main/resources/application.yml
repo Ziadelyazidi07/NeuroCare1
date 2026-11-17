@@ -64,6 +64,9 @@ neurocare:
     relance-after: PT10M
     default-timeout: PT30M
     lookahead-hours: 48
+    scheduling-enabled: true
+  push:
+    provider: ${NEUROCARE_PUSH_PROVIDER:log}   # log (factice) | fcm
   audio:
     base-url: ${NEUROCARE_AUDIO_BASE_URL:http://localhost:8000}
     internal-key: ${NEUROCARE_AUDIO_INTERNAL_KEY:}

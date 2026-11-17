@@ -3,8 +3,10 @@ package ma.neurocare.consent.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -89,6 +91,12 @@ public class ConsentService {
     @Transactional(readOnly = true)
     public boolean isGranted(UUID seniorId, ConsentType type) {
         return consents.existsBySeniorIdAndTypeAndAccordeTrue(seniorId, type);
+    }
+
+    /** Parmi {@code seniorIds}, ceux qui ont accordé {@code type}. */
+    @Transactional(readOnly = true)
+    public Set<UUID> seniorsWithConsent(Collection<UUID> seniorIds, ConsentType type) {
+        return seniorIds.isEmpty() ? Set.of() : consents.findGrantedSeniorIds(type, seniorIds);
     }
 
     private static ConsentChannel channelFor(AuthenticatedUser caller, ConsentUpdateRequest request) {

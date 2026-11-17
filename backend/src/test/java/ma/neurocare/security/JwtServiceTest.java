@@ -62,7 +62,7 @@ class JwtServiceTest {
     private static JwtService service(String secret, Clock clock) {
         NeuroCareProperties props = new NeuroCareProperties(ZoneId.of("Africa/Casablanca"),
                 new NeuroCareProperties.Jwt(secret, Duration.ofMinutes(15), Duration.ofDays(30)),
-                null, null, null);
+                null, null, null, null);
         return new JwtService(props, clock);
     }
 }

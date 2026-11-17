@@ -1,5 +1,7 @@
 package ma.neurocare.user.application;
 
+import java.time.ZoneId;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -108,6 +110,17 @@ public class SeniorService {
             profile.setContactUrgenceTel(request.contactUrgenceTel());
         }
         return mapper.toDto(senior, profile, linkFor(seniorId, caller));
+    }
+
+    /** Pour le moteur de rappel : fuseau et délai SANS_REPONSE des seniors demandés. */
+    @Transactional(readOnly = true)
+    public Map<UUID, SeniorReminderSettings> reminderSettings(Collection<UUID> seniorIds) {
+        if (seniorIds.isEmpty()) {
+            return Map.of();
+        }
+        return profiles.findAllById(seniorIds).stream()
+                .collect(Collectors.toMap(SeniorProfile::getId, p -> new SeniorReminderSettings(
+                        p.getId(), ZoneId.of(p.getFuseau()), p.getDelaiSansReponseMin())));
     }
 
     /** Pour les autres modules : nom affiché du senior. */

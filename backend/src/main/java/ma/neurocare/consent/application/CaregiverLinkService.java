@@ -52,6 +52,18 @@ public class CaregiverLinkService {
                 && consents.existsBySeniorIdAndTypeAndAccordeTrue(seniorId, type);
     }
 
+    /** Aidants autorisés à recevoir les alertes de santé du senior (lien validé + PARTAGE_FAMILIAL). */
+    @Transactional(readOnly = true)
+    public List<UUID> caregiversWithHealthAccess(UUID seniorId) {
+        if (!consents.existsBySeniorIdAndTypeAndAccordeTrue(seniorId, ConsentType.PARTAGE_FAMILIAL)) {
+            return List.of();
+        }
+        return links.findBySeniorId(seniorId).stream()
+                .filter(CaregiverLink::isConsentementValide)
+                .map(CaregiverLink::getAidantId)
+                .toList();
+    }
+
     /** Rompt le lien (DELETE /seniors/{seniorId}/caregivers/{aidantId}). */
     @Transactional
     public void deleteLink(UUID seniorId, UUID aidantId) {

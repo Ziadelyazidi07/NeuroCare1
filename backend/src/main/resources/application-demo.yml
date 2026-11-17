@@ -4,4 +4,5 @@ neurocare:
     tick: PT10S
     relance-after: PT30S
     default-timeout: PT1M
+    timeout-override: PT1M      # SANS_REPONSE à +1 min pour tous les seniors
     lookahead-hours: 48

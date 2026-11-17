@@ -60,6 +60,45 @@ public class DeviceService implements DeviceTokenAuthenticator {
                 .toList();
     }
 
+    /**
+     * POST /me/devices : enregistre ou met à jour le token FCM. Pour un senior, il est rattaché à
+     * l'appareil authentifié ; pour un aidant, une ligne par token. Un token déplacé sur un autre
+     * compte est retiré de l'ancien.
+     */
+    @Transactional
+    public void registerFcmToken(AuthenticatedUser caller, Platform plateforme, String fcmToken) {
+        Device target;
+        if (caller.deviceId() != null) {
+            target = devices.findByIdAndUserId(caller.deviceId(), caller.userId())
+                    .orElseThrow(() -> BusinessException.notFound("Appareil introuvable."));
+        } else {
+            target = devices.findByFcmToken(fcmToken).stream()
+                    .filter(d -> d.getUserId().equals(caller.userId()))
+                    .findFirst()
+                    .orElseGet(() -> new Device(caller.userId(), plateforme));
+        }
+        devices.findByFcmToken(fcmToken).stream()
+                .filter(d -> !d.getId().equals(target.getId()))
+                .forEach(d -> d.setFcmToken(null));
+        target.setPlateforme(plateforme);
+        target.setFcmToken(fcmToken);
+        target.setDerniereActivite(clock.instant());
+        devices.save(target);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> activeFcmTokens(UUID userId) {
+        return devices.findByUserIdAndRevoqueFalseAndFcmTokenIsNotNull(userId).stream()
+                .map(Device::getFcmToken)
+                .toList();
+    }
+
+    /** Token FCM refusé par Firebase : il est oublié (cahier §9.3). */
+    @Transactional
+    public void forgetFcmToken(String fcmToken) {
+        devices.findByFcmToken(fcmToken).forEach(d -> d.setFcmToken(null));
+    }
+
     @Transactional
     public void revoke(UUID seniorId, UUID deviceId) {
         Device device = devices.findByIdAndUserId(deviceId, seniorId)

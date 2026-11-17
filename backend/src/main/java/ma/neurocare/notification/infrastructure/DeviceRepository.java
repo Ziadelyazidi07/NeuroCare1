@@ -14,4 +14,8 @@ public interface DeviceRepository extends JpaRepository<Device, UUID> {
     List<Device> findByUserIdOrderByDerniereActiviteDesc(UUID userId);
 
     Optional<Device> findByIdAndUserId(UUID id, UUID userId);
+
+    List<Device> findByUserIdAndRevoqueFalseAndFcmTokenIsNotNull(UUID userId);
+
+    List<Device> findByFcmToken(String fcmToken);
 }

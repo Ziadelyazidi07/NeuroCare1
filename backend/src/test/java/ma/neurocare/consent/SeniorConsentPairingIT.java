@@ -170,9 +170,8 @@ class SeniorConsentPairingIT extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
 
         String deviceToken = pair(aidant, createSenior(aidant));
-        // Route /me non encore implémentée : la sécurité laisse passer, le routage répond 404.
         mvc.perform(bearer(get("/api/v1/me/doses/today"), deviceToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 
     @Test

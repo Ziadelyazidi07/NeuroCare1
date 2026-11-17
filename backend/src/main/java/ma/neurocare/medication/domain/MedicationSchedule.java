@@ -18,7 +18,7 @@ import ma.neurocare.common.domain.BaseEntity;
 
 /**
  * Horaire de rappel d'un traitement (table {@code medication_schedules}).
- * L'heure est exprimée dans le fuseau du senior.
+ * L'heure est exprimée dans le fuseau du senior. Un horaire retiré est désactivé, jamais supprimé.
  */
 @Entity
 @Table(name = "medication_schedules")
@@ -31,15 +31,22 @@ public class MedicationSchedule extends BaseEntity {
     @JoinColumn(name = "medication_id", nullable = false, updatable = false)
     private Medication medication;
 
-    @Column(name = "heure_rappel", nullable = false)
+    @Column(name = "heure_rappel", nullable = false, updatable = false)
     private LocalTime heureRappel;
 
     /** Masque binaire : lundi = 1 … dimanche = 64 (voir {@link WeekdayMask}). */
     @Column(name = "jours_semaine", nullable = false)
     private short joursSemaine = WeekdayMask.ALL_DAYS;
 
+    @Column(name = "actif", nullable = false)
+    private boolean actif = true;
+
     public MedicationSchedule(LocalTime heureRappel, Set<DayOfWeek> jours) {
         this.heureRappel = heureRappel;
+        this.joursSemaine = WeekdayMask.of(jours);
+    }
+
+    public void changeDays(Set<DayOfWeek> jours) {
         this.joursSemaine = WeekdayMask.of(jours);
     }
 

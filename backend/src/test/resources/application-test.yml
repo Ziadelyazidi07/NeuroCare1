@@ -2,3 +2,5 @@
 neurocare:
   jwt:
     secret: test-only-secret-0123456789-abcdefghijklmnopqrstuvwxyz
+  reminder:
+    scheduling-enabled: false   # les tests appellent ReminderService directement

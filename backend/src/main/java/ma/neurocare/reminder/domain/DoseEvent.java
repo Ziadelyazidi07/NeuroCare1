@@ -1,6 +1,8 @@
 package ma.neurocare.reminder.domain;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -20,7 +22,10 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * Prise prévue d'un traitement (table {@code dose_events}). Unique par (horaire, date prévue).
- * Une prise ne quitte EN_ATTENTE que vers un seul statut final (cahier §6.5).
+ *
+ * <p>Cycle de vie (cahier §9.1) : EN_ATTENTE → CONFIRME | SANS_REPONSE | DESACTIVE, états finaux.
+ * Seule exception : une confirmation faite hors ligne <em>avant</em> la clôture et synchronisée après
+ * fait passer SANS_REPONSE → CONFIRME.
  */
 @Entity
 @Table(name = "dose_events", uniqueConstraints = @UniqueConstraint(columnNames = {"schedule_id", "date_prevue"}))
@@ -51,7 +56,7 @@ public class DoseEvent extends BaseEntity {
     @Column(name = "notification_envoyee", nullable = false)
     private boolean notificationEnvoyee;
 
-    /** Idempotence des confirmations (en-tête Idempotency-Key ou clientRequestId hors ligne). */
+    /** Clé d'idempotence de la confirmation appliquée (en-tête Idempotency-Key ou clientRequestId). */
     @Column(name = "client_request_id", length = 64)
     private String clientRequestId;
 
@@ -65,11 +70,35 @@ public class DoseEvent extends BaseEntity {
         this.datePrevue = datePrevue;
     }
 
-    public void confirm(Instant at, String clientRequestId) {
-        requirePending();
-        this.statut = DoseStatus.CONFIRME;
-        this.horodatageAction = at;
-        this.clientRequestId = clientRequestId;
+    /**
+     * Applique une confirmation du senior.
+     *
+     * @param key      clé d'idempotence (peut être nulle)
+     * @param clientAt horodatage côté téléphone (peut être nul ; borné à {@code now})
+     * @param now      instant serveur
+     * @param timeout  délai SANS_REPONSE effectif du senior
+     */
+    public ConfirmationOutcome confirm(String key, Instant clientAt, Instant now, Duration timeout) {
+        if (key != null && key.equals(clientRequestId)) {
+            return ConfirmationOutcome.ALREADY_APPLIED;
+        }
+        // Précision PostgreSQL (µs) : la réponse rejouée relit la base et doit être identique (CA-04).
+        Instant actionAt = (clientAt == null || clientAt.isAfter(now) ? now : clientAt).truncatedTo(ChronoUnit.MICROS);
+        return switch (statut) {
+            case EN_ATTENTE -> {
+                markConfirmed(actionAt, key);
+                yield ConfirmationOutcome.APPLIED;
+            }
+            case SANS_REPONSE -> {
+                Instant closedAt = datePrevue.plus(timeout);
+                if (clientAt != null && actionAt.isBefore(closedAt)) {
+                    markConfirmed(actionAt, key);
+                    yield ConfirmationOutcome.APPLIED_LATE;
+                }
+                yield ConfirmationOutcome.REJECTED_AFTER_CLOSURE;
+            }
+            case CONFIRME, DESACTIVE -> ConfirmationOutcome.REJECTED_FINAL;
+        };
     }
 
     public void markNoResponse() {
@@ -77,6 +106,7 @@ public class DoseEvent extends BaseEntity {
         this.statut = DoseStatus.SANS_REPONSE;
     }
 
+    /** Traitement désactivé ou consentement RAPPELS révoqué : jamais SANS_REPONSE (EF-RE-07). */
     public void deactivate() {
         requirePending();
         this.statut = DoseStatus.DESACTIVE;
@@ -88,6 +118,12 @@ public class DoseEvent extends BaseEntity {
 
     public void markRelanceSent() {
         this.relanceEnvoyee = true;
+    }
+
+    private void markConfirmed(Instant at, String key) {
+        this.statut = DoseStatus.CONFIRME;
+        this.horodatageAction = at;
+        this.clientRequestId = key;
     }
 
     private void requirePending() {
