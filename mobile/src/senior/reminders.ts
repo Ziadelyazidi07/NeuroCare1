@@ -2,24 +2,34 @@
  * Rappels locaux (cahier §4.1 « le rappel part même sans réseau », §9.5, CA-10) : chaque prise à venir
  * des 48 h est programmée comme notification locale, en double du push serveur.
  *
- * Les notifications sont désactivées dans Expo Go, où le module natif est incomplet. Ailleurs, un échec
- * est journalisé sans jamais bloquer l'écran du senior ni le chargement de ses prises.
+ * Dans Expo Go, expo-notifications n'est même pas chargé : son module natif y est incomplet et son
+ * import émet des avertissements. Ailleurs, un échec est journalisé sans jamais bloquer l'écran du
+ * senior ni le chargement de ses prises.
  */
 import { Platform } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 
 import type { DoseDto } from '../api/types';
 
+type NotificationsModule = typeof import('expo-notifications');
+
 export const REMINDER_CHANNEL = 'rappels_medicaments';
 
-function isExpoGo(): boolean {
-  return Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+/**
+ * Renvoie le module, ou null dans Expo Go. executionEnvironment seul ne suffit pas : Expo Go peut
+ * annoncer une autre valeur, alors que isRunningInExpoGo teste la présence de son module natif.
+ */
+function loadNotifications(): NotificationsModule | null {
+  if (isRunningInExpoGo() || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- chargement conditionnel, sans effet de bord dans Expo Go
+  return require('expo-notifications') as NotificationsModule;
 }
 
 /** À appeler au démarrage : affichage au premier plan, canal Android dédié et permission. */
 export async function configureReminders(): Promise<boolean> {
-  if (isExpoGo()) return false;
+  const Notifications = loadNotifications();
+  if (!Notifications) return false;
   try {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -32,7 +42,6 @@ export async function configureReminders(): Promise<boolean> {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
         name: 'Rappels médicaments',
-        // eslint-disable-next-line import/namespace -- réexporté via « export * » (NotificationChannelManager.types)
         importance: Notifications.AndroidImportance.MAX,
         sound: 'default',
         vibrationPattern: [0, 400, 200, 400],
@@ -55,7 +64,8 @@ export async function configureReminders(): Promise<boolean> {
  * nombre de rappels réellement programmés. L'échec d'une prise n'empêche pas de programmer les suivantes.
  */
 export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()): Promise<number> {
-  if (isExpoGo()) return 0;
+  const Notifications = loadNotifications();
+  if (!Notifications) return 0;
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (error) {
@@ -90,7 +100,8 @@ export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()
 
 /** Écoute les appuis sur un rappel ; renvoie la fonction de désabonnement. */
 export function onReminderTapped(listener: (doseId: unknown) => void): () => void {
-  if (isExpoGo()) return () => undefined;
+  const Notifications = loadNotifications();
+  if (!Notifications) return () => undefined;
   try {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       listener(response.notification.request.content.data?.doseId);
@@ -107,7 +118,8 @@ export function onReminderTapped(listener: (doseId: unknown) => void): () => voi
  * Expo Go (build de développement requis).
  */
 export async function devicePushToken(): Promise<{ platform: 'ANDROID' | 'IOS'; token: string } | null> {
-  if (isExpoGo()) return null;
+  const Notifications = loadNotifications();
+  if (!Notifications) return null;
   try {
     const token = await Notifications.getDevicePushTokenAsync();
     return { platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID', token: String(token.data) };

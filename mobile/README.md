@@ -66,6 +66,10 @@ notifications et le scénario hors ligne sur un build de développement.
 Sans FCM, les rappels locaux du build restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
 En build Android de production, le HTTP en clair est bloqué : utiliser HTTPS (Nginx + TLS, cahier §15.4).
 
+Si `expo start` affiche une erreur d'installation de React Native DevTools (`dotslash error: Access is denied`),
+ajouter `EXPO_UNSTABLE_HEADLESS=1` à `.env.local` puis relancer. L'application DevTools n'est alors plus
+installée ; ce mode coupe aussi la vérification des versions de dépendances au démarrage et l'annonce Bonjour.
+
 ## Scénario de démonstration
 
 Avec la stack en profil `demo` (comptes fictifs, voir `docs/demo.md`) :
