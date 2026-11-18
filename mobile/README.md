@@ -58,10 +58,12 @@ npx expo start --ios      # simulateur iOS (macOS)
 | Fonction | Expo Go | Build de développement (`npx expo run:android`, `eas build --profile development`) |
 |----------|---------|------|
 | API REST, temps réel STOMP, PDF, enregistrement vocal, audio | oui | oui |
-| Rappels **locaux** programmés (hors ligne) | oui | oui |
-| Push **FCM** envoyés par le serveur | non (Android, depuis le SDK 53) | oui, avec `google-services.json` |
+| Rappels **locaux** programmés (hors ligne) | non (désactivés) | oui |
+| Push **FCM** envoyés par le serveur | non | oui, avec `google-services.json` |
 
-Sans FCM, les rappels locaux restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
+Dans Expo Go, le rappel audio ne se déclenche donc que si l'application est ouverte : tester les
+notifications et le scénario hors ligne sur un build de développement.
+Sans FCM, les rappels locaux du build restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
 En build Android de production, le HTTP en clair est bloqué : utiliser HTTPS (Nginx + TLS, cahier §15.4).
 
 ## Scénario de démonstration

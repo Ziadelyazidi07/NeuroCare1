@@ -9,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
 
 import { seniorApi } from '../../api/api';
 import type { DoseDto, Language, SeniorDto } from '../../api/types';
@@ -18,7 +17,7 @@ import { formatTime } from '../../lib/dates';
 import { currentDose, isConfirmable, isDue } from '../../lib/doses';
 import { confirmDose, refreshDoses, cachedDoses } from '../../senior/offlineStore';
 import { playReminder, playThanks, prefetchReminderAudio } from '../../senior/reminderAudio';
-import { configureReminders, devicePushToken, scheduleReminders } from '../../senior/reminders';
+import { configureReminders, devicePushToken, onReminderTapped, scheduleReminders } from '../../senior/reminders';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
 const PROFILE_KEY = 'neurocare.senior.profile';
@@ -102,13 +101,11 @@ export default function SeniorHome() {
 
   // Notification touchée : on joue le message de la prise concernée.
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const doseId = response.notification.request.content.data?.doseId;
+    return onReminderTapped((doseId) => {
       const target = doses.find((d) => d.id === doseId) ?? dose;
       announced.current.add(String(doseId));
       void playReminder(target ?? null, language);
     });
-    return () => subscription.remove();
   }, [doses, dose, language]);
 
   if (!session || session.kind !== 'senior') return <Redirect href="/" />;
