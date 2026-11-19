@@ -80,6 +80,18 @@ public class AccessPolicy {
         return caregiverWithConsent(seniorId, authentication, ConsentType.PARTAGE_FAMILIAL);
     }
 
+    /**
+     * Modules de pré-dépistage (SpO2, GDS) : le senior lui-même, ou un aidant avec lien validé +
+     * PARTAGE_FAMILIAL (il saisit et lit des données de santé).
+     */
+    public boolean canUseScreening(UUID seniorId, Authentication authentication) {
+        AuthenticatedUser caller = CurrentUser.from(authentication);
+        if (caller.is(UserRole.SENIOR)) {
+            return requireSelf(seniorId, caller);
+        }
+        return caregiverWithConsent(seniorId, authentication, ConsentType.PARTAGE_FAMILIAL);
+    }
+
     /** Uploader une voix : lien validé + VOIX. */
     public boolean canUploadVoice(UUID seniorId, Authentication authentication) {
         return caregiverWithConsent(seniorId, authentication, ConsentType.VOIX);

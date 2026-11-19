@@ -10,11 +10,20 @@ Toute l'architecture, le SQL, les endpoints et les règles sont dans `docs/cahie
 - `infra/` : docker-compose.yml (PostgreSQL 16, MinIO, backend, audio-service).
 
 ## Conventions Strictes
-1. Packages backend : `ma.neurocare.<module>` (config, common, security, auth, user, consent, medication, reminder, voice, cognitive, notification, dashboard, report, audit).
+1. Packages backend : `ma.neurocare.<module>` (config, common, security, auth, user, consent, medication, reminder, voice, cognitive, notification, dashboard, report, audit, saturation, mental, metabolic, cardio).
 2. Couches par module : `api/`, `domain/`, `application/`, `infrastructure/`.
 3. DTO : Exclusivement des `record` Java. Jamais d'entité JPA dans les controllers.
 4. Erreurs : Format RFC 7807 (`ProblemDetail`).
-5. Éthique : Aucun score médical ni diagnostic.
+5. Éthique : jamais de diagnostic. Le Module 1 (observance) et les exercices cognitifs restent sans aucun score
+   médical (ni score Alzheimer, ni risque, ni probabilité).
+   Exception autorisée : les échelles cliniques standardisées des modules de pré-dépistage (Mini-GDS / GDS-15,
+   FINDRISC, seuils SpO2, automesure HTA) peuvent calculer leur score et leurs seuils officiels, comme outils de
+   pré-dépistage, de suivi d'indicateurs et d'orientation médicale. Conditions :
+   - barème officiel recalculé côté serveur (jamais repris de l'application) ;
+   - formulations « indicateurs compatibles avec… » et orientation vers un professionnel, jamais « vous avez… » ;
+   - chaque écran, réponse d'API et PDF porte la mention explicite que le résultat ne constitue pas un diagnostic
+     médical officiel et ne remplace pas un médecin (vérifié par `EthicsTest`).
+6. Mobile : un dossier par module dans `mobile/src/modules/`, sans import d'un module à l'autre (vérifié par les tests).
 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.

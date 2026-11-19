@@ -99,8 +99,21 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   « Diabète (FINDRISC) » et « Tension (HTA) », avec l'adresse du serveur et un rappel éthique (pré-dépistage
   et aide à la décision, jamais de diagnostic).
 - « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
-  déjà appairé ou un aidant connecté va directement dans son espace. Les 4 autres modules affichent pour
+  déjà appairé ou un aidant connecté va directement dans son espace. « Diabète » et « Tension » affichent pour
   l'instant un écran de présentation « en préparation ».
+- Modules SpO₂ et Santé mentale : le patient est le senior lui-même (téléphone appairé) ou un proche choisi par
+  l'aidant connecté (consentement « Partage familial » requis). Sans session, l'écran renvoie vers « Rappels & Suivi ».
+- **Saturation SpO₂** (`src/modules/saturation/`) : question du profil respiratoire (maladie respiratoire
+  chronique : Oui / Non, modifiable), saisie au repos de la SpO₂ et du pouls, alerte immédiate même hors ligne.
+  Standard : 95-100 % vert, 90-94 % orange (repos, vérifier le capteur, recontrôler dans 10 min), < 90 % rouge
+  avec boutons d'appel 15 / 141. BPCO : 88-92 % vert, < 85 % rouge, orange ailleurs. Historique 90 jours et
+  « Télécharger le relevé SpO2 PDF » (`expo-print` + partage).
+- **Santé mentale** (`src/modules/mental/`) : Mini-GDS (4 questions, 7 derniers jours). À 0, arrêt : « absence
+  probable de dépression ». Dès 1 point, les 12 autres items de la GDS-15 (vie vide, heureux et situation
+  désespérée sont communs aux deux échelles). Restitution 0-4 / 5-9 / 10-15, orientation médicale et
+  « Télécharger le rapport GDS PDF » (questions, réponses, scores). Le serveur recalcule toujours le score.
+- Chaque écran, réponse d'API et PDF de ces modules rappelle qu'ils ne constituent pas un diagnostic médical
+  officiel et ne remplacent pas un médecin.
 - Le bouton « ← Accueil Modules » (choix Senior / Aidant, espaces senior et aidant, modules) revient à la grille.
 - Un téléphone senior ouvert par une alarme, ou touché par une alarme depuis un autre module, va droit à
   l'écran de rappel, qui joue la voix comme avant.
