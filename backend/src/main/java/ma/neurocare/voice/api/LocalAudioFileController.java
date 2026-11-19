@@ -30,8 +30,8 @@ public class LocalAudioFileController {
                                        @RequestParam String sig) {
         byte[] content = storage.readSigned(object, exp, sig)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCESS_DENIED, "URL invalide ou expirée."));
-        MediaType type = object.endsWith(".wav") ? MediaType.parseMediaType("audio/wav")
-                : MediaType.parseMediaType("audio/mpeg");
+        MediaType type = MediaType.parseMediaType(object.endsWith(".wav") ? "audio/wav"
+                : object.endsWith(".m4a") ? "audio/mp4" : "audio/mpeg");
         return ResponseEntity.ok().contentType(type).cacheControl(CacheControl.noStore()).body(content);
     }
 }

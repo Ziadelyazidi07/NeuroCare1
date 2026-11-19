@@ -44,4 +44,10 @@ public class VoiceProfileFinder {
         return latest(seniorId)
                 .filter(p -> p.getStatut() == VoiceProfileStatus.PRET && p.getProviderVoiceId() != null);
     }
+
+    /** Dernier enregistrement de l'aidant, jouable tel quel si le consentement VOIX est accordé. */
+    @Transactional(readOnly = true)
+    public Optional<VoiceProfile> usableRecording(UUID seniorId) {
+        return consentService.isGranted(seniorId, ConsentType.VOIX) ? latest(seniorId) : Optional.empty();
+    }
 }

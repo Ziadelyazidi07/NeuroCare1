@@ -1,12 +1,15 @@
 package ma.neurocare.voice;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -114,6 +117,59 @@ class VoiceIT extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound());
         mvc.perform(bearer(get("/api/v1/seniors/{id}/voice-profile", seniorId), stranger))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void reminderSoundSelectsWhatThePhoneDownloads() throws Exception {
+        byte[] sample = AudioSampleInspectorTest.wav(12);
+        giveConsent(aidant, seniorId, "VOIX", true);
+        giveConsent(aidant, seniorId, "RAPPELS", true);
+        String medicationId = createMedication();
+        String senior = pairDevice(aidant, seniorId);
+        upload(sample).andExpect(status().isAccepted());
+        awaitUntil("profil ECHEC", () -> "ECHEC".equals(profileStatus()));
+
+        // Par défaut : son standard, l'enregistrement de l'aidant n'est pas envoyé au téléphone.
+        mvc.perform(bearer(get("/api/v1/seniors/{id}", seniorId), senior))
+                .andExpect(jsonPath("$.modeSonRappel").value("STANDARD"));
+        phoneAudio(medicationId, senior).andExpect(status().isNotFound());
+
+        // Le senior choisit la voix personnalisée : son téléphone reçoit l'enregistrement.
+        chooseSound(senior, "PERSONNALISE").andExpect(status().isOk())
+                .andExpect(jsonPath("$.modeSonRappel").value("PERSONNALISE"));
+        MvcResult audio = phoneAudio(medicationId, senior).andExpect(status().isOk())
+                .andExpect(jsonPath("$.extension").value("wav"))
+                .andReturn();
+        byte[] downloaded = mvc.perform(get(URI.create(read(audio, "$.url")))).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(downloaded).isEqualTo(sample);
+
+        // Le choix est persisté et reste modifiable par l'aidant.
+        mvc.perform(bearer(get("/api/v1/seniors/{id}", seniorId), aidant))
+                .andExpect(jsonPath("$.modeSonRappel").value("PERSONNALISE"));
+        chooseSound(aidant, "STANDARD").andExpect(status().isOk());
+        phoneAudio(medicationId, senior).andExpect(status().isNotFound());
+
+        // EF-CO-05 : après révocation, la voix personnalisée n'est plus servie.
+        chooseSound(aidant, "PERSONNALISE").andExpect(status().isOk());
+        giveConsent(aidant, seniorId, "VOIX", false);
+        phoneAudio(medicationId, senior).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void reminderSoundIsRestrictedAndValidated() throws Exception {
+        chooseSound(newAidantToken(), "STANDARD").andExpect(status().isNotFound());
+        chooseSound(aidant, "SONNERIE").andExpect(status().isBadRequest());
+    }
+
+    private ResultActions chooseSound(String token, String mode) throws Exception {
+        return mvc.perform(bearer(put("/api/v1/seniors/{id}/reminder-sound", seniorId), token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(Map.of("mode", mode))));
+    }
+
+    private ResultActions phoneAudio(String medicationId, String senior) throws Exception {
+        return mvc.perform(bearer(get("/api/v1/me/medications/{id}/audio", medicationId), senior));
     }
 
     private ResultActions upload(byte[] content) throws Exception {

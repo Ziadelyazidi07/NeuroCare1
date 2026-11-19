@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +26,9 @@ import ma.neurocare.medication.application.MedicationAudioInfo;
 import ma.neurocare.medication.application.MedicationService;
 import ma.neurocare.user.application.SeniorAudioProfile;
 import ma.neurocare.user.application.SeniorService;
+import ma.neurocare.user.domain.ReminderSoundMode;
 import ma.neurocare.voice.application.AudioGenerationService.AudioResult;
+import ma.neurocare.voice.application.AudioGenerationService.ReminderAudio;
 import ma.neurocare.voice.domain.AudioAsset;
 import ma.neurocare.voice.domain.AudioSource;
 import ma.neurocare.voice.domain.VoiceProfile;
@@ -36,6 +39,7 @@ import ma.neurocare.voice.infrastructure.AudioServiceClient.Synthesized;
 import ma.neurocare.voice.infrastructure.AudioServiceRejectedException;
 import ma.neurocare.voice.infrastructure.AudioServiceUnavailableException;
 import ma.neurocare.voice.infrastructure.storage.ObjectStorage;
+import ma.neurocare.voice.infrastructure.storage.ObjectStorage.SignedUrl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -71,7 +75,7 @@ class AudioFallbackChainTest {
 
         when(medications.audioInfo(medicationId))
                 .thenReturn(new MedicationAudioInfo(medicationId, seniorId, "Metformine 500", aidantId, true));
-        when(seniors.audioProfile(seniorId)).thenReturn(new SeniorAudioProfile(seniorId, "Ahmed B.", Language.FR));
+        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed B.", Language.FR, ReminderSoundMode.PERSONNALISE));
         CaregiverLinkView link = new CaregiverLinkView(linkId, seniorId, aidantId, "fille", "Baba", true, null);
         when(links.findLink(seniorId, aidantId)).thenReturn(Optional.of(link));
         when(links.findLinkById(linkId)).thenReturn(Optional.of(link));
@@ -141,7 +145,7 @@ class AudioFallbackChainTest {
 
     @Test
     void level3_forDarijaRejectedByTts() {
-        when(seniors.audioProfile(seniorId)).thenReturn(new SeniorAudioProfile(seniorId, "Ahmed", Language.DARIJA));
+        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed", Language.DARIJA, ReminderSoundMode.PERSONNALISE));
         when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
         when(client.synthesize(isNull(), anyString(), eq(Language.DARIJA)))
                 .thenThrow(new AudioServiceRejectedException(422, "UNSUPPORTED_LANGUAGE"));
@@ -192,5 +196,52 @@ class AudioFallbackChainTest {
         when(client.synthesize(any(), anyString(), any())).thenThrow(new AudioServiceUnavailableException("x", null));
 
         assertThat(service.audioForMedication(medicationId).texte()).startsWith("Ahmed B., c'est l'heure");
+    }
+
+    @Test
+    void standardModeIgnoresAReadyVoice() {
+        useMode(ReminderSoundMode.STANDARD);
+        when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
+        when(client.synthesize(isNull(), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
+
+        assertThat(service.audioForMedication(medicationId).source()).isEqualTo(AudioSource.TTS_STANDARD);
+        verify(client, never()).synthesize(eq("voice-123"), anyString(), any());
+    }
+
+    @Test
+    void standardModeNeverSendsTheRecordingToThePhone() {
+        useMode(ReminderSoundMode.STANDARD);
+        when(voices.usableRecording(seniorId)).thenReturn(Optional.of(readyVoice));
+
+        assertThat(service.cachedReminderAudio(medicationId)).isEmpty();
+        verify(storage, never()).signedGetUrl(eq("voice-samples"), any(), any());
+    }
+
+    @Test
+    void personalModePlaysTheRecordingWhenNoClonedMessageExists() {
+        SignedUrl signed = new SignedUrl("http://minio/sample", Instant.EPOCH);
+        when(voices.usableRecording(seniorId)).thenReturn(Optional.of(readyVoice));
+        when(storage.signedGetUrl("voice-samples", "senior/sample.wav", Duration.ofMinutes(5))).thenReturn(signed);
+
+        assertThat(service.cachedReminderAudio(medicationId)).contains(new ReminderAudio(signed, "wav"));
+    }
+
+    @Test
+    void personalModeFallsBackToStandardWithoutRecording() {
+        SignedUrl signed = new SignedUrl("http://minio/tts", Instant.EPOCH);
+        AudioAsset tts = new AudioAsset(medicationId, null, Language.FR, "texte", AudioSource.TTS_STANDARD, "m/k.mp3");
+        when(voices.usableRecording(seniorId)).thenReturn(Optional.empty());
+        when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), isNull())).thenReturn(Optional.of(tts));
+        when(storage.signedGetUrl("audio-assets", "m/k.mp3", Duration.ofMinutes(5))).thenReturn(signed);
+
+        assertThat(service.cachedReminderAudio(medicationId)).contains(new ReminderAudio(signed, "mp3"));
+    }
+
+    private void useMode(ReminderSoundMode mode) {
+        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed B.", Language.FR, mode));
+    }
+
+    private SeniorAudioProfile profile(String name, Language language, ReminderSoundMode mode) {
+        return new SeniorAudioProfile(seniorId, name, language, mode);
     }
 }

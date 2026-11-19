@@ -9,10 +9,12 @@ import ma.neurocare.common.exception.BusinessException;
 import ma.neurocare.medication.application.MedicationService;
 import ma.neurocare.security.CurrentUser;
 import ma.neurocare.voice.api.dto.VoiceDtos.AudioPreviewDto;
+import ma.neurocare.voice.api.dto.VoiceDtos.ReminderAudioDto;
 import ma.neurocare.voice.api.dto.VoiceDtos.SignedAudioUrlDto;
 import ma.neurocare.voice.api.dto.VoiceDtos.VoiceProfileDto;
 import ma.neurocare.voice.application.AudioGenerationService;
 import ma.neurocare.voice.application.AudioGenerationService.AudioResult;
+import ma.neurocare.voice.application.AudioGenerationService.ReminderAudio;
 import ma.neurocare.voice.application.VoiceService;
 import ma.neurocare.voice.infrastructure.storage.ObjectStorage.SignedUrl;
 import org.springframework.http.HttpStatus;
@@ -80,13 +82,13 @@ public class VoiceController {
             description = "Téléchargé à l'avance pour les rappels hors ligne (cahier §9.5). 404 si aucun "
                     + "fichier n'est prêt : l'application joue alors son audio générique embarqué.")
     @GetMapping("/me/medications/{medicationId}/audio")
-    public SignedAudioUrlDto myMedicationAudio(@PathVariable UUID medicationId) {
+    public ReminderAudioDto myMedicationAudio(@PathVariable UUID medicationId) {
         if (!CurrentUser.get().userId().equals(medicationService.seniorIdOf(medicationId))) {
             throw BusinessException.notFound("Traitement introuvable.");
         }
-        SignedUrl url = audioGeneration.cachedSignedUrl(medicationId)
+        ReminderAudio audio = audioGeneration.cachedReminderAudio(medicationId)
                 .orElseThrow(() -> BusinessException.notFound("Aucun audio prêt pour ce traitement."));
-        return new SignedAudioUrlDto(url.url(), url.expireLe());
+        return new ReminderAudioDto(audio.url().url(), audio.url().expireLe(), audio.extension());
     }
 
     @Operation(summary = "URL signée (5 min) vers un fichier audio")

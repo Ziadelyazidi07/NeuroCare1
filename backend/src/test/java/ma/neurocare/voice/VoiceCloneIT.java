@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +61,10 @@ class VoiceCloneIT extends AbstractIntegrationTest {
             giveConsent(aidant, seniorId, type, true);
         }
         String medicationId = createMedication(aidant, seniorId);
+        mvc.perform(bearer(put("/api/v1/seniors/{id}/reminder-sound", seniorId), aidant)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("mode", "PERSONNALISE"))))
+                .andExpect(status().isOk());
 
         mvc.perform(bearer(multipart("/api/v1/seniors/{id}/voice-profile", seniorId)
                         .file(new MockMultipartFile("file", "salma.wav", "audio/wav", AudioSampleInspectorTest.wav(12))),

@@ -19,6 +19,10 @@ public final class VoiceDtos {
     public record SignedAudioUrlDto(String url, Instant expireLe) {
     }
 
+    /** Audio du rappel pour le téléphone du senior ; {@code extension} donne le format du fichier. */
+    public record ReminderAudioDto(String url, Instant expireLe, String extension) {
+    }
+
     /**
      * Aperçu du message d'un traitement. {@code url} est nulle au niveau 3 (PREENREGISTRE) :
      * l'application joue alors son audio générique embarqué.

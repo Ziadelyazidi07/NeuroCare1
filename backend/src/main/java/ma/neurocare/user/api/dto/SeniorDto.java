@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import ma.neurocare.common.domain.Language;
+import ma.neurocare.user.domain.ReminderSoundMode;
 
 /**
  * Profil d'un senior. {@code lien} décrit la paire avec l'aidant appelant (nul si l'appelant est le senior).
@@ -20,6 +21,7 @@ public record SeniorDto(
         String contactUrgenceTel,
         boolean donneesFictives,
         Short anneeNaissance,
+        ReminderSoundMode modeSonRappel,
         LienDto lien) {
 
     public record LienDto(String lienParente, String surnomSenior, boolean consentementValide,

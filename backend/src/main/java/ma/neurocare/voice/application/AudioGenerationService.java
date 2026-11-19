@@ -15,6 +15,7 @@ import ma.neurocare.medication.application.MedicationAudioInfo;
 import ma.neurocare.medication.application.MedicationService;
 import ma.neurocare.user.application.SeniorAudioProfile;
 import ma.neurocare.user.application.SeniorService;
+import ma.neurocare.user.domain.ReminderSoundMode;
 import ma.neurocare.voice.domain.AudioAsset;
 import ma.neurocare.voice.domain.AudioSource;
 import ma.neurocare.voice.domain.ReminderMessageTemplate;
@@ -36,6 +37,8 @@ import org.springframework.stereotype.Service;
  *   <li>TTS_STANDARD — synthèse standard sans clonage ;</li>
  *   <li>PREENREGISTRE — audio générique embarqué dans l'application (aucun fichier serveur).</li>
  * </ol>
+ * En mode {@code STANDARD}, le niveau 1 est ignoré. En mode {@code PERSONNALISE}, le téléphone reçoit
+ * l'enregistrement de l'aidant tel quel quand aucun message cloné n'est disponible.
  * Les fichiers générés sont mis en cache (EF-VO-03) tant que le texte et la voix sont inchangés.
  * Aucune transaction n'est tenue pendant les appels réseau.
  */
@@ -61,8 +64,13 @@ public class AudioGenerationService {
         }
     }
 
+    /** Audio prêt pour le téléphone du senior ; l'extension indique le format du fichier. */
+    public record ReminderAudio(SignedUrl url, String extension) {
+    }
+
     /** Contexte de génération d'un message. */
-    record MessageContext(UUID medicationId, UUID seniorId, Language langue, String texte, VoiceProfile voice) {
+    record MessageContext(UUID medicationId, UUID seniorId, Language langue, String texte, VoiceProfile voice,
+                          ReminderSoundMode mode) {
     }
 
     /** Renvoie le meilleur audio disponible pour ce traitement, en le générant si nécessaire. */
@@ -91,15 +99,40 @@ public class AudioGenerationService {
      * retarder la notification (ENF-05).
      */
     public Optional<SignedUrl> cachedSignedUrl(UUID medicationId) {
+        return cachedReminderAudio(medicationId).map(ReminderAudio::url);
+    }
+
+    /** Audio du rappel selon le son choisi : message cloné, enregistrement de l'aidant, puis TTS en cache. */
+    public Optional<ReminderAudio> cachedReminderAudio(UUID medicationId) {
         MessageContext ctx = context(medicationId);
-        Optional<AudioAsset> cached = Optional.empty();
         if (ctx.voice() != null) {
-            cached = assets.findCached(medicationId, ctx.texte(), ctx.langue(), ctx.voice().getId());
+            Optional<AudioAsset> cloned = assets.findCached(medicationId, ctx.texte(), ctx.langue(), ctx.voice().getId());
+            if (cloned.isPresent()) {
+                return cloned.map(this::reminderAudio);
+            }
         }
-        if (cached.isEmpty()) {
-            cached = assets.findCached(medicationId, ctx.texte(), ctx.langue(), null);
+        if (ctx.mode() == ReminderSoundMode.PERSONNALISE) {
+            Optional<VoiceProfile> recording = voices.usableRecording(ctx.seniorId());
+            if (recording.isPresent()) {
+                return recording.map(this::reminderAudio);
+            }
         }
-        return cached.map(this::signedUrl);
+        return assets.findCached(medicationId, ctx.texte(), ctx.langue(), null).map(this::reminderAudio);
+    }
+
+    private ReminderAudio reminderAudio(AudioAsset asset) {
+        return new ReminderAudio(signedUrl(asset), extensionOf(asset.getStorageKey()));
+    }
+
+    private ReminderAudio reminderAudio(VoiceProfile recording) {
+        NeuroCareProperties.Storage config = properties.storage();
+        String key = recording.getEchantillonKey();
+        return new ReminderAudio(storage.signedGetUrl(config.voiceSamplesBucket(), key, config.signedUrlTtl()),
+                extensionOf(key));
+    }
+
+    private static String extensionOf(String storageKey) {
+        return storageKey.substring(storageKey.lastIndexOf('.') + 1);
     }
 
     public SignedUrl signedUrl(AudioAsset asset) {
@@ -186,7 +219,9 @@ public class AudioGenerationService {
     private MessageContext context(UUID medicationId) {
         MedicationAudioInfo medication = medicationService.audioInfo(medicationId);
         SeniorAudioProfile senior = seniorService.audioProfile(medication.seniorId());
-        VoiceProfile voice = voices.usableVoice(medication.seniorId()).orElse(null);
+        VoiceProfile voice = senior.modeSonRappel() == ReminderSoundMode.PERSONNALISE
+                ? voices.usableVoice(medication.seniorId()).orElse(null)
+                : null;
 
         // Surnom donné par l'aidant dont la voix parle, sinon par l'aidant qui a saisi le traitement.
         Optional<CaregiverLinkView> link = voice != null
@@ -197,6 +232,7 @@ public class AudioGenerationService {
                 .orElse(senior.nomComplet());
 
         String texte = ReminderMessageTemplate.render(senior.langue(), surnom, medication.nomMedicament());
-        return new MessageContext(medicationId, medication.seniorId(), senior.langue(), texte, voice);
+        return new MessageContext(medicationId, medication.seniorId(), senior.langue(), texte, voice,
+                senior.modeSonRappel());
     }
 }

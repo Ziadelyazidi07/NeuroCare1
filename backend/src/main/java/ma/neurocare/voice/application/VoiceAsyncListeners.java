@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import ma.neurocare.config.AsyncConfig;
 import ma.neurocare.config.NeuroCareProperties;
 import ma.neurocare.medication.application.MedicationChangedEvent;
+import ma.neurocare.medication.application.MedicationService;
+import ma.neurocare.user.application.ReminderSoundChanged;
 import ma.neurocare.voice.application.VoiceEvents.VoiceDataPurgeRequested;
 import ma.neurocare.voice.application.VoiceEvents.VoiceSampleUploaded;
 import ma.neurocare.voice.infrastructure.AudioServiceClient;
@@ -26,6 +28,7 @@ public class VoiceAsyncListeners {
     private final VoiceService voiceService;
     private final AudioGenerationService audioGeneration;
     private final AudioServiceClient audioService;
+    private final MedicationService medicationService;
     private final ObjectStorage storage;
     private final NeuroCareProperties properties;
 
@@ -47,6 +50,13 @@ public class VoiceAsyncListeners {
         } catch (RuntimeException e) {
             log.warn("Génération audio impossible : {}", e.getClass().getSimpleName());
         }
+    }
+
+    /** Prépare les messages du senior dans le son qui vient d'être choisi. */
+    @Async(AsyncConfig.AUDIO_EXECUTOR)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onReminderSoundChanged(ReminderSoundChanged event) {
+        medicationService.activeMedicationIds(event.seniorId()).forEach(audioGeneration::audioForMedicationAsync);
     }
 
     /** EF-CO-05 : effacement des fichiers vocaux et de la voix côté microservice. */
