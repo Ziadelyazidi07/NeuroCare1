@@ -22,11 +22,14 @@ import type {
   ReminderAudioDto,
   SeniorDto,
   SyncResponse,
+  UserSummary,
   VoiceProfileDto,
 } from './types';
 import type { PendingConfirmation } from '../lib/offlineQueue';
 
 export const authApi = {
+  register: (nomComplet: string, telephone: string, motDePasse: string) =>
+    request<UserSummary>('POST', '/auth/register', { body: { nomComplet, telephone, motDePasse }, auth: false }),
   login: (telephone: string, motDePasse: string) =>
     request<AuthResponse>('POST', '/auth/login', { body: { telephone, motDePasse }, auth: false }),
   logout: (refreshToken: string) => request<void>('POST', '/auth/logout', { body: { refreshToken } }),

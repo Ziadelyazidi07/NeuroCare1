@@ -6,13 +6,10 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { seniorApi } from '../api/api';
-import type { DoseDto, Language } from '../api/types';
+import type { DoseDto } from '../api/types';
 import { ApiError } from '../lib/problem';
 
 const REMINDER_TONE = require('../../assets/audio/tonalite-rappel.wav');
-
-/** Confirmation après « C'est fait » (provisoire, à remplacer par des voix enregistrées — EF-VO-05). */
-const THANKS = { fr: require('../../assets/audio/merci-fr.mp3'), ar: require('../../assets/audio/merci-ar.mp3') };
 
 /** Formats possibles : MP3 pour un message cloné, ceux de l'enregistrement de l'aidant sinon. */
 const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav'];
@@ -96,11 +93,7 @@ export async function playReminder(dose: DoseDto | null): Promise<void> {
   await play(reminderVoice(dose)?.uri ?? REMINDER_TONE);
 }
 
-/** Retour sonore après « C'est fait ». */
-export async function playThanks(language: Language): Promise<void> {
-  await play(language === 'FR' ? THANKS.fr : THANKS.ar);
-}
-
+/** Arrête la lecture en cours (voix du rappel). */
 export function stopAudio(): void {
   player?.remove();
   player = null;

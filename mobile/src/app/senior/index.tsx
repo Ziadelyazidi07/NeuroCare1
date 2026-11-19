@@ -12,13 +12,13 @@ import NetInfo from '@react-native-community/netinfo';
 import * as Haptics from 'expo-haptics';
 
 import { seniorApi } from '../../api/api';
-import type { DoseDto, Language, RealtimeEvent, SeniorDto } from '../../api/types';
+import type { DoseDto, RealtimeEvent, SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
 import { formatTime } from '../../lib/dates';
 import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue } from '../../lib/doses';
 import { useSeniorEvents } from '../../realtime/useSeniorEvents';
 import { confirmDose, refreshDoses, cachedDoses } from '../../senior/offlineStore';
-import { hasReminderVoice, playReminder, playThanks, prefetchReminderAudio } from '../../senior/reminderAudio';
+import { hasReminderVoice, playReminder, prefetchReminderAudio, stopAudio } from '../../senior/reminderAudio';
 import {
   configureReminders,
   consumeLaunchReminder,
@@ -49,7 +49,6 @@ export default function SeniorHome() {
   const refreshRun = useRef(0);
 
   const seniorId = session?.kind === 'senior' ? session.seniorId : undefined;
-  const language: Language = profile?.langue ?? 'DARIJA';
   const colours = profile?.contrasteEleve === false ? seniorColours.normal : seniorColours.high;
   const font = Math.max(SENIOR_MIN_FONT, profile?.taillePolice ?? 28);
 
@@ -196,7 +195,8 @@ export default function SeniorHome() {
     if (!dose || !isConfirmable(dose, now) || busy) return;
     setBusy(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    void playThanks(language);
+    // Confirmation silencieuse : la voix du rappel s'arrête, seul l'écran (et la vibration) confirme.
+    stopAudio();
     applyDoses(dosesRef.current.map((d) => (d.id === dose.id ? { ...d, statut: 'CONFIRME' } : d)));
     const outcome = await confirmDose(dose);
     setMessage(

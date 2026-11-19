@@ -1,5 +1,6 @@
 /** Composants partagés de l'espace aidant (le senior a ses propres composants, plus grands). */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -84,6 +85,53 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   );
 }
 
+/** Champ de mot de passe avec un bouton œil pour l'afficher en clair ou le masquer. */
+export function PasswordField({ label, ...props }: Omit<TextInputProps, 'secureTextEntry'> & { label: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.passwordRow}>
+        <TextInput
+          accessibilityLabel={label}
+          placeholderTextColor={c.muted}
+          style={[styles.input, styles.passwordInput]}
+          secureTextEntry={!visible}
+          autoCapitalize="none"
+          autoCorrect={false}
+          {...props}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+          onPress={() => setVisible((v) => !v)}
+          hitSlop={8}
+          style={styles.eye}
+        >
+          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={24} color={c.muted} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** Case à cocher : l'état se lit aussi sans la couleur (coche et état d'accessibilité). */
+export function Checkbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      style={styles.checkboxRow}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        {checked ? <Ionicons name="checkmark" size={18} color={c.primaryText} /> : null}
+      </View>
+      <Text style={styles.text}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function ErrorText({ message }: { message: string | null }) {
   if (!message) return null;
   return (
@@ -134,6 +182,12 @@ export const styles = StyleSheet.create({
   field: { gap: 4 },
   label: { fontSize: 14, fontWeight: '600', color: c.text },
   input: { minHeight: 48, borderWidth: 1, borderColor: c.border, borderRadius: 10, paddingHorizontal: 12, fontSize: 16, color: c.text, backgroundColor: '#FFFFFF' },
+  passwordRow: { justifyContent: 'center' },
+  passwordInput: { paddingRight: 52 },
+  eye: { position: 'absolute', right: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  checkboxRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  checkbox: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: c.primary },
   error: { color: c.danger, fontSize: 15 },
   notice: { backgroundColor: c.warningBg, borderColor: c.warningBorder, borderWidth: 1, borderRadius: 10, padding: 12 },
   noticeText: { color: c.text, fontSize: 14 },

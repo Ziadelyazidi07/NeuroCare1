@@ -5,7 +5,7 @@ import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue, pill
 import { acknowledge, enqueue, withLocalConfirmations, type PendingConfirmation } from '../offlineQueue';
 import { ApiError, errorMessage, toApiError } from '../problem';
 import { cleanApiBase, seniorTopic, wsUrlFromApi } from '../urls';
-import { isE164, isSixDigitCode, normalizePhone, parseHHMM } from '../validation';
+import { isE164, isSixDigitCode, normalizePhone, parseHHMM, registrationError } from '../validation';
 
 const NOW = new Date('2026-11-17T10:00:00Z');
 const at = (minutesFromNow: number) => new Date(NOW.getTime() + minutesFromNow * 60_000).toISOString();
@@ -110,6 +110,21 @@ describe('dates locales', () => {
     expect(formatDay('2026-11-07')).toBe('07/11');
     expect(secondsUntil(at(2), NOW)).toBe(120);
     expect(secondsUntil(at(-2), NOW)).toBe(0);
+  });
+});
+
+describe('inscription', () => {
+  const valid = { nomComplet: 'Salma B.', telephone: '+212600000009', motDePasse: 'motdepasse', confirmation: 'motdepasse' };
+
+  it('accepte un formulaire complet', () => {
+    expect(registrationError(valid)).toBeNull();
+  });
+
+  it('refuse un formulaire incomplet ou incohérent', () => {
+    expect(registrationError({ ...valid, nomComplet: ' ' })).toContain('nom');
+    expect(registrationError({ ...valid, telephone: '0600' })).toContain('Numéro');
+    expect(registrationError({ ...valid, motDePasse: 'court', confirmation: 'court' })).toContain('8 et 72');
+    expect(registrationError({ ...valid, confirmation: 'autre' })).toContain('identiques');
   });
 });
 

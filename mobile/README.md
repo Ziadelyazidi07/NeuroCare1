@@ -112,6 +112,8 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
   arrêt possible à tout moment ; seul le nombre de mots retrouvés est affiché, sans aucune interprétation.
 
 **Espace aidant** (`src/app/aidant/`)
+- Connexion ou création de compte (`POST /auth/register`), mot de passe affichable (icône œil) et option
+  « Enregistrer mes identifiants », conservés dans le trousseau sécurisé du téléphone.
 - Jetons stockés dans le trousseau sécurisé (`expo-secure-store`), renouvelés automatiquement (rotation du refresh token).
 - Tableau de bord : abonnement STOMP à `/topic/seniors/{id}/events` (jeton présenté à la trame CONNECT),
   mise à jour immédiate des pastilles, historique 7 jours, alertes « sans réponse » et « téléphone injoignable ».
@@ -130,7 +132,7 @@ src/
   realtime/     abonnement STOMP
   lib/          logique pure testée (pastilles, file hors ligne, dates, validation, URL)
   ui/           thème accessible et composants
-assets/audio/   tonalité du rappel et confirmations embarquées
+assets/audio/   tonalité du rappel et sonnerie d'alarme embarquées
 ```
 
 ## Vérifications
@@ -144,8 +146,6 @@ npx expo-doctor     # compatibilité des dépendances avec le SDK
 
 ## Limites connues
 
-- Les confirmations `merci-*.mp3` de `assets/audio/` sont des voix de synthèse (espeak-ng) : à remplacer par des
-  enregistrements de locuteurs, notamment en darija (cahier §10.5, EF-VO-05).
 - Les mots darija du jeu sont affichés en écriture arabe et en transcription latine ; liste à faire relire.
 - Pas encore de tests de composants ni de tests de bout en bout (Maestro / Detox) : la logique métier
   est testée côté backend (CA-01 à CA-10) et dans `src/lib`.
