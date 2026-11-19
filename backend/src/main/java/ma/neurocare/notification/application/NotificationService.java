@@ -51,7 +51,7 @@ public class NotificationService {
                 "datePrevue", event.datePrevue().toString(),
                 "relance", Boolean.toString(event.relance()),
                 "audioUrl", audioUrl,
-                // URL vide → l'application joue son audio générique embarqué (repli niveau 3).
+                // URL vide → l'application joue sa tonalité embarquée.
                 "audioSource", audioUrl.isEmpty() ? AudioSource.PREENREGISTRE.name() : "FICHIER");
         if (sendToUser(event.seniorId(), new PushMessage(DOSE_REMINDER, data))) {
             alerts.deviceUnreachable(event.seniorId());

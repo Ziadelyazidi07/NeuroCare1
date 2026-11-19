@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "Voix et audio", description = "Voix d'un proche pour les rappels ; repli TTS puis audio préenregistré")
+@Tag(name = "Voix et audio", description = "Voix d'un proche pour les rappels")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -79,8 +79,8 @@ public class VoiceController {
     }
 
     @Operation(summary = "Audio du rappel d'un traitement pour le téléphone du senior (cache uniquement)",
-            description = "Téléchargé à l'avance pour les rappels hors ligne (cahier §9.5). 404 si aucun "
-                    + "fichier n'est prêt : l'application joue alors son audio générique embarqué.")
+            description = "Téléchargé à l'avance pour les rappels hors ligne (cahier §9.5). 404 si l'aidant "
+                    + "n'a pas de voix enregistrée : l'application joue alors une simple tonalité.")
     @GetMapping("/me/medications/{medicationId}/audio")
     public ReminderAudioDto myMedicationAudio(@PathVariable UUID medicationId) {
         if (!CurrentUser.get().userId().equals(medicationService.seniorIdOf(medicationId))) {

@@ -24,8 +24,8 @@ public final class VoiceDtos {
     }
 
     /**
-     * Aperçu du message d'un traitement. {@code url} est nulle au niveau 3 (PREENREGISTRE) :
-     * l'application joue alors son audio générique embarqué.
+     * Aperçu du message d'un traitement. {@code url} est nulle sans message cloné (PREENREGISTRE) :
+     * le téléphone joue alors l'enregistrement de l'aidant, ou sa tonalité s'il n'y en a pas.
      */
     public record AudioPreviewDto(UUID assetId, AudioSource source, String texte, String url, Instant expireLe) {
     }

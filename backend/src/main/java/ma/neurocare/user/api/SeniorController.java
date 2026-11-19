@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import ma.neurocare.security.CurrentUser;
 import ma.neurocare.user.api.dto.CreateSeniorRequest;
 import ma.neurocare.user.api.dto.SeniorDto;
-import ma.neurocare.user.api.dto.UpdateReminderSoundRequest;
 import ma.neurocare.user.api.dto.UpdateSeniorRequest;
 import ma.neurocare.user.application.SeniorService;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,13 +58,5 @@ public class SeniorController {
     @PreAuthorize("@accessPolicy.isLinkedCaregiver(#seniorId, authentication)")
     public SeniorDto update(@PathVariable UUID seniorId, @Valid @RequestBody UpdateSeniorRequest request) {
         return seniorService.update(seniorId, request, CurrentUser.get());
-    }
-
-    @Operation(summary = "Choisit le son des rappels : standard ou voix personnalisée (SENIOR ou AIDANT lié)")
-    @PutMapping("/{seniorId}/reminder-sound")
-    @PreAuthorize("@accessPolicy.isSelfOrLinkedCaregiver(#seniorId, authentication)")
-    public SeniorDto updateReminderSound(@PathVariable UUID seniorId,
-                                         @Valid @RequestBody UpdateReminderSoundRequest request) {
-        return seniorService.updateReminderSound(seniorId, request.mode(), CurrentUser.get());
     }
 }

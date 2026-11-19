@@ -21,7 +21,6 @@ public interface SeniorMapper {
     @Mapping(target = "contactUrgenceTel", source = "profile.contactUrgenceTel")
     @Mapping(target = "donneesFictives", source = "profile.donneesFictives")
     @Mapping(target = "anneeNaissance", source = "profile.anneeNaissance")
-    @Mapping(target = "modeSonRappel", source = "profile.modeSonRappel")
     @Mapping(target = "lien", source = "link")
     SeniorDto toDto(User user, SeniorProfile profile, CaregiverLinkView link);
 

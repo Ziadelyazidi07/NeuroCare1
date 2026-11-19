@@ -16,13 +16,11 @@ import ma.neurocare.security.AuthenticatedUser;
 import ma.neurocare.user.api.dto.CreateSeniorRequest;
 import ma.neurocare.user.api.dto.SeniorDto;
 import ma.neurocare.user.api.dto.UpdateSeniorRequest;
-import ma.neurocare.user.domain.ReminderSoundMode;
 import ma.neurocare.user.domain.SeniorProfile;
 import ma.neurocare.user.domain.User;
 import ma.neurocare.user.domain.UserRole;
 import ma.neurocare.user.infrastructure.SeniorProfileRepository;
 import ma.neurocare.user.infrastructure.UserRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +36,6 @@ public class SeniorService {
     private final SeniorProfileRepository profiles;
     private final CaregiverLinkService linkService;
     private final SeniorMapper mapper;
-    private final ApplicationEventPublisher events;
 
     /** Crée le compte senior (sans mot de passe), son profil et le lien avec l'aidant (non encore validé). */
     @Transactional
@@ -119,17 +116,6 @@ public class SeniorService {
         return mapper.toDto(senior, profile, linkFor(seniorId, caller));
     }
 
-    /** Choix du son des rappels, par le senior ou un aidant lié. */
-    @Transactional
-    public SeniorDto updateReminderSound(UUID seniorId, ReminderSoundMode mode, AuthenticatedUser caller) {
-        SeniorProfile profile = loadProfile(seniorId);
-        if (profile.getModeSonRappel() != mode) {
-            profile.setModeSonRappel(mode);
-            events.publishEvent(new ReminderSoundChanged(seniorId));
-        }
-        return mapper.toDto(loadUser(seniorId), profile, linkFor(seniorId, caller));
-    }
-
     /** Pour le moteur de rappel : fuseau et délai SANS_REPONSE des seniors demandés. */
     @Transactional(readOnly = true)
     public Map<UUID, SeniorReminderSettings> reminderSettings(Collection<UUID> seniorIds) {
@@ -152,9 +138,7 @@ public class SeniorService {
     /** Pour le module voice : nom et langue du senior. */
     @Transactional(readOnly = true)
     public SeniorAudioProfile audioProfile(UUID seniorId) {
-        SeniorProfile profile = loadProfile(seniorId);
-        return new SeniorAudioProfile(seniorId, loadUser(seniorId).getNomComplet(), profile.getLangue(),
-                profile.getModeSonRappel());
+        return new SeniorAudioProfile(seniorId, loadUser(seniorId).getNomComplet(), loadProfile(seniorId).getLangue());
     }
 
     /** Pour les autres modules : nom affiché du senior. */

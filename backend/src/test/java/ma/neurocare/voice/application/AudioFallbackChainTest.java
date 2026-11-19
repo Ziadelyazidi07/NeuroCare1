@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +25,6 @@ import ma.neurocare.medication.application.MedicationAudioInfo;
 import ma.neurocare.medication.application.MedicationService;
 import ma.neurocare.user.application.SeniorAudioProfile;
 import ma.neurocare.user.application.SeniorService;
-import ma.neurocare.user.domain.ReminderSoundMode;
 import ma.neurocare.voice.application.AudioGenerationService.AudioResult;
 import ma.neurocare.voice.application.AudioGenerationService.ReminderAudio;
 import ma.neurocare.voice.domain.AudioAsset;
@@ -36,15 +34,13 @@ import ma.neurocare.voice.domain.VoiceProfileStatus;
 import ma.neurocare.voice.infrastructure.AudioAssetRepository;
 import ma.neurocare.voice.infrastructure.AudioServiceClient;
 import ma.neurocare.voice.infrastructure.AudioServiceClient.Synthesized;
-import ma.neurocare.voice.infrastructure.AudioServiceRejectedException;
 import ma.neurocare.voice.infrastructure.AudioServiceUnavailableException;
 import ma.neurocare.voice.infrastructure.storage.ObjectStorage;
 import ma.neurocare.voice.infrastructure.storage.ObjectStorage.SignedUrl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
-/** Chaîne de repli du cahier §10.4 : CLONE → TTS_STANDARD → PREENREGISTRE (EF-VO-04, CA-07). */
+/** Audio des rappels : uniquement la voix de l'aidant (clonée ou enregistrée), sinon la tonalité du téléphone. */
 class AudioFallbackChainTest {
 
     private static final byte[] MP3 = {(byte) 0xFF, (byte) 0xFB, 0x50, 0x00};
@@ -75,7 +71,7 @@ class AudioFallbackChainTest {
 
         when(medications.audioInfo(medicationId))
                 .thenReturn(new MedicationAudioInfo(medicationId, seniorId, "Metformine 500", aidantId, true));
-        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed B.", Language.FR, ReminderSoundMode.PERSONNALISE));
+        when(seniors.audioProfile(seniorId)).thenReturn(new SeniorAudioProfile(seniorId, "Ahmed B.", Language.FR));
         CaregiverLinkView link = new CaregiverLinkView(linkId, seniorId, aidantId, "fille", "Baba", true, null);
         when(links.findLink(seniorId, aidantId)).thenReturn(Optional.of(link));
         when(links.findLinkById(linkId)).thenReturn(Optional.of(link));
@@ -89,7 +85,7 @@ class AudioFallbackChainTest {
     }
 
     @Test
-    void level1_clonedVoiceWhenProfileReadyAndServiceUp() {
+    void clonedVoiceWhenProfileReadyAndServiceUp() {
         when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
         when(client.synthesize(eq("voice-123"), anyString(), eq(Language.FR)))
                 .thenReturn(new Synthesized(MP3, "audio/mpeg"));
@@ -105,61 +101,35 @@ class AudioFallbackChainTest {
     }
 
     @Test
-    void level2_standardTtsWhenCloningFails() {
+    void noSyntheticVoiceWhenCloningFails() {
         when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
         when(client.synthesize(eq("voice-123"), anyString(), any()))
                 .thenThrow(new AudioServiceUnavailableException("panne", null));
-        when(client.synthesize(isNull(), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
-
-        AudioResult result = service.audioForMedication(medicationId);
-
-        assertThat(result.source()).isEqualTo(AudioSource.TTS_STANDARD);
-        ArgumentCaptor<AudioAsset> saved = ArgumentCaptor.forClass(AudioAsset.class);
-        verify(assets).save(saved.capture());
-        assertThat(saved.getValue().getSource()).isEqualTo(AudioSource.TTS_STANDARD);
-        assertThat(saved.getValue().getVoiceProfileId()).isNull();
-    }
-
-    @Test
-    void level2_directlyWithoutUsableVoice() {
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.empty()); // pas de consentement VOIX ou profil ECHEC
-        when(client.synthesize(isNull(), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
-
-        assertThat(service.audioForMedication(medicationId).source()).isEqualTo(AudioSource.TTS_STANDARD);
-        verify(client, times(1)).synthesize(any(), anyString(), any());
-    }
-
-    @Test
-    void level3_prerecordedWhenAudioServiceIsDown() {
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
-        when(client.synthesize(any(), anyString(), any()))
-                .thenThrow(new AudioServiceUnavailableException("disjoncteur ouvert", null));
 
         AudioResult result = service.audioForMedication(medicationId);
 
         assertThat(result.source()).isEqualTo(AudioSource.PREENREGISTRE);
         assertThat(result.file()).isEmpty();
+        verify(client, never()).synthesize(isNull(), anyString(), any());
         verify(storage, never()).put(any(), any(), any(), any());
         verify(assets, never()).save(any());
     }
 
     @Test
-    void level3_forDarijaRejectedByTts() {
-        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed", Language.DARIJA, ReminderSoundMode.PERSONNALISE));
+    void audioServiceIsNotCalledWithoutUsableVoice() {
         when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
-        when(client.synthesize(isNull(), anyString(), eq(Language.DARIJA)))
-                .thenThrow(new AudioServiceRejectedException(422, "UNSUPPORTED_LANGUAGE"));
 
         AudioResult result = service.audioForMedication(medicationId);
 
         assertThat(result.source()).isEqualTo(AudioSource.PREENREGISTRE);
-        assertThat(result.texte()).startsWith("Baba، ");
+        assertThat(result.texte()).startsWith("Baba, ");
+        verify(client, never()).synthesize(any(), any(), any());
     }
 
     @Test
-    void storageFailureAlsoFallsBack() {
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
-        when(client.synthesize(isNull(), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
+    void storageFailureDoesNotBreakTheReminder() {
+        when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
+        when(client.synthesize(eq("voice-123"), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
         org.mockito.Mockito.doThrow(new IllegalStateException("MinIO HS")).when(storage)
                 .put(any(), any(), any(), any());
 
@@ -167,58 +137,30 @@ class AudioFallbackChainTest {
     }
 
     @Test
-    void cachedAudioIsReusedWithoutCallingTheService() {
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
-        AudioAsset cached = new AudioAsset(medicationId, null, Language.FR, "texte", AudioSource.TTS_STANDARD, "k.mp3");
-        when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), isNull()))
+    void cachedClonedMessageIsReusedWithoutCallingTheService() {
+        when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
+        AudioAsset cached = new AudioAsset(medicationId, readyVoice.getId(), Language.FR, "texte", AudioSource.CLONE, "k.mp3");
+        when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), eq(readyVoice.getId())))
                 .thenReturn(Optional.of(cached));
 
-        AudioResult result = service.audioForMedication(medicationId);
-
-        assertThat(result.asset()).isSameAs(cached);
+        assertThat(service.audioForMedication(medicationId).asset()).isSameAs(cached);
         verify(client, never()).synthesize(any(), any(), any());
     }
 
     @Test
-    void cachedTtsIsNotUsedWhenAReadyVoiceCanBeCloned() {
+    void phoneGetsTheClonedMessageFirst() {
+        SignedUrl signed = new SignedUrl("http://minio/clone", Instant.EPOCH);
+        AudioAsset cloned = new AudioAsset(medicationId, readyVoice.getId(), Language.FR, "texte", AudioSource.CLONE, "m/c.mp3");
         when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
-        AudioAsset tts = new AudioAsset(medicationId, null, Language.FR, "texte", AudioSource.TTS_STANDARD, "k.mp3");
-        when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), isNull())).thenReturn(Optional.of(tts));
-        when(client.synthesize(eq("voice-123"), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
+        when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), eq(readyVoice.getId())))
+                .thenReturn(Optional.of(cloned));
+        when(storage.signedGetUrl("audio-assets", "m/c.mp3", Duration.ofMinutes(5))).thenReturn(signed);
 
-        assertThat(service.audioForMedication(medicationId).source()).isEqualTo(AudioSource.CLONE);
+        assertThat(service.cachedReminderAudio(medicationId)).contains(new ReminderAudio(signed, "mp3"));
     }
 
     @Test
-    void surnameFallsBackToSeniorNameWithoutNickname() {
-        when(links.findLink(seniorId, aidantId)).thenReturn(Optional.empty());
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
-        when(client.synthesize(any(), anyString(), any())).thenThrow(new AudioServiceUnavailableException("x", null));
-
-        assertThat(service.audioForMedication(medicationId).texte()).startsWith("Ahmed B., c'est l'heure");
-    }
-
-    @Test
-    void standardModeIgnoresAReadyVoice() {
-        useMode(ReminderSoundMode.STANDARD);
-        when(voices.usableVoice(seniorId)).thenReturn(Optional.of(readyVoice));
-        when(client.synthesize(isNull(), anyString(), any())).thenReturn(new Synthesized(MP3, "audio/mpeg"));
-
-        assertThat(service.audioForMedication(medicationId).source()).isEqualTo(AudioSource.TTS_STANDARD);
-        verify(client, never()).synthesize(eq("voice-123"), anyString(), any());
-    }
-
-    @Test
-    void standardModeNeverSendsTheRecordingToThePhone() {
-        useMode(ReminderSoundMode.STANDARD);
-        when(voices.usableRecording(seniorId)).thenReturn(Optional.of(readyVoice));
-
-        assertThat(service.cachedReminderAudio(medicationId)).isEmpty();
-        verify(storage, never()).signedGetUrl(eq("voice-samples"), any(), any());
-    }
-
-    @Test
-    void personalModePlaysTheRecordingWhenNoClonedMessageExists() {
+    void phoneGetsTheRecordingWhenNoClonedMessageExists() {
         SignedUrl signed = new SignedUrl("http://minio/sample", Instant.EPOCH);
         when(voices.usableRecording(seniorId)).thenReturn(Optional.of(readyVoice));
         when(storage.signedGetUrl("voice-samples", "senior/sample.wav", Duration.ofMinutes(5))).thenReturn(signed);
@@ -227,21 +169,19 @@ class AudioFallbackChainTest {
     }
 
     @Test
-    void personalModeFallsBackToStandardWithoutRecording() {
-        SignedUrl signed = new SignedUrl("http://minio/tts", Instant.EPOCH);
+    void phoneNeverGetsAnOldSyntheticMessage() {
         AudioAsset tts = new AudioAsset(medicationId, null, Language.FR, "texte", AudioSource.TTS_STANDARD, "m/k.mp3");
-        when(voices.usableRecording(seniorId)).thenReturn(Optional.empty());
         when(assets.findCached(eq(medicationId), anyString(), eq(Language.FR), isNull())).thenReturn(Optional.of(tts));
-        when(storage.signedGetUrl("audio-assets", "m/k.mp3", Duration.ofMinutes(5))).thenReturn(signed);
+        when(voices.usableRecording(seniorId)).thenReturn(Optional.empty());
 
-        assertThat(service.cachedReminderAudio(medicationId)).contains(new ReminderAudio(signed, "mp3"));
+        assertThat(service.cachedReminderAudio(medicationId)).isEmpty();
     }
 
-    private void useMode(ReminderSoundMode mode) {
-        when(seniors.audioProfile(seniorId)).thenReturn(profile("Ahmed B.", Language.FR, mode));
-    }
+    @Test
+    void surnameFallsBackToSeniorNameWithoutNickname() {
+        when(links.findLink(seniorId, aidantId)).thenReturn(Optional.empty());
+        when(voices.usableVoice(seniorId)).thenReturn(Optional.empty());
 
-    private SeniorAudioProfile profile(String name, Language language, ReminderSoundMode mode) {
-        return new SeniorAudioProfile(seniorId, name, language, mode);
+        assertThat(service.audioForMedication(medicationId).texte()).startsWith("Ahmed B., c'est l'heure");
     }
 }

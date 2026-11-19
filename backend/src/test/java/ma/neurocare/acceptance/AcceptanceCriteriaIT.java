@@ -200,7 +200,7 @@ class AcceptanceCriteriaIT extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("CA-07 — service audio arrêté : le rappel part avec le TTS standard ou l'audio préenregistré")
+    @DisplayName("CA-07 — service audio arrêté : le rappel part quand même, sans voix de synthèse")
     void ca07_audioFallbackWhenServiceIsDown() throws Exception {
         // Profil de test : aucun service audio à l'écoute.
         DoseEvent dose = medicationWithUpcomingDose();
@@ -208,11 +208,11 @@ class AcceptanceCriteriaIT extends AbstractIntegrationTest {
         reminderService.dispatchDue(dose.getDatePrevue());
 
         Sent reminder = awaitPush(seniorFcm, "DOSE_REMINDER", dose.getId());
-        assertThat(reminder.data().get("audioSource")).isIn("TTS_STANDARD", "PREENREGISTRE");
+        assertThat(reminder.data().get("audioSource")).isEqualTo("PREENREGISTRE");
         MvcResult preview = mvc.perform(bearer(post("/api/v1/medications/{id}/audio/preview", medicationId(dose)), aidant))
                 .andExpect(status().isOk())
                 .andReturn();
-        assertThat((String) read(preview, "$.source")).isIn("TTS_STANDARD", "PREENREGISTRE");
+        assertThat((String) read(preview, "$.source")).isEqualTo("PREENREGISTRE");
     }
 
     @Test

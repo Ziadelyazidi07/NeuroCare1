@@ -124,7 +124,7 @@ public class VoiceService {
                 profile.setProviderVoiceId(enrollment.voiceId());
                 status = VoiceProfileStatus.PRET;
             } else {
-                log.info("Clonage indisponible ({}) : les rappels utiliseront le TTS standard", enrollment.reason());
+                log.info("Clonage indisponible ({}) : l'enregistrement sera joué tel quel", enrollment.reason());
             }
         } catch (RuntimeException e) {
             log.warn("Enrôlement vocal en échec : {}", e.getClass().getSimpleName());

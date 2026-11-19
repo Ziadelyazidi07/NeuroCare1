@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -33,7 +32,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Parcours complet avec un faux microservice audio (contrat §10.1) : upload → PRET → message cloné
- * (niveau 1) → URL signée 5 min → révocation VOIX → voix supprimée côté service, retour au TTS (niveau 2).
+ * (niveau 1) → URL signée 5 min → révocation VOIX → voix supprimée côté service, plus aucun audio serveur.
  */
 class VoiceCloneIT extends AbstractIntegrationTest {
 
@@ -61,10 +60,6 @@ class VoiceCloneIT extends AbstractIntegrationTest {
             giveConsent(aidant, seniorId, type, true);
         }
         String medicationId = createMedication(aidant, seniorId);
-        mvc.perform(bearer(put("/api/v1/seniors/{id}/reminder-sound", seniorId), aidant)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("mode", "PERSONNALISE"))))
-                .andExpect(status().isOk());
 
         mvc.perform(bearer(multipart("/api/v1/seniors/{id}/voice-profile", seniorId)
                         .file(new MockMultipartFile("file", "salma.wav", "audio/wav", AudioSampleInspectorTest.wav(12))),
@@ -108,10 +103,12 @@ class VoiceCloneIT extends AbstractIntegrationTest {
         awaitUntil("voix supprimée côté service", () -> deletedVoices.contains("voice-1"));
         mvc.perform(bearer(get("/api/v1/audio/{id}", assetId), senior)).andExpect(status().isNotFound());
 
-        // Niveau 2 : TTS standard.
+        // Aucune voix de synthèse : le téléphone n'a plus rien à télécharger et joue sa tonalité.
         mvc.perform(bearer(post("/api/v1/medications/{id}/audio/preview", medicationId), aidant))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.source").value("TTS_STANDARD"));
+                .andExpect(jsonPath("$.source").value("PREENREGISTRE"));
+        mvc.perform(bearer(get("/api/v1/me/medications/{id}/audio", medicationId), senior))
+                .andExpect(status().isNotFound());
     }
 
     private String profileStatus(String aidant, String seniorId) throws Exception {

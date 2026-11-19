@@ -56,10 +56,6 @@ public class SeniorProfile extends BaseEntity {
     @Column(name = "annee_naissance")
     private Short anneeNaissance;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "mode_son_rappel", nullable = false, length = 20)
-    private ReminderSoundMode modeSonRappel = ReminderSoundMode.STANDARD;
-
     public SeniorProfile(UUID seniorUserId) {
         super(seniorUserId);
     }
