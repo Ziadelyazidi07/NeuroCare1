@@ -67,7 +67,8 @@ Après toute modification de `app.json` ou de la sonnerie, il faut reconstruire 
 (Android Studio et son SDK requis). Android conserve les réglages d'un canal existant : changer son identifiant
 dans `src/senior/reminders.ts` si le son ou la vibration évoluent.
 Sans FCM, les rappels locaux du build restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
-En build Android de production, le HTTP en clair est bloqué : utiliser HTTPS (Nginx + TLS, cahier §15.4).
+Les builds Android autorisent le HTTP en clair pour joindre le backend local (`usesCleartextTraffic`). L'APK de test se construit avec
+`eas build -p android --profile preview`. Avant une vraie mise en production : retirer cette option et utiliser HTTPS (cahier §15.4).
 
 Si `expo start` affiche une erreur d'installation de React Native DevTools (`dotslash error: Access is denied`),
 ajouter `EXPO_UNSTABLE_HEADLESS=1` à `.env.local` puis relancer. L'application DevTools n'est alors plus
