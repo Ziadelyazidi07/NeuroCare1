@@ -23,9 +23,12 @@ import {
   configureReminders,
   consumeLaunchReminder,
   devicePushToken,
+  enableAlerts,
+  getAlertPermissions,
   onReminderReceived,
   onReminderTapped,
   scheduleReminders,
+  type AlertPermissions,
 } from '../../senior/reminders';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
@@ -40,6 +43,7 @@ export default function SeniorHome() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [alerts, setAlerts] = useState<AlertPermissions | null>(null);
   const announced = useRef(new Set<string>());
   const dosesRef = useRef<DoseDto[]>([]);
   const refreshRun = useRef(0);
@@ -126,6 +130,7 @@ export default function SeniorHome() {
       if (cachedProfile) setProfile(JSON.parse(cachedProfile) as SeniorDto);
       applyDoses(await cachedDoses());
       await configureReminders();
+      setAlerts(await getAlertPermissions());
       await refresh();
       const launchDoseId = consumeLaunchReminder();
       if (launchDoseId) playFromNotification(launchDoseId);
@@ -143,6 +148,7 @@ export default function SeniorHome() {
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         setNow(new Date());
+        void getAlertPermissions().then(setAlerts);
         void refresh();
       }
     });
@@ -204,6 +210,11 @@ export default function SeniorHome() {
     void refresh();
   };
 
+  const activateAlerts = async () => {
+    setAlerts(await enableAlerts());
+    void refresh(false);
+  };
+
   const callContact = () => {
     if (!profile?.contactUrgenceTel) return;
     void Linking.openURL(`tel:${profile.contactUrgenceTel}`);
@@ -218,6 +229,7 @@ export default function SeniorHome() {
   const canConfirm = !!dose && isConfirmable(dose, now) && !busy;
   const due = !!dose && isDue(dose, now);
   const hasVoice = hasReminderVoice(dose);
+  const alertsMissing = !!alerts && (!alerts.notifications || !alerts.exactAlarms);
   const text = { color: colours.text, fontSize: font };
 
   return (
@@ -233,6 +245,21 @@ export default function SeniorHome() {
           <Text style={[styles.offline, { fontSize: font - 4, color: colours.action }]} accessibilityRole="alert">
             Pas de réseau : vos rappels continuent et vos réponses seront envoyées plus tard.
           </Text>
+        ) : null}
+
+        {alertsMissing ? (
+          <View style={styles.permissions}>
+            <Text style={[text, styles.center]} accessibilityRole="alert">
+              Sans cette autorisation, les rappels peuvent ne pas sonner quand le téléphone est verrouillé.
+            </Text>
+            <BigButton
+              label="Activer les alertes sur ce téléphone"
+              colours={colours}
+              font={font}
+              onPress={() => void activateAlerts()}
+              emphasis
+            />
+          </View>
         ) : null}
 
         {due && dose ? (
@@ -327,6 +354,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 18 },
   greeting: { fontWeight: '800' },
   offline: { fontWeight: '700' },
+  permissions: { gap: 10 },
   alert: { borderRadius: 20, padding: 20, gap: 4, alignItems: 'center' },
   alertTitle: { fontWeight: '900', textAlign: 'center' },
   card: { borderRadius: 20, padding: 20, gap: 6, alignItems: 'center' },

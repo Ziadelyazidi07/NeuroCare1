@@ -58,11 +58,14 @@ npx expo start --ios      # simulateur iOS (macOS)
 | Fonction | Expo Go | Build de développement (`npx expo run:android`, `eas build --profile development`) |
 |----------|---------|------|
 | API REST, temps réel STOMP, PDF, enregistrement vocal, audio | oui | oui |
-| Rappels **locaux** programmés (hors ligne) | non (désactivés) | oui |
+| Rappels **locaux** à T-10 min et alarme à l'heure exacte (hors ligne, écran verrouillé) | non (désactivés) | oui |
 | Push **FCM** envoyés par le serveur | non | oui, avec `google-services.json` |
 
 Dans Expo Go, le rappel audio ne se déclenche donc que si l'application est ouverte : tester les
 notifications et le scénario hors ligne sur un build de développement.
+Après toute modification de `app.json` ou de la sonnerie, il faut reconstruire l'application : `npx expo run:android`
+(Android Studio et son SDK requis). Android conserve les réglages d'un canal existant : changer son identifiant
+dans `src/senior/reminders.ts` si le son ou la vibration évoluent.
 Sans FCM, les rappels locaux du build restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
 En build Android de production, le HTTP en clair est bloqué : utiliser HTTPS (Nginx + TLS, cahier §15.4).
 
@@ -99,8 +102,11 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
   tel quel). Le senior n'a aucun réglage ; sans voix enregistrée, son téléphone joue une simple tonalité.
 - Application ouverte : à l'heure exacte de la prise, alerte à l'écran et lecture automatique de la voix. L'écran
   se met à jour seul par STOMP quand l'aidant modifie un traitement ou sa voix.
-- Application fermée ou en arrière-plan : notification locale avec le son du système, puis lecture de la voix à
-  l'ouverture. Android n'accepte comme son de notification qu'un fichier intégré au build, pas un fichier téléchargé.
+- Application fermée ou écran verrouillé : rappel « Rappel bientôt » à T-10 min, puis alarme à l'heure exacte avec
+  priorité maximale, forte vibration et sonnerie intégrée à l'APK (`assets/audio/alarme_rappel.wav`). La voix de
+  l'aidant part à l'ouverture : `expo-notifications` n'accepte pas un fichier téléchargé comme son de notification.
+- Si une autorisation manque, l'écran senior propose « Activer les alertes sur ce téléphone » (demande système,
+  ou réglages Android après un refus définitif).
 - Bouton d'appel d'urgence (`tel:`) vers le contact saisi par l'aidant. Mini-jeu : 3 mots, pause, choix parmi 9,
   arrêt possible à tout moment ; seul le nombre de mots retrouvés est affiché, sans aucune interprétation.
 
