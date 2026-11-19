@@ -61,7 +61,7 @@ export default function SeniorDashboard() {
           void load();
           break;
         case 'VOICE_PROFILE_READY':
-          setBanner(event.statut === 'PRET' ? 'Votre voix est prête pour les rappels.' : "Votre voix n'a pas pu être préparée : la voix de synthèse sera utilisée.");
+          setBanner('Votre voix est enregistrée pour les rappels.');
           break;
         case 'DEVICE_UNREACHABLE':
           setBanner('Le téléphone du senior ne reçoit plus les notifications du serveur. Ouvrez l’application sur son téléphone.');

@@ -1,8 +1,6 @@
 /**
- * Audio du rappel avec la chaîne de repli du cahier (§10.4) côté téléphone :
- * 1-2. fichier choisi par le serveur selon le son du senior (voix de l'aidant ou TTS), téléchargé à
- *      l'avance — utilisable hors ligne ;
- * 3.   audio générique embarqué dans l'application (darija / arabe, ou français).
+ * Audio du rappel : uniquement la voix de l'aidant, téléchargée à l'avance pour rester utilisable hors
+ * ligne. Tant qu'aucune voix n'est disponible, le téléphone joue une simple tonalité.
  */
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -11,21 +9,16 @@ import { seniorApi } from '../api/api';
 import type { DoseDto, Language } from '../api/types';
 import { ApiError } from '../lib/problem';
 
-/** Audios génériques embarqués (provisoires, à remplacer par des voix enregistrées — EF-VO-05). */
-const BUNDLED = {
-  rappel: { fr: require('../../assets/audio/rappel-fr.mp3'), ar: require('../../assets/audio/rappel-ar.mp3') },
-  merci: { fr: require('../../assets/audio/merci-fr.mp3'), ar: require('../../assets/audio/merci-ar.mp3') },
-};
+const REMINDER_TONE = require('../../assets/audio/tonalite-rappel.wav');
 
-/** Formats possibles : MP3 pour les messages générés, ceux de l'enregistrement de l'aidant sinon. */
+/** Confirmation après « C'est fait » (provisoire, à remplacer par des voix enregistrées — EF-VO-05). */
+const THANKS = { fr: require('../../assets/audio/merci-fr.mp3'), ar: require('../../assets/audio/merci-ar.mp3') };
+
+/** Formats possibles : MP3 pour un message cloné, ceux de l'enregistrement de l'aidant sinon. */
 const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav'];
 
 const audioDir = new Directory(Paths.cache, 'rappels-audio');
 let player: AudioPlayer | null = null;
-
-function bundled(kind: keyof typeof BUNDLED, language: Language): number {
-  return language === 'FR' ? BUNDLED[kind].fr : BUNDLED[kind].ar;
-}
 
 function localFile(medicationId: string, extension: string): File {
   // Extension explicite : le lecteur iOS s'appuie dessus pour un fichier local.
@@ -43,8 +36,8 @@ function deleteLocalFiles(medicationId: string, keep?: File): void {
 }
 
 /**
- * Télécharge l'audio de chaque traitement (URL signée de 5 min, utilisée tout de suite). Sans fichier
- * côté serveur (404), l'ancien est effacé : la voix retirée n'est plus jouée et le repli embarqué prend le relais.
+ * Télécharge la voix de chaque traitement (URL signée de 5 min, utilisée tout de suite). Sans fichier
+ * côté serveur (404), l'ancien est effacé : une voix retirée n'est plus jouée.
  */
 export async function prefetchReminderAudio(doses: DoseDto[]): Promise<void> {
   audioDir.create({ intermediates: true, idempotent: true });
@@ -69,15 +62,23 @@ async function play(source: string | number): Promise<void> {
   player.play();
 }
 
-/** Joue le rappel d'une prise : fichier personnalisé s'il existe, sinon audio embarqué. */
-export async function playReminder(dose: DoseDto | null, language: Language): Promise<void> {
-  const file = dose?.medicationId ? localFiles(dose.medicationId).find((candidate) => candidate.exists) : undefined;
-  await play(file ? file.uri : bundled('rappel', language));
+function reminderVoice(dose: DoseDto | null): File | undefined {
+  return dose?.medicationId ? localFiles(dose.medicationId).find((file) => file.exists) : undefined;
+}
+
+/** Vrai si la voix de l'aidant est disponible sur le téléphone pour cette prise. */
+export function hasReminderVoice(dose: DoseDto | null): boolean {
+  return reminderVoice(dose) !== undefined;
+}
+
+/** Joue le rappel d'une prise : voix de l'aidant si elle existe, sinon tonalité. */
+export async function playReminder(dose: DoseDto | null): Promise<void> {
+  await play(reminderVoice(dose)?.uri ?? REMINDER_TONE);
 }
 
 /** Retour sonore après « C'est fait ». */
 export async function playThanks(language: Language): Promise<void> {
-  await play(bundled('merci', language));
+  await play(language === 'FR' ? THANKS.fr : THANKS.ar);
 }
 
 export function stopAudio(): void {

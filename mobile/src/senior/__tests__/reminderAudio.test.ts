@@ -4,7 +4,7 @@ import { createAudioPlayer } from 'expo-audio';
 import { seniorApi } from '../../api/api';
 import type { DoseDto } from '../../api/types';
 import { ApiError } from '../../lib/problem';
-import { playReminder, prefetchReminderAudio } from '../reminderAudio';
+import { hasReminderVoice, playReminder, prefetchReminderAudio } from '../reminderAudio';
 
 const mockFiles = new Set<string>();
 
@@ -56,8 +56,9 @@ describe('audio du rappel', () => {
     medicationAudio.mockResolvedValue(signed('m4a'));
 
     await prefetchReminderAudio([dose]);
-    await playReminder(dose, 'FR');
+    await playReminder(dose);
 
+    expect(hasReminderVoice(dose)).toBe(true);
     expect(createAudioPlayer).toHaveBeenCalledWith('file:///cache/m1.m4a');
   });
 
@@ -70,14 +71,15 @@ describe('audio du rappel', () => {
     expect([...mockFiles]).toEqual(['file:///cache/m1.mp3']);
   });
 
-  it("efface la voix locale quand le serveur n'a plus d'audio pour ce traitement", async () => {
+  it("efface la voix locale et joue la tonalité quand le serveur n'a plus de voix", async () => {
     mockFiles.add('file:///cache/m1.m4a');
     medicationAudio.mockRejectedValue(new ApiError(404, 'NOT_FOUND', 'Aucun audio'));
 
     await prefetchReminderAudio([dose]);
-    await playReminder(dose, 'FR');
+    await playReminder(dose);
 
     expect(mockFiles.size).toBe(0);
+    expect(hasReminderVoice(dose)).toBe(false);
     expect(createAudioPlayer).toHaveBeenCalledWith(expect.not.stringContaining('file:///cache/'));
   });
 

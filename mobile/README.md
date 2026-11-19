@@ -95,9 +95,8 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
 - Les prises des 48 h sont mises en cache et programmées en **notifications locales** (canal Android
   « Rappels médicaments ») ; l'audio de chaque traitement est téléchargé à l'avance
   (`GET /me/medications/{id}/audio`).
-- Son des rappels, au choix du senior ou de l'aidant (`PUT /seniors/{id}/reminder-sound`) : **Son standard**
-  (synthèse, sinon audio générique embarqué dans `assets/audio/`) ou **Voix personnalisée** (voix clonée si
-  disponible, sinon enregistrement de l'aidant joué tel quel, avec repli sur le son standard).
+- Son des rappels : uniquement la voix de l'aidant (message cloné si disponible, sinon son enregistrement joué
+  tel quel). Le senior n'a aucun réglage ; sans voix enregistrée, son téléphone joue une simple tonalité.
 - Bouton d'appel d'urgence (`tel:`) vers le contact saisi par l'aidant. Mini-jeu : 3 mots, pause, choix parmi 9,
   arrêt possible à tout moment ; seul le nombre de mots retrouvés est affiché, sans aucune interprétation.
 
@@ -106,7 +105,7 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
 - Tableau de bord : abonnement STOMP à `/topic/seniors/{id}/events` (jeton présenté à la trame CONNECT),
   mise à jour immédiate des pastilles, historique 7 jours, alertes « sans réponse » et « téléphone injoignable ».
 - Consentements : chaque changement demande de confirmer la présence et l'accord du senior.
-- Voix : enregistrement d'environ 12 s (M4A), réécoute, envoi, suivi du statut (prête / synthèse).
+- Voix : enregistrement d'environ 12 s (M4A), réécoute, envoi, remplacement et suppression.
 - Rapport : choix de la semaine, observations pour le médecin, téléchargement authentifié puis partage du PDF.
 
 ## Structure
@@ -120,7 +119,7 @@ src/
   realtime/     abonnement STOMP
   lib/          logique pure testée (pastilles, file hors ligne, dates, validation, URL)
   ui/           thème accessible et composants
-assets/audio/   audios génériques embarqués (provisoires)
+assets/audio/   tonalité du rappel et confirmations embarquées
 ```
 
 ## Vérifications
@@ -134,7 +133,7 @@ npx expo-doctor     # compatibilité des dépendances avec le SDK
 
 ## Limites connues
 
-- Les audios génériques de `assets/audio/` sont des voix de synthèse (espeak-ng) : à remplacer par des
+- Les confirmations `merci-*.mp3` de `assets/audio/` sont des voix de synthèse (espeak-ng) : à remplacer par des
   enregistrements de locuteurs, notamment en darija (cahier §10.5, EF-VO-05).
 - Les mots darija du jeu sont affichés en écriture arabe et en transcription latine ; liste à faire relire.
 - Pas encore de tests de composants ni de tests de bout en bout (Maestro / Detox) : la logique métier

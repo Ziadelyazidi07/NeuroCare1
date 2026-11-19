@@ -20,15 +20,11 @@ import type {
   PairingCodeResponse,
   PairingRedeemResponse,
   ReminderAudioDto,
-  ReminderSoundMode,
   SeniorDto,
   SyncResponse,
   VoiceProfileDto,
 } from './types';
 import type { PendingConfirmation } from '../lib/offlineQueue';
-
-const setReminderSound = (seniorId: string, mode: ReminderSoundMode) =>
-  request<SeniorDto>('PUT', `/seniors/${seniorId}/reminder-sound`, { body: { mode } });
 
 export const authApi = {
   login: (telephone: string, motDePasse: string) =>
@@ -41,7 +37,6 @@ export const authApi = {
 /** Espace senior (token d'appareil). */
 export const seniorApi = {
   profile: (seniorId: string) => request<SeniorDto>('GET', `/seniors/${seniorId}`),
-  setReminderSound,
   upcomingDoses: (hours = 48) => request<DoseDto[]>('GET', `/me/doses/upcoming?hours=${hours}`),
   confirm: (doseId: string, idempotencyKey: string, horodatageClient: string) =>
     request<DoseDto>('POST', `/doses/${doseId}/confirm`, {
@@ -85,7 +80,6 @@ export const aidantApi = {
       body: { accorde, versionTexte: CONSENT_TEXT_VERSION, presenceSeniorConfirmee: true },
     }),
 
-  setReminderSound,
   voiceProfile: (seniorId: string) => request<VoiceProfileDto>('GET', `/seniors/${seniorId}/voice-profile`),
   uploadVoice: async (seniorId: string, fileUri: string) => {
     const file = new File(fileUri);

@@ -3,7 +3,6 @@ import type { DoseStatus, PillColour } from '../lib/doses';
 
 export type Language = 'DARIJA' | 'FR' | 'AR';
 export type ConsentType = 'RAPPELS' | 'EXERCICES' | 'PARTAGE_FAMILIAL' | 'VOIX';
-export type ReminderSoundMode = 'STANDARD' | 'PERSONNALISE';
 export type JourSemaine = 'LUN' | 'MAR' | 'MER' | 'JEU' | 'VEN' | 'SAM' | 'DIM';
 export const JOURS: JourSemaine[] = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
 
@@ -50,7 +49,6 @@ export interface SeniorDto {
   contactUrgenceTel?: string;
   donneesFictives: boolean;
   anneeNaissance?: number;
-  modeSonRappel: ReminderSoundMode;
   lien?: { lienParente?: string; surnomSenior?: string; consentementValide: boolean; dateConsentement?: string };
 }
 

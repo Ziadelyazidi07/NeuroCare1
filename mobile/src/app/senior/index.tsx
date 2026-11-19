@@ -1,6 +1,6 @@
 /**
  * Écran principal du senior (cahier §2.1, ENF-08) : un seul écran, police ≥ 24 sp, contraste élevé,
- * gros bouton « C'est fait » ≥ 64 dp, audio pour chaque action, choix du son. Fonctionne hors ligne.
+ * gros bouton « C'est fait » ≥ 64 dp, audio pour chaque action. Fonctionne hors ligne.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,13 +11,12 @@ import NetInfo from '@react-native-community/netinfo';
 import * as Haptics from 'expo-haptics';
 
 import { seniorApi } from '../../api/api';
-import type { DoseDto, Language, ReminderSoundMode, SeniorDto } from '../../api/types';
+import type { DoseDto, Language, SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
 import { formatTime } from '../../lib/dates';
 import { currentDose, isConfirmable, isDue } from '../../lib/doses';
-import { REMINDER_SOUND_OPTIONS } from '../../lib/reminderSound';
 import { confirmDose, refreshDoses, cachedDoses } from '../../senior/offlineStore';
-import { playReminder, playThanks, prefetchReminderAudio } from '../../senior/reminderAudio';
+import { hasReminderVoice, playReminder, playThanks, prefetchReminderAudio } from '../../senior/reminderAudio';
 import { configureReminders, devicePushToken, onReminderTapped, scheduleReminders } from '../../senior/reminders';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
@@ -30,7 +29,6 @@ export default function SeniorHome() {
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [savingSound, setSavingSound] = useState(false);
   const [now, setNow] = useState(new Date());
   const announced = useRef(new Set<string>());
 
@@ -97,18 +95,18 @@ export default function SeniorHome() {
   useEffect(() => {
     if (dose && isDue(dose, now) && !announced.current.has(dose.id)) {
       announced.current.add(dose.id);
-      void playReminder(dose, language);
+      void playReminder(dose);
     }
-  }, [dose, now, language]);
+  }, [dose, now]);
 
   // Notification touchée : on joue le message de la prise concernée.
   useEffect(() => {
     return onReminderTapped((doseId) => {
       const target = doses.find((d) => d.id === doseId) ?? dose;
       announced.current.add(String(doseId));
-      void playReminder(target ?? null, language);
+      void playReminder(target ?? null);
     });
-  }, [doses, dose, language]);
+  }, [doses, dose]);
 
   if (!session || session.kind !== 'senior') return <Redirect href="/" />;
 
@@ -130,22 +128,6 @@ export default function SeniorHome() {
     void refresh();
   };
 
-  const chooseSound = async (mode: ReminderSoundMode) => {
-    if (!seniorId || savingSound || mode === profile?.modeSonRappel) return;
-    setSavingSound(true);
-    try {
-      const updated = await seniorApi.setReminderSound(seniorId, mode);
-      setProfile(updated);
-      await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
-      setMessage("C'est noté. Vos rappels utiliseront ce son.");
-      void refresh();
-    } catch {
-      setMessage("Ce choix n'a pas pu être enregistré. Réessayez avec du réseau.");
-    } finally {
-      setSavingSound(false);
-    }
-  };
-
   const callContact = () => {
     if (!profile?.contactUrgenceTel) return;
     void Linking.openURL(`tel:${profile.contactUrgenceTel}`);
@@ -159,6 +141,7 @@ export default function SeniorHome() {
 
   const canConfirm = !!dose && isConfirmable(dose, now) && !busy;
   const due = !!dose && isDue(dose, now);
+  const hasVoice = hasReminderVoice(dose);
   const text = { color: colours.text, fontSize: font };
 
   return (
@@ -210,38 +193,10 @@ export default function SeniorHome() {
           </Text>
         ) : null}
 
-        {dose ? (
-          <BigButton label="Écouter le message" colours={colours} font={font} onPress={() => void playReminder(dose, language)} />
+        {dose && hasVoice ? (
+          <BigButton label="Écouter le message" colours={colours} font={font} onPress={() => void playReminder(dose)} />
         ) : null}
-        {profile ? (
-          <View accessibilityRole="radiogroup" accessibilityLabel="Son des rappels" style={styles.soundGroup}>
-            <Text style={[text, styles.bold]}>Son des rappels</Text>
-            {REMINDER_SOUND_OPTIONS.map((option) => {
-              const selected = profile.modeSonRappel === option.mode;
-              return (
-                <Pressable
-                  key={option.mode}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected, disabled: savingSound }}
-                  disabled={savingSound}
-                  onPress={() => void chooseSound(option.mode)}
-                  style={({ pressed }) => [
-                    styles.bigButton,
-                    {
-                      borderColor: selected ? colours.action : colours.text,
-                      backgroundColor: selected ? colours.action : 'transparent',
-                      opacity: pressed || savingSound ? 0.7 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={{ color: selected ? colours.actionText : colours.text, fontSize: font, fontWeight: '700', textAlign: 'center' }}>
-                    {selected ? `✓ ${option.label}` : option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+        {due && !hasVoice ? <Text style={[text, styles.center]}>Votre proche n’a pas encore enregistré sa voix.</Text> : null}
         <BigButton label="Jeu de mémoire" colours={colours} font={font} onPress={() => router.push('/senior/exercise')} />
         {profile?.contactUrgenceTel ? (
           <BigButton
@@ -296,6 +251,5 @@ const styles = StyleSheet.create({
   center: { textAlign: 'center' },
   doneButton: { minHeight: MIN_TOUCH * 2, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   doneText: { fontWeight: '900' },
-  soundGroup: { gap: 10 },
   bigButton: { minHeight: MIN_TOUCH * 1.25, borderRadius: 20, borderWidth: 3, alignItems: 'center', justifyContent: 'center', padding: 12 },
 });
