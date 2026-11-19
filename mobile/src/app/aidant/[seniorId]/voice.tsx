@@ -1,10 +1,10 @@
 /**
- * Voix des rappels (EF-VO-01) : l'aidant enregistre ~12 s de sa voix (10 à 30 s acceptées), réécoute,
- * puis envoie. Le serveur exige le consentement VOIX ; sans clonage disponible, la voix de synthèse
- * standard est utilisée (repli niveau 2).
+ * Voix des rappels (EF-VO-01) : choix entre le son standard et la voix personnalisée. Pour cette
+ * dernière, l'aidant enregistre ~12 s de sa voix (10 à 30 s acceptées), réécoute, puis envoie. Le serveur
+ * exige le consentement VOIX ; sans clonage disponible, l'enregistrement est joué tel quel.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   RecordingPresets,
@@ -17,15 +17,16 @@ import {
 } from 'expo-audio';
 
 import { aidantApi } from '../../../api/api';
-import type { VoiceProfileDto } from '../../../api/types';
+import type { ReminderSoundMode, VoiceProfileDto } from '../../../api/types';
 import { ApiError, errorMessage } from '../../../lib/problem';
-import { Button, Card, ErrorText, Notice, Screen, styles } from '../../../ui/components';
+import { REMINDER_SOUND_OPTIONS } from '../../../lib/reminderSound';
+import { Button, Card, ErrorText, Loading, Notice, RadioOption, Screen, styles } from '../../../ui/components';
 
 const TARGET_MS = 12_000;
 const STATUS_LABEL: Record<VoiceProfileDto['statut'], string> = {
-  EN_COURS: 'En préparation…',
+  EN_COURS: 'Enregistrement reçu : les rappels utilisent votre voix.',
   PRET: 'Prête : les rappels utilisent votre voix.',
-  ECHEC: 'Non disponible : les rappels utilisent la voix de synthèse.',
+  ECHEC: 'Enregistrement reçu : il est joué tel quel pour les rappels.',
 };
 
 export default function Voice() {
@@ -33,6 +34,8 @@ export default function Voice() {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 200);
   const [profile, setProfile] = useState<VoiceProfileDto | null>(null);
+  const [soundMode, setSoundMode] = useState<ReminderSoundMode | null>(null);
+  const [savingSound, setSavingSound] = useState(false);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consentMissing, setConsentMissing] = useState(false);
@@ -49,14 +52,23 @@ export default function Voice() {
     }
   }, [seniorId]);
 
+  const loadSoundMode = useCallback(async () => {
+    try {
+      setSoundMode((await aidantApi.senior(seniorId)).modeSonRappel);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }, [seniorId]);
+
   useFocusEffect(
     useCallback(() => {
       void loadProfile();
+      void loadSoundMode();
       return () => {
         player.current?.remove();
         if (autoStop.current) clearTimeout(autoStop.current);
       };
-    }, [loadProfile]),
+    }, [loadProfile, loadSoundMode]),
   );
 
   const stop = useCallback(async () => {
@@ -73,6 +85,19 @@ export default function Voice() {
     const timer = setInterval(() => void loadProfile(), 2000);
     return () => clearInterval(timer);
   }, [profile?.statut, loadProfile]);
+
+  const chooseSound = async (mode: ReminderSoundMode) => {
+    if (mode === soundMode) return;
+    setSavingSound(true);
+    setError(null);
+    try {
+      setSoundMode((await aidantApi.setReminderSound(seniorId, mode)).modeSonRappel);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setSavingSound(false);
+    }
+  };
 
   const start = async () => {
     setError(null);
@@ -132,37 +157,61 @@ export default function Voice() {
 
   return (
     <Screen>
-      <Card title="Votre voix">
-        <Text style={styles.text}>{profile ? STATUS_LABEL[profile.statut] : 'Aucune voix enregistrée : la voix de synthèse est utilisée.'}</Text>
-        {profile ? <Button label="Supprimer ma voix" variant="secondary" onPress={remove} /> : null}
+      <Card title="Son des rappels">
+        {soundMode ? (
+          <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+            {REMINDER_SOUND_OPTIONS.map((option) => (
+              <RadioOption
+                key={option.mode}
+                label={option.label}
+                description={option.description}
+                selected={soundMode === option.mode}
+                disabled={savingSound || recorderState.isRecording}
+                onPress={() => void chooseSound(option.mode)}
+              />
+            ))}
+          </View>
+        ) : error ? null : (
+          <Loading />
+        )}
+        {soundMode !== 'PERSONNALISE' ? <ErrorText message={error} /> : null}
       </Card>
 
-      <Card title="Enregistrer (environ 12 secondes)">
-        <Text style={styles.muted}>Lisez calmement, dans un endroit silencieux :</Text>
-        <Text style={[styles.text, { fontStyle: 'italic' }]}>
-          « Bonjour, c’est moi. C’est l’heure de ton médicament. Prends ton temps, et appuie sur le gros bouton quand c’est
-          fait. Je pense fort à toi. »
-        </Text>
-        {recorderState.isRecording ? (
-          <>
-            <Text style={[styles.cardTitle, { textAlign: 'center' }]} accessibilityLiveRegion="polite">
-              Enregistrement… {seconds} s / {TARGET_MS / 1000} s
+      {soundMode === 'PERSONNALISE' ? (
+        <>
+          <Card title="Votre voix">
+            <Text style={styles.text}>{profile ? STATUS_LABEL[profile.statut] : 'Aucune voix enregistrée : le son standard est joué en attendant.'}</Text>
+            {profile ? <Button label="Supprimer ma voix" variant="secondary" onPress={remove} /> : null}
+          </Card>
+
+          <Card title="Enregistrer (environ 12 secondes)">
+            <Text style={styles.muted}>Lisez calmement, dans un endroit silencieux :</Text>
+            <Text style={[styles.text, { fontStyle: 'italic' }]}>
+              « Bonjour, c’est moi. C’est l’heure de ton médicament. Prends ton temps, et appuie sur le gros bouton quand c’est
+              fait. Je pense fort à toi. »
             </Text>
-            <Button label="Arrêter" variant="danger" onPress={() => void stop()} />
-          </>
-        ) : (
-          <Button label={recordingUri ? 'Recommencer' : 'Commencer l’enregistrement'} variant={recordingUri ? 'secondary' : 'primary'} onPress={() => void start()} />
-        )}
-        {recordingUri && !recorderState.isRecording ? (
-          <>
-            <Button label="Réécouter" variant="secondary" onPress={listen} />
-            <Button label="Envoyer" onPress={() => void upload()} loading={busy} />
-          </>
-        ) : null}
-        <ErrorText message={error} />
-        {consentMissing ? <Notice>Le senior doit d’abord accorder le consentement « Voix d’un proche ».</Notice> : null}
-      </Card>
-      <Notice>La voix est une donnée sensible : elle n’est utilisée que pour les rappels et supprimée si le senior retire son accord.</Notice>
+            {recorderState.isRecording ? (
+              <>
+                <Text style={[styles.cardTitle, { textAlign: 'center' }]} accessibilityLiveRegion="polite">
+                  Enregistrement… {seconds} s / {TARGET_MS / 1000} s
+                </Text>
+                <Button label="Arrêter" variant="danger" onPress={() => void stop()} />
+              </>
+            ) : (
+              <Button label={recordingUri ? 'Recommencer' : 'Commencer l’enregistrement'} variant={recordingUri ? 'secondary' : 'primary'} onPress={() => void start()} />
+            )}
+            {recordingUri && !recorderState.isRecording ? (
+              <>
+                <Button label="Réécouter" variant="secondary" onPress={listen} />
+                <Button label="Envoyer" onPress={() => void upload()} loading={busy} />
+              </>
+            ) : null}
+            <ErrorText message={error} />
+            {consentMissing ? <Notice>Le senior doit d’abord accorder le consentement « Voix d’un proche ».</Notice> : null}
+          </Card>
+          <Notice>La voix est une donnée sensible : elle n’est utilisée que pour les rappels et supprimée si le senior retire son accord.</Notice>
+        </>
+      ) : null}
     </Screen>
   );
 }

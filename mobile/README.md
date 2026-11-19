@@ -93,10 +93,11 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
   unique. Sans réseau, la confirmation est mise en file (stockage local) et envoyée par `POST /me/doses/sync`
   au retour de la connexion (CA-10).
 - Les prises des 48 h sont mises en cache et programmées en **notifications locales** (canal Android
-  « Rappels médicaments ») ; l'audio personnalisé de chaque traitement est téléchargé à l'avance
+  « Rappels médicaments ») ; l'audio de chaque traitement est téléchargé à l'avance
   (`GET /me/medications/{id}/audio`).
-- Audio du rappel : fichier personnalisé (voix de l'aidant ou synthèse) s'il a pu être téléchargé, sinon audio
-  générique embarqué (`assets/audio/`, repli niveau 3 du cahier §10.4).
+- Son des rappels, au choix du senior ou de l'aidant (`PUT /seniors/{id}/reminder-sound`) : **Son standard**
+  (synthèse, sinon audio générique embarqué dans `assets/audio/`) ou **Voix personnalisée** (voix clonée si
+  disponible, sinon enregistrement de l'aidant joué tel quel, avec repli sur le son standard).
 - Bouton d'appel d'urgence (`tel:`) vers le contact saisi par l'aidant. Mini-jeu : 3 mots, pause, choix parmi 9,
   arrêt possible à tout moment ; seul le nombre de mots retrouvés est affiché, sans aucune interprétation.
 

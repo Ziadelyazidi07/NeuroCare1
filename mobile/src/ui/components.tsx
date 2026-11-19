@@ -75,6 +75,44 @@ export function Button({
   );
 }
 
+/** Option d'un choix exclusif : la sélection se lit aussi sans la couleur (pastille et état d'accessibilité). */
+export function RadioOption({
+  label,
+  description,
+  selected,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  description: string;
+  selected: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected, disabled: !!disabled }}
+      accessibilityHint={description}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.radio,
+        selected && styles.radioSelected,
+        (pressed || disabled) && { opacity: 0.6 },
+      ]}
+    >
+      <View style={[styles.radioMark, selected && styles.radioMarkSelected]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+      <View style={styles.radioText}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.muted}>{description}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
   return (
     <View style={styles.field}>
@@ -131,6 +169,12 @@ export const styles = StyleSheet.create({
   buttonSecondary: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: c.primary },
   buttonDanger: { backgroundColor: c.danger },
   buttonText: { color: c.primaryText, fontSize: 16, fontWeight: '600' },
+  radio: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1, borderColor: c.border, borderRadius: 10 },
+  radioSelected: { borderWidth: 2, borderColor: c.primary },
+  radioMark: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.muted, alignItems: 'center', justifyContent: 'center' },
+  radioMarkSelected: { borderColor: c.primary },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: c.primary },
+  radioText: { flex: 1, gap: 2 },
   field: { gap: 4 },
   label: { fontSize: 14, fontWeight: '600', color: c.text },
   input: { minHeight: 48, borderWidth: 1, borderColor: c.border, borderRadius: 10, paddingHorizontal: 12, fontSize: 16, color: c.text, backgroundColor: '#FFFFFF' },
