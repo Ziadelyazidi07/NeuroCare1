@@ -68,7 +68,10 @@ Après toute modification de `app.json` ou de la sonnerie, il faut reconstruire 
 dans `src/senior/reminders.ts` si le son ou la vibration évoluent.
 Sans FCM, les rappels locaux du build restent actifs : c'est le filet de sécurité prévu par le cahier (§4.1).
 Les builds Android autorisent le HTTP en clair pour joindre le backend local (`usesCleartextTraffic`). L'APK de test se construit avec
-`eas build -p android --profile preview`. Avant une vraie mise en production : retirer cette option et utiliser HTTPS (cahier §15.4).
+`eas build -p android --profile preview`.
+Une fois cet APK installé, les changements JavaScript et assets se publient sans le reconstruire :
+`eas update --channel preview --message "…"`. Toute modification native (plugin, permission, module) ou du
+champ `version` de `app.json` impose un nouvel APK (`runtimeVersion` suit la version de l'application). Avant une vraie mise en production : retirer cette option et utiliser HTTPS (cahier §15.4).
 
 Si `expo start` affiche une erreur d'installation de React Native DevTools (`dotslash error: Access is denied`),
 ajouter `EXPO_UNSTABLE_HEADLESS=1` à `.env.local` puis relancer. L'application DevTools n'est alors plus
