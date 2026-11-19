@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Locale;
 
 import ma.neurocare.cognitive.api.dto.CognitiveDtos;
+import ma.neurocare.cardio.api.dto.CardioDtos;
 import ma.neurocare.dashboard.api.dto.DashboardDtos;
+import ma.neurocare.metabolic.api.dto.MetabolicDtos;
 import ma.neurocare.mental.api.dto.MentalDtos;
 import ma.neurocare.saturation.api.dto.SaturationDtos;
 import ma.neurocare.notification.api.dto.RealtimeMessages;
@@ -58,7 +60,8 @@ class EthicsTest {
     /** Échelles standardisées (pré-dépistage autorisé) : toujours la mention « pas un diagnostic, pas un médecin ». */
     @Test
     void screeningScalesAlwaysSayTheyAreNotADiagnosis() {
-        for (String notice : List.of(SaturationDtos.AVERTISSEMENT, MentalDtos.AVERTISSEMENT)) {
+        for (String notice : List.of(SaturationDtos.AVERTISSEMENT, MentalDtos.AVERTISSEMENT,
+                MetabolicDtos.AVERTISSEMENT, CardioDtos.AVERTISSEMENT)) {
             assertThat(notice).contains("pas un diagnostic médical officiel").contains("pas un médecin");
         }
         assertThat(MentalDtos.AssessmentDto.class.getRecordComponents())

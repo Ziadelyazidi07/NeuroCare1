@@ -1,17 +1,11 @@
-import type { PlannedModule } from '../types';
+import type { ModuleDefinition } from '../types';
 
-export const metabolicModule: PlannedModule = {
+/** Module 4 : pré-dépistage du diabète de type 2 (score FINDRISC sur 26), bilan PDF. */
+export const metabolicModule: ModuleDefinition = {
   id: 'metabolic',
   title: 'Diabète (FINDRISC)',
   subtitle: 'Pré-dépistage & glycémie',
   icon: 'water',
   colour: '#B05A00',
   route: '/modules/metabolic',
-  description:
-    'Remplir le questionnaire de pré-dépistage FINDRISC et tenir un carnet de glycémies, à montrer au médecin.',
-  planned: [
-    'Questionnaire FINDRISC (âge, tour de taille, activité, alimentation, antécédents)',
-    'Carnet de glycémies daté (à jeun, après repas)',
-    'Synthèse imprimable pour la consultation',
-  ],
 };

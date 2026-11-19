@@ -14,8 +14,3 @@ export interface ModuleDefinition {
   route: Href;
 }
 
-/** Contenu d'un écran de module encore en préparation. */
-export interface PlannedModule extends ModuleDefinition {
-  description: string;
-  planned: string[];
-}

@@ -99,9 +99,8 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   « Diabète (FINDRISC) » et « Tension (HTA) », avec l'adresse du serveur et un rappel éthique (pré-dépistage
   et aide à la décision, jamais de diagnostic).
 - « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
-  déjà appairé ou un aidant connecté va directement dans son espace. « Diabète » et « Tension » affichent pour
-  l'instant un écran de présentation « en préparation ».
-- Modules SpO₂ et Santé mentale : le patient est le senior lui-même (téléphone appairé) ou un proche choisi par
+  déjà appairé ou un aidant connecté va directement dans son espace.
+- Modules 2 à 5 : le patient est le senior lui-même (téléphone appairé) ou un proche choisi par
   l'aidant connecté (consentement « Partage familial » requis). Sans session, l'écran renvoie vers « Rappels & Suivi ».
 - **Saturation SpO₂** (`src/modules/saturation/`) : question du profil respiratoire (maladie respiratoire
   chronique : Oui / Non, modifiable), saisie au repos de la SpO₂ et du pouls, alerte immédiate même hors ligne.
@@ -112,6 +111,16 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   probable de dépression ». Dès 1 point, les 12 autres items de la GDS-15 (vie vide, heureux et situation
   désespérée sont communs aux deux échelles). Restitution 0-4 / 5-9 / 10-15, orientation médicale et
   « Télécharger le rapport GDS PDF » (questions, réponses, scores). Le serveur recalcule toujours le score.
+- **Diabète (FINDRISC)** (`src/modules/metabolic/`) : les 8 questions officielles, IMC calculé depuis le poids et
+  la taille (en cm ou en m), score sur 26 et restitution (< 7 faible 1 % ; 7-11 légèrement accru 4 % ; 12-14 modéré
+  17 % ; 15-20 élevé 33 % ; > 20 très élevé 50 %, risque à 10 ans) avec l'orientation médicale. Résultat immédiat
+  même hors ligne, historique et « Télécharger le bilan FINDRISC PDF ».
+- **Tension (HTA)** (`src/modules/cardio/`) : alerte à chaque mesure, même hors ligne. ≥ 180/110 : alerte rouge,
+  check-list de symptômes et boutons 15 / 141. 135-179 / 85-109 : vigilance (protocole 3 jours, moins de sel).
+  < 135/85 : vert (note sur la tolérance après 80 ans). TAS < 100 : risque de malaise et de chute. Protocole
+  d'automesure guidé : 3 jours × matin et soir × M1-M3 = 18 mesures, minuteur de repos de 1 ou 2 min, moyenne
+  (alerte « à montrer au médecin » si ≥ 135/85) et « Télécharger le relevé d'automesure HTA PDF ». Ressaisir un
+  créneau remplace la mesure.
 - Chaque écran, réponse d'API et PDF de ces modules rappelle qu'ils ne constituent pas un diagnostic médical
   officiel et ne remplacent pas un médecin.
 - Le bouton « ← Accueil Modules » (choix Senior / Aidant, espaces senior et aidant, modules) revient à la grille.

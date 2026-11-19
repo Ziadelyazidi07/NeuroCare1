@@ -12,4 +12,4 @@ import type { ModuleDefinition } from './types';
 
 export const MODULES: readonly ModuleDefinition[] = [observanceModule, saturationModule, mentalModule, metabolicModule, cardioModule];
 
-export type { ModuleDefinition, PlannedModule } from './types';
+export type { ModuleDefinition } from './types';
