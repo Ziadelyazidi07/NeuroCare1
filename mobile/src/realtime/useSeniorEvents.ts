@@ -1,5 +1,5 @@
 /**
- * Temps réel de l'aidant (cahier §9.4) : abonnement STOMP à /topic/seniors/{seniorId}/events.
+ * Temps réel de l'aidant et du senior (cahier §9.4) : abonnement STOMP à /topic/seniors/{seniorId}/events.
  * Le jeton est présenté à la trame CONNECT (le serveur le vérifie avant d'accepter l'abonnement).
  */
 import { useEffect, useRef, useState } from 'react';

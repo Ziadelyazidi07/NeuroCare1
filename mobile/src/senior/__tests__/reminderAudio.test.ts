@@ -15,7 +15,7 @@ jest.mock('expo-audio', () => ({
 
 jest.mock('expo-file-system', () => {
   class MockFile {
-    readonly uri: string;
+    uri: string;
     constructor(_directory: unknown, name: string) {
       this.uri = `file:///cache/${name}`;
     }
@@ -24,6 +24,11 @@ jest.mock('expo-file-system', () => {
     }
     delete() {
       mockFiles.delete(this.uri);
+    }
+    move(destination: MockFile) {
+      mockFiles.delete(this.uri);
+      mockFiles.add(destination.uri);
+      this.uri = destination.uri;
     }
     static downloadFileAsync = jest.fn(async (_url: string, file: MockFile) => {
       mockFiles.add(file.uri);

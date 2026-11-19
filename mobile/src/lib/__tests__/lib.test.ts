@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { addDays, formatDay, mondayOf, secondsUntil, toIsoDate } from '../dates';
-import { currentDose, isConfirmable, isDue, pillColour, statusLabel, type DoseLike } from '../doses';
+import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue, pillColour, statusLabel, type DoseLike } from '../doses';
 import { acknowledge, enqueue, withLocalConfirmations, type PendingConfirmation } from '../offlineQueue';
 import { ApiError, errorMessage, toApiError } from '../problem';
 import { cleanApiBase, seniorTopic, wsUrlFromApi } from '../urls';
@@ -47,6 +47,27 @@ describe('prise mise en avant sur l’écran du senior', () => {
     expect(isConfirmable(dose('a', -5, 'SANS_REPONSE'), NOW)).toBe(false);
     expect(isDue(dose('a', 0), NOW)).toBe(true);
     expect(isDue(dose('a', 1), NOW)).toBe(false);
+  });
+});
+
+describe('déclenchement du rappel', () => {
+  const now = new Date('2026-11-19T10:00:00Z');
+  const pending = (id: string, datePrevue: string): DoseLike => ({ id, datePrevue, statut: 'EN_ATTENTE' });
+  const doses = [
+    pending('ancienne', '2026-11-19T09:50:00Z'),
+    pending('recente', '2026-11-19T10:00:00Z'),
+    pending('suivante', '2026-11-19T10:01:00Z'),
+  ];
+
+  it('annonce la prise due la plus récente, une seule fois', () => {
+    expect(doseToAnnounce(doses, now, new Set())?.id).toBe('recente');
+    expect(doseToAnnounce(doses, now, new Set(['recente']))?.id).toBe('ancienne');
+    expect(doseToAnnounce(doses, now, new Set(['recente', 'ancienne']))).toBeNull();
+  });
+
+  it('calcule le délai exact avant la prochaine prise', () => {
+    expect(msUntilNextDue(doses, now)).toBe(60_000);
+    expect(msUntilNextDue([{ ...doses[2]!, statut: 'CONFIRME' }], now)).toBeNull();
   });
 });
 

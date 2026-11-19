@@ -196,4 +196,6 @@ export type RealtimeEvent =
   | { type: 'DOSE_STATUS_CHANGED'; doseId: string; seniorId: string; medication?: string; datePrevue: string; statut: DoseStatus; couleur: PillColour }
   | { type: 'COGNITIVE_SESSION_COMPLETED'; sessionId: string; seniorId: string; dateExercice: string; interrompu: boolean }
   | { type: 'VOICE_PROFILE_READY'; voiceProfileId: string; seniorId: string; statut: VoiceProfileDto['statut'] }
-  | { type: 'DEVICE_UNREACHABLE'; seniorId: string; detecteLe: string };
+  | { type: 'DEVICE_UNREACHABLE'; seniorId: string; detecteLe: string }
+  | { type: 'DOSE_REMINDER_DUE'; doseId: string; seniorId: string; datePrevue: string; relance: boolean }
+  | { type: 'REMINDERS_UPDATED'; seniorId: string };

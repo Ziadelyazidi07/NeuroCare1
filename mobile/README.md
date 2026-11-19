@@ -97,6 +97,10 @@ Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour …
   (`GET /me/medications/{id}/audio`).
 - Son des rappels : uniquement la voix de l'aidant (message cloné si disponible, sinon son enregistrement joué
   tel quel). Le senior n'a aucun réglage ; sans voix enregistrée, son téléphone joue une simple tonalité.
+- Application ouverte : à l'heure exacte de la prise, alerte à l'écran et lecture automatique de la voix. L'écran
+  se met à jour seul par STOMP quand l'aidant modifie un traitement ou sa voix.
+- Application fermée ou en arrière-plan : notification locale avec le son du système, puis lecture de la voix à
+  l'ouverture. Android n'accepte comme son de notification qu'un fichier intégré au build, pas un fichier téléchargé.
 - Bouton d'appel d'urgence (`tel:`) vers le contact saisi par l'aidant. Mini-jeu : 3 mots, pause, choix parmi 9,
   arrêt possible à tout moment ; seul le nombre de mots retrouvés est affiché, sans aucune interprétation.
 

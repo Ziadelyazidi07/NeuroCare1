@@ -26,7 +26,10 @@ function loadNotifications(): NotificationsModule | null {
   return require('expo-notifications') as NotificationsModule;
 }
 
-/** À appeler au démarrage : affichage au premier plan, canal Android dédié et permission. */
+/**
+ * À appeler au démarrage : affichage au premier plan, canal Android dédié et permission. Application
+ * ouverte, la notification reste muette : c'est la voix de l'aidant qui se fait entendre.
+ */
 export async function configureReminders(): Promise<boolean> {
   const Notifications = loadNotifications();
   if (!Notifications) return false;
@@ -35,7 +38,7 @@ export async function configureReminders(): Promise<boolean> {
       handleNotification: async () => ({
         shouldShowBanner: true,
         shouldShowList: true,
-        shouldPlaySound: true,
+        shouldPlaySound: false,
         shouldSetBadge: false,
       }),
     });
@@ -104,12 +107,43 @@ export function onReminderTapped(listener: (doseId: unknown) => void): () => voi
   if (!Notifications) return () => undefined;
   try {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      Notifications.clearLastNotificationResponse();
       listener(response.notification.request.content.data?.doseId);
     });
     return () => subscription.remove();
   } catch (error) {
     console.warn('Écoute des rappels impossible', error);
     return () => undefined;
+  }
+}
+
+/** Écoute les rappels reçus pendant que l'application est ouverte. */
+export function onReminderReceived(listener: (doseId: unknown) => void): () => void {
+  const Notifications = loadNotifications();
+  if (!Notifications) return () => undefined;
+  try {
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      listener(notification.request.content.data?.doseId);
+    });
+    return () => subscription.remove();
+  } catch (error) {
+    console.warn('Écoute des rappels impossible', error);
+    return () => undefined;
+  }
+}
+
+/** Prise de la notification qui a ouvert l'application, prise en compte une seule fois. */
+export function consumeLaunchReminder(): unknown {
+  const Notifications = loadNotifications();
+  if (!Notifications) return undefined;
+  try {
+    const response = Notifications.getLastNotificationResponse();
+    if (!response) return undefined;
+    Notifications.clearLastNotificationResponse();
+    return response.notification.request.content.data?.doseId;
+  } catch (error) {
+    console.warn('Lecture de la notification impossible', error);
+    return undefined;
   }
 }
 

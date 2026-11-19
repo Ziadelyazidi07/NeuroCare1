@@ -59,3 +59,18 @@ export function currentDose<T extends DoseLike>(doses: T[], now: Date = new Date
 export function isDue(dose: DoseLike, now: Date = new Date()): boolean {
   return dose.statut === 'EN_ATTENTE' && new Date(dose.datePrevue).getTime() <= now.getTime();
 }
+
+/** Prise due la plus récente dont le rappel n'a pas encore été annoncé sur ce téléphone. */
+export function doseToAnnounce<T extends DoseLike>(doses: T[], now: Date, announced: ReadonlySet<string>): T | null {
+  const due = doses.filter((d) => isDue(d, now) && !announced.has(d.id));
+  return due.sort((a, b) => b.datePrevue.localeCompare(a.datePrevue))[0] ?? null;
+}
+
+/** Délai en millisecondes avant la prochaine prise en attente, ou null s'il n'y en a pas. */
+export function msUntilNextDue(doses: DoseLike[], now: Date): number | null {
+  const delays = doses
+    .filter((d) => d.statut === 'EN_ATTENTE')
+    .map((d) => new Date(d.datePrevue).getTime() - now.getTime())
+    .filter((delay) => delay > 0);
+  return delays.length > 0 ? Math.min(...delays) : null;
+}

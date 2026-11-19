@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import type * as NotificationsModule from 'expo-notifications';
 
 import type { DoseDto } from '../../api/types';
-import { configureReminders, scheduleReminders } from '../reminders';
+import { configureReminders, consumeLaunchReminder, scheduleReminders } from '../reminders';
 
 const mockIsRunningInExpoGo = jest.fn<() => boolean>();
 let mockExecutionEnvironment = 'standalone';
@@ -35,6 +35,9 @@ jest.mock('expo-notifications', () => {
     cancelAllScheduledNotificationsAsync: jest.fn(),
     scheduleNotificationAsync: jest.fn(),
     addNotificationResponseReceivedListener: jest.fn(),
+    addNotificationReceivedListener: jest.fn(),
+    getLastNotificationResponse: jest.fn(),
+    clearLastNotificationResponse: jest.fn(),
     getDevicePushTokenAsync: jest.fn(),
   };
 });
@@ -76,6 +79,8 @@ describe('dans Expo Go', () => {
       await expect(reminders.scheduleReminders(doses, now)).resolves.toBe(0);
       await expect(reminders.devicePushToken()).resolves.toBeNull();
       expect(() => reminders.onReminderTapped(jest.fn())()).not.toThrow();
+      expect(() => reminders.onReminderReceived(jest.fn())()).not.toThrow();
+      expect(reminders.consumeLaunchReminder()).toBeUndefined();
     });
 
     expect(mockNotificationsLoaded).toBe(false);
@@ -87,6 +92,15 @@ describe('hors Expo Go', () => {
   it('configure le canal Android et accepte la permission accordée', async () => {
     await expect(configureReminders()).resolves.toBe(true);
     expect(notifications.setNotificationChannelAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne prend en compte qu'une fois la notification qui a ouvert l'application", () => {
+    notifications.getLastNotificationResponse.mockReturnValue({
+      notification: { request: { content: { data: { doseId: 'd1' } } } },
+    } as never);
+
+    expect(consumeLaunchReminder()).toBe('d1');
+    expect(notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
   });
 
   it('ne rejette pas si la création du canal échoue', async () => {

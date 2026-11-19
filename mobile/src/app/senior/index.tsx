@@ -1,6 +1,7 @@
 /**
  * Écran principal du senior (cahier §2.1, ENF-08) : un seul écran, police ≥ 24 sp, contraste élevé,
- * gros bouton « C'est fait » ≥ 64 dp, audio pour chaque action. Fonctionne hors ligne.
+ * gros bouton « C'est fait » ≥ 64 dp, audio pour chaque action. Fonctionne hors ligne. À l'heure d'une
+ * prise, l'alerte s'affiche et la voix de l'aidant, déjà téléchargée, part automatiquement.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,16 +12,25 @@ import NetInfo from '@react-native-community/netinfo';
 import * as Haptics from 'expo-haptics';
 
 import { seniorApi } from '../../api/api';
-import type { DoseDto, Language, SeniorDto } from '../../api/types';
+import type { DoseDto, Language, RealtimeEvent, SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
 import { formatTime } from '../../lib/dates';
-import { currentDose, isConfirmable, isDue } from '../../lib/doses';
+import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue } from '../../lib/doses';
+import { useSeniorEvents } from '../../realtime/useSeniorEvents';
 import { confirmDose, refreshDoses, cachedDoses } from '../../senior/offlineStore';
 import { hasReminderVoice, playReminder, playThanks, prefetchReminderAudio } from '../../senior/reminderAudio';
-import { configureReminders, devicePushToken, onReminderTapped, scheduleReminders } from '../../senior/reminders';
+import {
+  configureReminders,
+  consumeLaunchReminder,
+  devicePushToken,
+  onReminderReceived,
+  onReminderTapped,
+  scheduleReminders,
+} from '../../senior/reminders';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
 const PROFILE_KEY = 'neurocare.senior.profile';
+const MAX_TIMER_MS = 60_000;
 
 export default function SeniorHome() {
   const { session, signOut } = useSession();
@@ -31,29 +41,82 @@ export default function SeniorHome() {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(new Date());
   const announced = useRef(new Set<string>());
+  const dosesRef = useRef<DoseDto[]>([]);
+  const refreshRun = useRef(0);
 
   const seniorId = session?.kind === 'senior' ? session.seniorId : undefined;
   const language: Language = profile?.langue ?? 'DARIJA';
   const colours = profile?.contrasteEleve === false ? seniorColours.normal : seniorColours.high;
   const font = Math.max(SENIOR_MIN_FONT, profile?.taillePolice ?? 28);
 
-  const refresh = useCallback(async () => {
-    if (!seniorId) return;
-    try {
-      const result = await refreshDoses();
-      setDoses(result.doses);
-      setOnline(result.online);
-      await scheduleReminders(result.doses);
-      if (result.online) {
-        const fresh = await seniorApi.profile(seniorId);
-        setProfile(fresh);
-        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(fresh));
-        await prefetchReminderAudio(result.doses);
+  const applyDoses = useCallback((list: DoseDto[]) => {
+    dosesRef.current = list;
+    setDoses(list);
+  }, []);
+
+  const refresh = useCallback(
+    async (withAudio = true) => {
+      if (!seniorId) return;
+      const run = ++refreshRun.current;
+      try {
+        const result = await refreshDoses();
+        if (run !== refreshRun.current) {
+          // Une synchronisation plus récente a pris le relais, mais elle ne télécharge pas forcément la voix.
+          if (withAudio && result.online) await prefetchReminderAudio(result.doses);
+          return;
+        }
+        applyDoses(result.doses);
+        setOnline(result.online);
+        await scheduleReminders(result.doses);
+        if (result.online) {
+          const fresh = await seniorApi.profile(seniorId);
+          setProfile(fresh);
+          await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(fresh));
+          if (withAudio) await prefetchReminderAudio(result.doses);
+        }
+        setNow(new Date());
+      } catch {
+        setOnline(false);
       }
-    } catch {
-      setOnline(false);
-    }
-  }, [seniorId]);
+    },
+    [seniorId, applyDoses],
+  );
+
+  const announce = useCallback((target: DoseDto) => {
+    announced.current.add(target.id);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+    void playReminder(target);
+  }, []);
+
+  /** Rappel demandé par une notification touchée : la voix est toujours rejouée. */
+  const playFromNotification = useCallback((doseId: unknown) => {
+    const target = dosesRef.current.find((d) => d.id === doseId) ?? currentDose(dosesRef.current);
+    if (target) announced.current.add(target.id);
+    void playReminder(target ?? null);
+  }, []);
+
+  // Temps réel : l'écran se met à jour seul quand l'aidant change un traitement ou sa voix.
+  const onRealtimeEvent = useCallback(
+    (event: RealtimeEvent) => {
+      switch (event.type) {
+        case 'REMINDERS_UPDATED':
+        case 'VOICE_PROFILE_READY':
+          void refresh();
+          break;
+        case 'DOSE_STATUS_CHANGED':
+          void refresh(false);
+          break;
+        case 'DOSE_REMINDER_DUE':
+          void refresh(false).then(() => {
+            const target = dosesRef.current.find((d) => d.id === event.doseId);
+            if (target?.statut === 'EN_ATTENTE' && (event.relance || !announced.current.has(target.id))) announce(target);
+          });
+          break;
+      }
+    },
+    [refresh, announce],
+  );
+  useSeniorEvents(seniorId, onRealtimeEvent);
 
   // Démarrage : cache local d'abord (écran immédiat même hors ligne), puis serveur.
   useEffect(() => {
@@ -61,13 +124,15 @@ export default function SeniorHome() {
     (async () => {
       const cachedProfile = await AsyncStorage.getItem(PROFILE_KEY);
       if (cachedProfile) setProfile(JSON.parse(cachedProfile) as SeniorDto);
-      setDoses(await cachedDoses());
+      applyDoses(await cachedDoses());
       await configureReminders();
       await refresh();
+      const launchDoseId = consumeLaunchReminder();
+      if (launchDoseId) playFromNotification(launchDoseId);
       const token = await devicePushToken();
       if (token) seniorApi.registerDevice(token.platform, token.token).catch(() => undefined);
     })();
-  }, [seniorId, refresh]);
+  }, [seniorId, refresh, applyDoses, playFromNotification]);
 
   // Retour du réseau ou de l'application au premier plan : synchronisation.
   useEffect(() => {
@@ -76,7 +141,10 @@ export default function SeniorHome() {
       else setOnline(false);
     });
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refresh();
+      if (state === 'active') {
+        setNow(new Date());
+        void refresh();
+      }
     });
     return () => {
       unsubscribeNet();
@@ -90,23 +158,31 @@ export default function SeniorHome() {
     return () => clearInterval(timer);
   }, []);
 
+  // Réveil à l'heure exacte de la prochaine prise, sans attendre le tic de l'horloge.
+  useEffect(() => {
+    const delay = msUntilNextDue(doses, new Date());
+    if (delay === null) return;
+    const timer = setTimeout(() => setNow(new Date()), Math.min(delay, MAX_TIMER_MS));
+    return () => clearTimeout(timer);
+  }, [doses, now]);
+
   const dose = currentDose(doses, now);
 
   useEffect(() => {
-    if (dose && isDue(dose, now) && !announced.current.has(dose.id)) {
-      announced.current.add(dose.id);
-      void playReminder(dose);
-    }
-  }, [dose, now]);
+    const next = doseToAnnounce(doses, now, announced.current);
+    if (next) announce(next);
+  }, [doses, now, announce]);
 
-  // Notification touchée : on joue le message de la prise concernée.
-  useEffect(() => {
-    return onReminderTapped((doseId) => {
-      const target = doses.find((d) => d.id === doseId) ?? dose;
-      announced.current.add(String(doseId));
-      void playReminder(target ?? null);
-    });
-  }, [doses, dose]);
+  // Notifications : appui sur le rappel, ou réception pendant que l'application est ouverte.
+  useEffect(() => onReminderTapped(playFromNotification), [playFromNotification]);
+  useEffect(
+    () =>
+      onReminderReceived((doseId) => {
+        const target = dosesRef.current.find((d) => d.id === doseId);
+        if (target?.statut === 'EN_ATTENTE' && !announced.current.has(target.id)) announce(target);
+      }),
+    [announce],
+  );
 
   if (!session || session.kind !== 'senior') return <Redirect href="/" />;
 
@@ -115,7 +191,7 @@ export default function SeniorHome() {
     setBusy(true);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     void playThanks(language);
-    setDoses((list) => list.map((d) => (d.id === dose.id ? { ...d, statut: 'CONFIRME' } : d)));
+    applyDoses(dosesRef.current.map((d) => (d.id === dose.id ? { ...d, statut: 'CONFIRME' } : d)));
     const outcome = await confirmDose(dose);
     setMessage(
       outcome === 'en_attente'
@@ -159,6 +235,13 @@ export default function SeniorHome() {
           </Text>
         ) : null}
 
+        {due && dose ? (
+          <View style={[styles.alert, { backgroundColor: colours.action }]} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            <Text style={[styles.alertTitle, { color: colours.actionText, fontSize: font + 12 }]}>C’est l’heure !</Text>
+            <Text style={[styles.bold, { color: colours.actionText, fontSize: font }]}>{dose.nomMedicament}</Text>
+          </View>
+        ) : null}
+
         <View style={[styles.card, { backgroundColor: colours.card }]} accessibilityLiveRegion="polite">
           {dose ? (
             <>
@@ -194,7 +277,7 @@ export default function SeniorHome() {
         ) : null}
 
         {dose && hasVoice ? (
-          <BigButton label="Écouter le message" colours={colours} font={font} onPress={() => void playReminder(dose)} />
+          <BigButton label={due ? 'Réécouter' : 'Écouter le message'} colours={colours} font={font} onPress={() => void playReminder(dose)} />
         ) : null}
         {due && !hasVoice ? <Text style={[text, styles.center]}>Votre proche n’a pas encore enregistré sa voix.</Text> : null}
         <BigButton label="Jeu de mémoire" colours={colours} font={font} onPress={() => router.push('/senior/exercise')} />
@@ -244,6 +327,8 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 18 },
   greeting: { fontWeight: '800' },
   offline: { fontWeight: '700' },
+  alert: { borderRadius: 20, padding: 20, gap: 4, alignItems: 'center' },
+  alertTitle: { fontWeight: '900', textAlign: 'center' },
   card: { borderRadius: 20, padding: 20, gap: 6, alignItems: 'center' },
   time: { fontWeight: '900' },
   bold: { fontWeight: '700', textAlign: 'center' },
