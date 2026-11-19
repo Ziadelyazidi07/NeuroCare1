@@ -1,4 +1,6 @@
 /** Appels de l'API NeuroCare, regroupés par espace. */
+import { File } from 'expo-file-system';
+
 import { request } from './client';
 import type {
   AuthResponse,
@@ -79,10 +81,12 @@ export const aidantApi = {
     }),
 
   voiceProfile: (seniorId: string) => request<VoiceProfileDto>('GET', `/seniors/${seniorId}/voice-profile`),
-  uploadVoice: (seniorId: string, fileUri: string, mimeType: string, fileName: string) => {
+  uploadVoice: async (seniorId: string, fileUri: string) => {
+    const file = new File(fileUri);
+    if (!file.exists) throw new Error("L'enregistrement est introuvable. Recommencez-le.");
     const form = new FormData();
-    // React Native : un fichier local se transmet par { uri, name, type }.
-    form.append('file', { uri: fileUri, name: fileName, type: mimeType } as unknown as Blob);
+    // Le fetch d'Expo lit les octets d'un File ; il refuse la forme React Native { uri, name, type }.
+    form.append('file', file);
     return request<VoiceProfileDto>('POST', `/seniors/${seniorId}/voice-profile`, { form });
   },
   deleteVoice: (seniorId: string) => request<void>('DELETE', `/seniors/${seniorId}/voice-profile`),

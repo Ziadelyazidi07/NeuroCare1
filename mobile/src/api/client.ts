@@ -57,7 +57,9 @@ async function send(method: Method, path: string, options: RequestOptions, retri
       headers,
       body: options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
     });
-  } catch {
+  } catch (error) {
+    // Un corps impossible à préparer échoue aussi ici : sans cette trace, il passerait pour une panne réseau.
+    if (options.form) console.warn("Envoi du fichier impossible", error);
     throw networkError();
   }
 

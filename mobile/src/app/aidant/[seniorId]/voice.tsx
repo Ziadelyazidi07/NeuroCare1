@@ -28,12 +28,6 @@ const STATUS_LABEL: Record<VoiceProfileDto['statut'], string> = {
   ECHEC: 'Non disponible : les rappels utilisent la voix de synthèse.',
 };
 
-function mimeOf(uri: string): { type: string; name: string } {
-  if (uri.endsWith('.wav')) return { type: 'audio/wav', name: 'voix.wav' };
-  if (uri.endsWith('.mp3')) return { type: 'audio/mpeg', name: 'voix.mp3' };
-  return { type: 'audio/mp4', name: 'voix.m4a' };
-}
-
 export default function Voice() {
   const { seniorId } = useLocalSearchParams<{ seniorId: string }>();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -107,8 +101,7 @@ export default function Voice() {
     setBusy(true);
     setError(null);
     try {
-      const { type, name } = mimeOf(recordingUri);
-      setProfile(await aidantApi.uploadVoice(seniorId, recordingUri, type, name));
+      setProfile(await aidantApi.uploadVoice(seniorId, recordingUri));
       setRecordingUri(null);
     } catch (e) {
       setConsentMissing(e instanceof ApiError && e.isConsentRequired);
