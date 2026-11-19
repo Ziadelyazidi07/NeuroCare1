@@ -18,6 +18,8 @@ public final class RealtimeMessages {
     public static final String COGNITIVE_SESSION_COMPLETED = "COGNITIVE_SESSION_COMPLETED";
     public static final String VOICE_PROFILE_READY = "VOICE_PROFILE_READY";
     public static final String DEVICE_UNREACHABLE = "DEVICE_UNREACHABLE";
+    public static final String DOSE_REMINDER_DUE = "DOSE_REMINDER_DUE";
+    public static final String REMINDERS_UPDATED = "REMINDERS_UPDATED";
 
     private RealtimeMessages() {
     }
@@ -34,5 +36,13 @@ public final class RealtimeMessages {
     }
 
     public record DeviceUnreachableMessage(String type, UUID seniorId, Instant detecteLe) {
+    }
+
+    /** Une prise est due ou relancée : le téléphone du senior affiche l'alerte et joue la voix. */
+    public record DoseReminderMessage(String type, UUID doseId, UUID seniorId, Instant datePrevue, boolean relance) {
+    }
+
+    /** Traitements, consentements ou voix modifiés : le téléphone du senior se resynchronise. */
+    public record RemindersUpdatedMessage(String type, UUID seniorId) {
     }
 }

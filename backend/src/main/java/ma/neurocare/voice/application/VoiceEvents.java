@@ -19,6 +19,10 @@ public final class VoiceEvents {
     public record VoiceProfileStatusChanged(UUID voiceProfileId, UUID seniorId, VoiceProfileStatus statut) {
     }
 
+    /** L'aidant ou le senior a supprimé la voix : le téléphone du senior doit oublier sa copie. */
+    public record VoiceRemoved(UUID seniorId) {
+    }
+
     /**
      * Données vocales à effacer après commit : échantillons, audios clonés et voix côté microservice
      * (EF-CO-05, révocation de VOIX ou suppression du profil).

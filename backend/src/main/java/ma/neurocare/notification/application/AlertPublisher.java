@@ -6,13 +6,21 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ma.neurocare.cognitive.application.CognitiveSessionCompleted;
+import ma.neurocare.consent.application.ConsentChangedEvent;
+import ma.neurocare.consent.domain.ConsentType;
+import ma.neurocare.medication.application.MedicationChangedEvent;
 import ma.neurocare.notification.api.dto.RealtimeMessages;
 import ma.neurocare.notification.api.dto.RealtimeMessages.CognitiveSessionMessage;
 import ma.neurocare.notification.api.dto.RealtimeMessages.DeviceUnreachableMessage;
+import ma.neurocare.notification.api.dto.RealtimeMessages.DoseReminderMessage;
 import ma.neurocare.notification.api.dto.RealtimeMessages.DoseStatusChangedMessage;
+import ma.neurocare.notification.api.dto.RealtimeMessages.RemindersUpdatedMessage;
 import ma.neurocare.notification.api.dto.RealtimeMessages.VoiceProfileMessage;
+import ma.neurocare.reminder.application.ReminderEvents.DoseReminderDue;
 import ma.neurocare.reminder.application.ReminderEvents.DoseStatusChanged;
 import ma.neurocare.voice.application.VoiceEvents.VoiceProfileStatusChanged;
+import ma.neurocare.voice.application.VoiceEvents.VoiceRemoved;
+import ma.neurocare.voice.application.VoiceEvents.VoiceSampleUploaded;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -52,6 +60,38 @@ public class AlertPublisher {
     public void onVoiceProfileStatusChanged(VoiceProfileStatusChanged event) {
         publish(event.seniorId(), new VoiceProfileMessage(RealtimeMessages.VOICE_PROFILE_READY,
                 event.voiceProfileId(), event.seniorId(), event.statut()));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onDoseReminderDue(DoseReminderDue event) {
+        publish(event.seniorId(), new DoseReminderMessage(RealtimeMessages.DOSE_REMINDER_DUE, event.doseId(),
+                event.seniorId(), event.datePrevue(), event.relance()));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onMedicationChanged(MedicationChangedEvent event) {
+        remindersUpdated(event.seniorId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onVoiceSampleUploaded(VoiceSampleUploaded event) {
+        remindersUpdated(event.seniorId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onVoiceRemoved(VoiceRemoved event) {
+        remindersUpdated(event.seniorId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onConsentChanged(ConsentChangedEvent event) {
+        if (event.type() == ConsentType.RAPPELS || event.type() == ConsentType.VOIX) {
+            remindersUpdated(event.seniorId());
+        }
+    }
+
+    private void remindersUpdated(UUID seniorId) {
+        publish(seniorId, new RemindersUpdatedMessage(RealtimeMessages.REMINDERS_UPDATED, seniorId));
     }
 
     /** Token FCM du téléphone senior refusé : l'aidant en est informé (cahier §9.3). */

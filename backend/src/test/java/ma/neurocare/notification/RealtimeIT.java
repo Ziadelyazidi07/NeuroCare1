@@ -121,6 +121,28 @@ class RealtimeIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void seniorPhoneIsToldAboutNewMedicationsAndDueReminders() throws Exception {
+        Fixture f = fixture();
+        Client client = connect("Bearer " + f.senior);
+        BlockingQueue<Map<String, Object>> events = client.subscribe(f.seniorId);
+
+        mvc.perform(bearer(post("/api/v1/seniors/{id}/medications", f.seniorId), f.aidant)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("nomMedicament", "Amlodipine 5",
+                                "dateDebut", java.time.LocalDate.now(CASABLANCA).toString(),
+                                "horaires", List.of(Map.of("heure", "23:59",
+                                        "jours", List.of("LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM")))))))
+                .andExpect(status().isCreated());
+        assertThat(events.poll(2, TimeUnit.SECONDS)).containsEntry("type", "REMINDERS_UPDATED")
+                .containsEntry("seniorId", f.seniorId);
+
+        DoseEvent dose = f.pending.get(0);
+        reminderService.dispatchDue(dose.getDatePrevue());
+        assertThat(nextFor(events, dose.getId())).containsEntry("type", "DOSE_REMINDER_DUE")
+                .containsEntry("relance", false);
+    }
+
+    @Test
     void unlinkedCaregiverSubscriptionIsRejected() throws Exception {
         Fixture f = fixture();
         Client stranger = connect("Bearer " + newAidantToken());

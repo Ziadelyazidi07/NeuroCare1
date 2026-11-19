@@ -20,6 +20,7 @@ import ma.neurocare.user.application.SeniorService;
 import ma.neurocare.voice.api.dto.VoiceDtos.VoiceProfileDto;
 import ma.neurocare.voice.application.VoiceEvents.VoiceDataPurgeRequested;
 import ma.neurocare.voice.application.VoiceEvents.VoiceProfileStatusChanged;
+import ma.neurocare.voice.application.VoiceEvents.VoiceRemoved;
 import ma.neurocare.voice.application.VoiceEvents.VoiceSampleUploaded;
 import ma.neurocare.voice.domain.AudioAsset;
 import ma.neurocare.voice.domain.AudioSampleInspector;
@@ -94,6 +95,7 @@ public class VoiceService {
     @Transactional
     public void delete(UUID seniorId) {
         purge(seniorId);
+        events.publishEvent(new VoiceRemoved(seniorId));
     }
 
     /** EF-CO-05 : la révocation de VOIX supprime l'échantillon et les audios clonés. */
