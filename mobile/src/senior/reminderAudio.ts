@@ -93,6 +93,16 @@ export async function playReminder(dose: DoseDto | null): Promise<void> {
   await play(reminderVoice(dose)?.uri ?? REMINDER_TONE);
 }
 
+/** Efface les voix téléchargées : elles ne doivent pas rester sur un téléphone déconnecté. */
+export function clearReminderAudio(): void {
+  stopAudio();
+  try {
+    if (audioDir.exists) audioDir.delete();
+  } catch (error) {
+    console.warn('Effacement des voix impossible', error);
+  }
+}
+
 /** Arrête la lecture en cours (voix du rappel). */
 export function stopAudio(): void {
   player?.remove();

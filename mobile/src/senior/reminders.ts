@@ -205,6 +205,17 @@ export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()
   return scheduled;
 }
 
+/** Annule toutes les notifications programmées (déconnexion du téléphone senior). */
+export async function cancelReminders(): Promise<void> {
+  const Notifications = loadNotifications();
+  if (!Notifications) return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (error) {
+    console.warn('Annulation des rappels impossible', error);
+  }
+}
+
 /** Écoute les appuis sur une alarme ; renvoie la fonction de désabonnement. */
 export function onReminderTapped(listener: (doseId: unknown) => void): () => void {
   const Notifications = loadNotifications();

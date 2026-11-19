@@ -86,7 +86,8 @@ Avec la stack en profil `demo` (comptes fictifs, voir `docs/demo.md`) :
 6. Sans réponse : pastille **orange** et alerte (1 min en profil démo).
 7. Senior : « Jeu de mémoire ». Aidant : « Rapport PDF » → partage du PDF.
 
-Pour désappairer le téléphone du senior : appui long (3 s) sur « Bonjour … » en haut de l'écran senior.
+Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer de profil » en bas de l'écran senior
+(confirmation demandée). Les rappels programmés et les voix téléchargées sont alors effacés.
 
 ## Fonctionnement détaillé
 

@@ -220,11 +220,15 @@ export default function SeniorHome() {
     void Linking.openURL(`tel:${profile.contactUrgenceTel}`);
   };
 
-  const confirmUnpair = () =>
-    Alert.alert('Désappairer ce téléphone ?', 'Il faudra un nouveau code de votre proche.', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Désappairer', style: 'destructive', onPress: () => void signOut().then(() => router.replace('/')) },
-    ]);
+  const confirmSignOut = () =>
+    Alert.alert(
+      'Se déconnecter de ce téléphone ?',
+      'Les rappels s’arrêteront sur ce téléphone. Pour revenir, il faudra un nouveau code de votre proche.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se déconnecter', style: 'destructive', onPress: () => void signOut().then(() => router.replace('/')) },
+      ],
+    );
 
   const canConfirm = !!dose && isConfirmable(dose, now) && !busy;
   const due = !!dose && isDue(dose, now);
@@ -235,7 +239,7 @@ export default function SeniorHome() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colours.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable onLongPress={confirmUnpair} delayLongPress={3000} accessibilityRole="header">
+        <Pressable onLongPress={confirmSignOut} delayLongPress={3000} accessibilityRole="header">
           <Text style={[styles.greeting, { color: colours.text, fontSize: font + 8 }]}>
             Bonjour {profile?.lien?.surnomSenior ?? session.nomComplet}
           </Text>
@@ -317,6 +321,7 @@ export default function SeniorHome() {
             emphasis
           />
         ) : null}
+        <BigButton label="Se déconnecter / Changer de profil" colours={colours} font={font} onPress={confirmSignOut} />
       </ScrollView>
     </SafeAreaView>
   );

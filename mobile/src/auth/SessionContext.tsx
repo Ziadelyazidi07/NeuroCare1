@@ -4,7 +4,9 @@ import { Platform } from 'react-native';
 
 import { authApi } from '../api/api';
 import { aidantSession } from '../api/client';
-import { clearSeniorData } from '../senior/offlineStore';
+import { clearSeniorData, flushQueue } from '../senior/offlineStore';
+import { clearReminderAudio } from '../senior/reminderAudio';
+import { cancelReminders } from '../senior/reminders';
 import { loadSession, onSessionChange, saveSession, getSession, type Session } from './sessionStore';
 
 interface SessionContextValue {
@@ -49,6 +51,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             // hors ligne : la session locale est quand même effacée
           }
         } else if (current?.kind === 'senior') {
+          clearReminderAudio();
+          try {
+            await flushQueue(); // dernières confirmations « C'est fait » faites hors ligne
+          } catch {
+            // hors ligne : elles seront perdues avec la session
+          }
+          await cancelReminders();
           await clearSeniorData();
         }
         await saveSession(null);

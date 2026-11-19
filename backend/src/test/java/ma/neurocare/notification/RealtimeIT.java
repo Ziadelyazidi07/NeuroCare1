@@ -2,6 +2,8 @@ package ma.neurocare.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.lang.reflect.Type;
@@ -126,15 +128,26 @@ class RealtimeIT extends AbstractIntegrationTest {
         Client client = connect("Bearer " + f.senior);
         BlockingQueue<Map<String, Object>> events = client.subscribe(f.seniorId);
 
-        mvc.perform(bearer(post("/api/v1/seniors/{id}/medications", f.seniorId), f.aidant)
+        Map<String, Object> medication = new java.util.HashMap<>(Map.of("nomMedicament", "Amlodipine 5",
+                "dateDebut", java.time.LocalDate.now(CASABLANCA).toString(),
+                "horaires", List.of(Map.of("heure", "23:59",
+                        "jours", List.of("LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM")))));
+        String medicationId = read(mvc.perform(bearer(post("/api/v1/seniors/{id}/medications", f.seniorId), f.aidant)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("nomMedicament", "Amlodipine 5",
-                                "dateDebut", java.time.LocalDate.now(CASABLANCA).toString(),
-                                "horaires", List.of(Map.of("heure", "23:59",
-                                        "jours", List.of("LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM")))))))
-                .andExpect(status().isCreated());
+                        .content(toJson(medication)))
+                .andExpect(status().isCreated())
+                .andReturn(), "$.id");
         assertThat(events.poll(2, TimeUnit.SECONDS)).containsEntry("type", "REMINDERS_UPDATED")
                 .containsEntry("seniorId", f.seniorId);
+
+        // Une modification par l'aidant prévient aussi le téléphone, qui reprogramme ses alarmes.
+        medication.put("consigne", "Le soir");
+        mvc.perform(bearer(put("/api/v1/medications/{id}", medicationId), f.aidant)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(medication)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.consigne").value("Le soir"));
+        assertThat(events.poll(2, TimeUnit.SECONDS)).containsEntry("type", "REMINDERS_UPDATED");
 
         DoseEvent dose = f.pending.get(0);
         reminderService.dispatchDue(dose.getDatePrevue());

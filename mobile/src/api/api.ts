@@ -72,6 +72,8 @@ export const aidantApi = {
   medications: (seniorId: string) => request<MedicationDto[]>('GET', `/seniors/${seniorId}/medications`),
   createMedication: (seniorId: string, body: MedicationRequest) =>
     request<MedicationDto>('POST', `/seniors/${seniorId}/medications`, { body }),
+  updateMedication: (medicationId: string, body: MedicationRequest) =>
+    request<MedicationDto>('PUT', `/medications/${medicationId}`, { body }),
   deactivateMedication: (medicationId: string) =>
     request<MedicationDto>('PATCH', `/medications/${medicationId}/deactivate`),
 
