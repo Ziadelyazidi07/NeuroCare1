@@ -81,10 +81,10 @@ installée ; ce mode coupe aussi la vérification des versions de dépendances a
 
 Avec la stack en profil `demo` (comptes fictifs, voir `docs/demo.md`) :
 
-1. **Aidant** : « Je suis aidant » → `06 00 00 00 01` / `NeuroCare-Demo-2026` (Salma B.).
+1. **Aidant** : grille d'accueil → « Rappels & Suivi » → « Je suis aidant » → `06 00 00 00 01` / `NeuroCare-Demo-2026` (Salma B.).
 2. Ouvrir « Hajj Ahmed » → tableau de bord « En direct ».
 3. « Appairer son téléphone » → générer un code.
-4. **Senior** (second téléphone ou après déconnexion) : « Je suis senior » → saisir le code.
+4. **Senior** (second téléphone ou après déconnexion) : « Rappels & Suivi » → « Je suis senior » → saisir le code.
 5. À l'heure du rappel : audio + gros bouton « C'est fait » → la pastille passe au **vert** chez l'aidant.
 6. Sans réponse : pastille **orange** et alerte (1 min en profil démo).
 7. Senior : « Jeu de mémoire ». Aidant : « Rapport PDF » → partage du PDF.
@@ -93,6 +93,17 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 (confirmation demandée). Les rappels programmés et les voix téléchargées sont alors effacés.
 
 ## Fonctionnement détaillé
+
+**Grille des modules** (`src/app/index.tsx`)
+- Au démarrage, une grille de 5 tuiles : « Rappels & Suivi », « Saturation SpO₂ », « Santé Mentale »,
+  « Diabète (FINDRISC) » et « Tension (HTA) », avec l'adresse du serveur et un rappel éthique (pré-dépistage
+  et aide à la décision, jamais de diagnostic).
+- « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
+  déjà appairé ou un aidant connecté va directement dans son espace. Les 4 autres modules affichent pour
+  l'instant un écran de présentation « en préparation ».
+- Le bouton « ← Accueil Modules » (choix Senior / Aidant, espaces senior et aidant, modules) revient à la grille.
+- Un téléphone senior ouvert par une alarme, ou touché par une alarme depuis un autre module, va droit à
+  l'écran de rappel, qui joue la voix comme avant.
 
 **Espace senior** (`src/app/senior/`)
 - Police ≥ 24 sp (taille du profil), contraste élevé (noir / blanc / jaune, ≥ 7:1), bouton « C'est fait » de 128 dp,
@@ -129,7 +140,8 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 
 ```
 src/
-  app/          écrans (Expo Router) : index, senior/*, aidant/*, aidant/[seniorId]/*
+  app/          écrans (Expo Router) : index (grille), observance-role, modules/*, senior/*, aidant/*
+  modules/      un dossier par module (observance, saturation, mental, metabolic, cardio), sans import croisé
   api/          client HTTP (JWT / token d'appareil, erreurs RFC 7807), types, appels
   auth/         session sécurisée et contexte React
   senior/       file hors ligne, rappels locaux, audio du rappel

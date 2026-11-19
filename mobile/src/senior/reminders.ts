@@ -249,6 +249,37 @@ export function onReminderReceived(listener: (doseId: unknown) => void): () => v
   }
 }
 
+/**
+ * Écoute les appuis sur une alarme sans consommer la notification : sert à ramener l'utilisateur sur
+ * l'écran senior depuis un autre module, qui lira ensuite l'alarme via {@link consumeLaunchReminder}.
+ */
+export function onReminderOpened(listener: () => void): () => void {
+  const Notifications = loadNotifications();
+  if (!Notifications) return () => undefined;
+  try {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (alarmDoseId(response.notification.request.content)) listener();
+    });
+    return () => subscription.remove();
+  } catch (error) {
+    console.warn('Écoute des rappels impossible', error);
+    return () => undefined;
+  }
+}
+
+/** L'application a-t-elle été ouverte par une alarme pas encore traitée ? (ne la consomme pas) */
+export function hasLaunchReminder(): boolean {
+  const Notifications = loadNotifications();
+  if (!Notifications) return false;
+  try {
+    const response = Notifications.getLastNotificationResponse();
+    return !!response && !!alarmDoseId(response.notification.request.content);
+  } catch (error) {
+    console.warn('Lecture de la notification impossible', error);
+    return false;
+  }
+}
+
 /** Prise de l'alarme qui a ouvert l'application, prise en compte une seule fois. */
 export function consumeLaunchReminder(): unknown {
   const Notifications = loadNotifications();

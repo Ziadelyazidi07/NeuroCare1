@@ -30,6 +30,7 @@ import {
   scheduleReminders,
   type AlertPermissions,
 } from '../../senior/reminders';
+import { HomeButton } from '../../ui/HomeButton';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
 const PROFILE_KEY = 'neurocare.senior.profile';
@@ -239,6 +240,7 @@ export default function SeniorHome() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colours.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
+        <HomeButton variant="senior" colours={colours} font={SENIOR_MIN_FONT} />
         <Pressable onLongPress={confirmSignOut} delayLongPress={3000} accessibilityRole="header">
           <Text style={[styles.greeting, { color: colours.text, fontSize: font + 8 }]}>
             Bonjour {profile?.lien?.surnomSenior ?? session.nomComplet}

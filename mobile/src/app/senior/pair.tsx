@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSession } from '../../auth/SessionContext';
 import { errorMessage } from '../../lib/problem';
 import { isSixDigitCode } from '../../lib/validation';
+import { HomeButton } from '../../ui/HomeButton';
 import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
 const colours = seniorColours.high;
@@ -36,6 +37,7 @@ export default function PairSenior() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <HomeButton variant="senior" colours={colours} font={SENIOR_MIN_FONT} />
       <Text style={styles.title} accessibilityRole="header">
         Entrez le code
       </Text>

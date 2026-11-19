@@ -10,6 +10,8 @@ import {
   consumeLaunchReminder,
   enableAlerts,
   getAlertPermissions,
+  hasLaunchReminder,
+  onReminderOpened,
   onReminderTapped,
   scheduleReminders,
 } from '../reminders';
@@ -85,6 +87,8 @@ describe('dans Expo Go', () => {
       expect(() => reminders.onReminderTapped(jest.fn())()).not.toThrow();
       expect(() => reminders.onReminderReceived(jest.fn())()).not.toThrow();
       expect(reminders.consumeLaunchReminder()).toBeUndefined();
+      expect(reminders.hasLaunchReminder()).toBe(false);
+      expect(() => reminders.onReminderOpened(jest.fn())()).not.toThrow();
     });
 
     expect(mockNotificationsLoaded).toBe(false);
@@ -151,6 +155,28 @@ describe('dans un build natif', () => {
 
     notifications.getLastNotificationResponse.mockReturnValueOnce(response({ doseId: 'd1', kind: 'avant' }));
     expect(consumeLaunchReminder()).toBeUndefined();
+  });
+
+  it("repère sans la consommer l'alarme qui a ouvert l'application", () => {
+    notifications.getLastNotificationResponse.mockReturnValue(response({ doseId: 'd1', kind: 'alarme' }));
+    expect(hasLaunchReminder()).toBe(true);
+    expect(notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
+
+    notifications.getLastNotificationResponse.mockReturnValue(response({ doseId: 'd1', kind: 'avant' }));
+    expect(hasLaunchReminder()).toBe(false);
+  });
+
+  it("signale l'appui sur une alarme sans effacer la notification", () => {
+    const listener = jest.fn();
+    notifications.addNotificationResponseReceivedListener.mockReturnValue({ remove: jest.fn() } as never);
+    onReminderOpened(listener);
+    const handler = notifications.addNotificationResponseReceivedListener.mock.calls[0]?.[0];
+
+    handler?.(response({ doseId: 'd1', kind: 'avant' }));
+    expect(listener).not.toHaveBeenCalled();
+    handler?.(response({ doseId: 'd1', kind: 'alarme' }));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
   });
 
   it('ignore un appui sur le rappel préventif', () => {
