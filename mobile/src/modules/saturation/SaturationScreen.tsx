@@ -10,6 +10,7 @@ import { useFocusEffect } from 'expo-router';
 
 import { useLanguage } from '../../i18n';
 import { Badge, Button, Card, ErrorText, Field, Loading, MIN_TOUCH, Notice, Row, Text, colours as c, levelColours, radius, styles as ui } from '../../theme';
+import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
 import { EmergencyButtons } from '../ui';
@@ -19,7 +20,11 @@ import { spo2ReportHtml } from './spo2Pdf';
 import { addMeasure, loadMeasures, loadProfile, saveProfile, type Spo2Measurement } from './spo2Store';
 
 export default function SaturationScreen() {
-  return <ModuleScreen module={saturationModule}>{(patient) => <Spo2Panel patient={patient} />}</ModuleScreen>;
+  return (
+    <ModuleScreen module={saturationModule} guide={<MeasurementGuideCard module={saturationModule} device="oximeter" guide={(t) => t.spo2.guide} />}>
+      {(patient) => <Spo2Panel patient={patient} />}
+    </ModuleScreen>
+  );
 }
 
 function Spo2Panel({ patient }: { patient: string }) {
@@ -78,7 +83,8 @@ function Spo2Panel({ patient }: { patient: string }) {
     if (chronic == null || !history) return;
     setError(null);
     try {
-      await sharePdf(t, spo2ReportHtml(t, patient, chronic, history, new Date()), s.pdf.dialog);
+      const now = new Date();
+      await sharePdf(t, spo2ReportHtml(t, patient, chronic, history, now), { dialogTitle: s.pdf.dialog, module: 'saturation', patient, generatedAt: now });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }

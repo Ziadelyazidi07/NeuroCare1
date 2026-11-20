@@ -66,7 +66,7 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.
 - Après chaque étape backend, lance `backend/mvnw compile` ou `test` et corrige les erreurs avant de continuer.
-- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (156 tests au dernier passage),
+- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (162 tests au dernier passage),
   et `npx expo export --platform android --output-dir <tmp>` pour valider le bundle.
 - Lint : `react-hooks/set-state-in-effect` → charger les données avec `useFocusEffect(useCallback(…))` ;
   `react-hooks/refs` interdit d'écrire un ref pendant le rendu.

@@ -60,6 +60,20 @@ const spo2 = {
     alertsTitle: 'Alertes et orientation',
     noAlerts: 'Aucune alerte sur la période.',
   },
+  guide: {
+    title: 'Bien mesurer la saturation',
+    device: 'Utilisez un oxymètre de pouls : une petite pince qui se clipse au bout du doigt. Recopiez les 2 chiffres de l’écran :',
+    readings: [
+      'SpO₂ → champ SpO2 (%)',
+      'PR → champ Pouls (bpm)',
+    ],
+    pharmacy: 'Pas d’oxymètre ? Demandez une mesure de la saturation en pharmacie.',
+    conditions: [
+      'Au repos complet depuis 5 minutes.',
+      'Doigt propre, sec et réchauffé.',
+      'Sans vernis à ongles ni faux ongles.',
+    ],
+  },
 };
 
 export default spo2;

@@ -1,6 +1,6 @@
 /**
- * Cadre commun des modules de pré-dépistage : retour à l'accueil, en-tête du module (badge pastel), champ
- * facultatif du nom du patient, contenu, puis mention de non-diagnostic.
+ * Cadre commun des modules de pré-dépistage : retour à l'accueil, en-tête du module (badge pastel), bandeau
+ * d'aide à la mesure (facultatif), champ facultatif du nom du patient, contenu, puis mention de non-diagnostic.
  */
 import type { ReactNode } from 'react';
 import { ScrollView } from 'react-native';
@@ -12,7 +12,16 @@ import { HomeButton } from '../ui/HomeButton';
 import { PatientNameField, displayName, usePatientName } from './PatientName';
 import type { ModuleDefinition } from './types';
 
-export function ModuleScreen({ module, children }: { module: ModuleDefinition; children: (patient: string) => ReactNode }) {
+export function ModuleScreen({
+  module,
+  guide,
+  children,
+}: {
+  module: ModuleDefinition;
+  /** Bandeau d'aide à la mesure, affiché en haut, juste sous l'en-tête. */
+  guide?: ReactNode;
+  children: (patient: string) => ReactNode;
+}) {
   const { t } = useLanguage();
   const [name, setName] = usePatientName();
   const text = t.home.modules[module.id];
@@ -21,6 +30,7 @@ export function ModuleScreen({ module, children }: { module: ModuleDefinition; c
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
         <HomeButton />
         <ModuleHeader title={text.title} subtitle={text.subtitle} icon={module.icon} colour={module.colour} tint={module.tint} />
+        {guide}
         <PatientNameField value={name} onChange={setName} />
         {children(displayName(name, t))}
         <Notice>{t.shared.notADiagnosis}</Notice>

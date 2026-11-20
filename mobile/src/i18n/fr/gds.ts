@@ -68,6 +68,14 @@ const gds = {
     scoring:
       'Barème GDS-15 : 0-4 indice normal ; 5-9 indicateurs compatibles avec une dépression légère à modérée ; 10-15 indicateurs compatibles avec une dépression sévère. Items comptés sur « Non » : satisfaction de vie, bonne humeur, heureux, merveilleux de vivre, plein d’énergie.',
   },
+  guide: {
+    title: 'Avant de commencer',
+    conditions: [
+      'Installez-vous au calme, sans bruit ni interruption.',
+      'Répondez en repensant à ce que vous avez ressenti au cours des 7 derniers jours.',
+      'Il n’y a pas de bonne ou de mauvaise réponse : répondez simplement par oui ou par non.',
+    ],
+  },
 };
 
 export default gds;

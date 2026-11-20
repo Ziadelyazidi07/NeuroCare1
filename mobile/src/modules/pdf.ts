@@ -1,8 +1,11 @@
 /** PDF nominatifs des modules de pré-dépistage : HTML (français ou arabe) imprimé par expo-print puis partagé. */
+import { cacheDirectory, deleteAsync, moveAsync } from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 import type { Dictionary } from '../i18n';
+import { pdfFileName, type PdfModule } from '../lib/pdfFileName';
+import { NEUROCARE_LOGO_DATA_URI } from './pdfLogo';
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string);
@@ -37,8 +40,12 @@ export function pdfDocument({ t, title, patient, generatedAt, body }: { t: Dicti
   .box { border: 1px solid #E6EEF8; border-radius: 12px; padding: 12px; margin-top: 8px; background: #F5F8FC; }
   .notice { margin-top: 28px; padding: 12px; border: 1px solid #F1C66B; background: #FFF8E6; border-radius: 12px; }
   .ltr { direction: ltr; unicode-bidi: embed; }
+  .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 2px solid #E6EEF8; }
+  .brand img { width: 64px; height: 64px; object-fit: contain; border-radius: 12px; }
+  .brand span { font-size: 20px; font-weight: bold; color: #112950; }
 </style></head>
 <body>
+  <div class="brand"><img src="${NEUROCARE_LOGO_DATA_URI}" alt="NeuroCare" /><span>NeuroCare</span></div>
   <h1>${escapeHtml(title)}</h1>
   <div class="meta">${escapeHtml(t.pdf.patient)} : <strong>${escapeHtml(patient)}</strong><br />${escapeHtml(t.pdf.generated(formatDateTime(generatedAt)))}</div>
   ${body}
@@ -46,12 +53,45 @@ export function pdfDocument({ t, title, patient, generatedAt, body }: { t: Dicti
 </body></html>`;
 }
 
-/** Imprime le HTML en PDF puis ouvre le partage (enregistrer, envoyer au médecin…). */
-export async function sharePdf(t: Dictionary, html: string, dialogTitle: string): Promise<void> {
+/**
+ * Renomme un PDF généré (`moveAsync`) en `fileName`, dans le cache de l'application, avant son partage.
+ * Un fichier homonyme (même minute) est remplacé. Si le renommage échoue, le fichier d'origine est renvoyé.
+ */
+export async function renamePdf(uri: string, fileName: string): Promise<string> {
+  const directory = cacheDirectory ?? uri.slice(0, uri.lastIndexOf('/') + 1);
+  const to = directory + fileName;
+  if (to === uri) return uri;
+  try {
+    await deleteAsync(to, { idempotent: true });
+    await moveAsync({ from: uri, to });
+    return to;
+  } catch {
+    return uri;
+  }
+}
+
+export interface PdfShare {
+  /** Titre de la feuille de partage. */
+  dialogTitle: string;
+  module: PdfModule;
+  /** Nom affiché du patient (le nom par défaut de la langue devient « Patient » dans le nom du fichier). */
+  patient: string;
+  /** Date de génération, la même que celle imprimée dans le document. */
+  generatedAt: Date;
+}
+
+/**
+ * Imprime le HTML en PDF, le renomme `NeuroCare_<Module>_<Patient>_<YYYY-MM-DD>_<HHhMM>.pdf` puis ouvre le
+ * partage (enregistrer, envoyer au médecin…). Renvoie le nom du fichier.
+ */
+export async function sharePdf(t: Dictionary, html: string, { dialogTitle, module, patient, generatedAt }: PdfShare): Promise<string> {
   const { uri } = await Print.printToFileAsync({ html });
+  const fileName = pdfFileName(module, patient === t.shared.defaultPatient ? '' : patient, generatedAt);
+  const named = await renamePdf(uri, fileName);
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle });
+    await Sharing.shareAsync(named, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle });
   } else {
     throw new Error(t.shared.sharingUnavailable);
   }
+  return fileName;
 }

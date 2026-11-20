@@ -35,6 +35,7 @@ const common: typeof fr = {
   },
   home: {
     title: 'NeuroCare',
+    logoLabel: 'شعار نوروكير',
     welcome: 'مرحبًا 👋',
     subtitle: 'اعتنِ بصحتك ببساطة. اختر وحدة.',
     languageLabel: 'لغة التطبيق',
@@ -61,6 +62,30 @@ const common: typeof fr = {
     notSaved: 'لم يتم الحفظ على هذا الهاتف (النتيجة تبقى معروضة).',
     history: 'السجل',
     downloadThisPdf: 'تحميل هذا التقرير PDF',
+    guide: {
+      device: 'الجهاز المطلوب',
+      pharmacy: 'بدون جهاز: في الصيدلية',
+      conditions: 'شروط القياس',
+      tips: 'نصائح قبل الإجابة',
+    },
+    devices: {
+      tensiometer: 'رسم توضيحي: جهاز قياس الضغط الإلكتروني، الكُمّ حول الذراع موصول بأنبوب إلى الجهاز؛ تعرض الشاشة SYS 120 وDIA 80 وPUL 72.',
+      oximeter: 'رسم توضيحي: مقياس التأكسج النبضي مثبّت على طرف الإصبع؛ تعرض الشاشة SpO₂ 98 % وPR 72.',
+      metabolic: 'رسم توضيحي: ميزان يعرض 70.0 كلغ، وشريط قياس حول الخصر على مستوى السرة، وجهاز قياس السكر مع شريط يعرض 0.95 غ/ل.',
+      screen: {
+        sys: 'SYS',
+        dia: 'DIA',
+        pul: 'PUL',
+        mmHg: 'mmHg',
+        spo2: 'SpO₂',
+        pr: 'PR',
+        percent: '%',
+        bpm: 'bpm',
+        kg: 'kg',
+        gl: 'g/L',
+        cm: 'cm',
+      },
+    },
   },
   pdf: {
     patient: 'المريض',

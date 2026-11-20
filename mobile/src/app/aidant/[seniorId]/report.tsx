@@ -1,6 +1,7 @@
 /**
  * Rapport PDF hebdomadaire pour le médecin (EF-DA-04, cahier §11) : téléchargé avec le jeton de l'aidant,
- * enregistré dans le cache de l'application puis ouvert dans le partage du téléphone.
+ * enregistré dans le cache de l'application, renommé `NeuroCare_Rappels-Suivi_<Senior>_<date>_<HHhMM>.pdf`
+ * puis ouvert dans le partage du téléphone.
  */
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -8,12 +9,14 @@ import { useLocalSearchParams } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-import { weeklyReportPath } from '../../../api/api';
+import { aidantApi, weeklyReportPath } from '../../../api/api';
 import { authorizationHeader } from '../../../api/client';
 import { getApiBase } from '../../../api/config';
 import { addDays, formatDay, mondayOf, toIsoDate } from '../../../lib/dates';
+import { pdfFileName } from '../../../lib/pdfFileName';
 import { errorMessage, networkError, toApiError } from '../../../lib/problem';
 import { useLanguage } from '../../../i18n';
+import { renamePdf } from '../../../modules/pdf';
 import { Button, Card, colours as c, ErrorText, Field, Notice, radius, Screen, styles, Text } from '../../../theme';
 
 const MAX_OBSERVATIONS = 1000;
@@ -57,10 +60,16 @@ export default function Report() {
       if (file.exists) file.delete();
       file.create();
       file.write(new Uint8Array(await response.arrayBuffer()));
+      // Nom du senior pour le fichier ; sans réseau ou sans réponse, « Patient ».
+      const seniorName = await aidantApi
+        .senior(seniorId)
+        .then((senior) => senior.nomComplet)
+        .catch(() => '');
+      const uri = await renamePdf(file.uri, pdfFileName('observance', seniorName, new Date()));
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: t.report.dialog });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: t.report.dialog });
       }
-      setDone(t.report.saved(file.uri.split('/').pop() ?? ''));
+      setDone(t.report.saved(uri.split('/').pop() ?? ''));
     } catch (e) {
       setError(errorMessage(e, t));
     } finally {

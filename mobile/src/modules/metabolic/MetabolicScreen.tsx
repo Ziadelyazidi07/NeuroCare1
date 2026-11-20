@@ -9,6 +9,7 @@ import { useFocusEffect } from 'expo-router';
 
 import { useLanguage } from '../../i18n';
 import { Button, Card, ErrorText, Field, Loading, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
 import { OptionGroup, parseDecimal, useYesNo } from '../ui';
@@ -37,7 +38,11 @@ const LEVEL_COLOUR: Record<FindriscLevel, string> = {
 };
 
 export default function MetabolicScreen() {
-  return <ModuleScreen module={metabolicModule}>{(patient) => <FindriscPanel patient={patient} />}</ModuleScreen>;
+  return (
+    <ModuleScreen module={metabolicModule} guide={<MeasurementGuideCard module={metabolicModule} device="metabolic" guide={(t) => t.findrisc.guide} />}>
+      {(patient) => <FindriscPanel patient={patient} />}
+    </ModuleScreen>
+  );
 }
 
 function FindriscPanel({ patient }: { patient: string }) {
@@ -86,7 +91,8 @@ function FindriscPanel({ patient }: { patient: string }) {
   const downloadPdf = async (report: FindriscReport) => {
     setError(null);
     try {
-      await sharePdf(t, findriscReportHtml(t, patient, report, new Date()), f.pdf.dialog);
+      const now = new Date();
+      await sharePdf(t, findriscReportHtml(t, patient, report, now), { dialogTitle: f.pdf.dialog, module: 'metabolic', patient, generatedAt: now });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }

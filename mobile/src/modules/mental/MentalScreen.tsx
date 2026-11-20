@@ -9,6 +9,7 @@ import { useFocusEffect } from 'expo-router';
 
 import { useLanguage } from '../../i18n';
 import { Button, Card, ErrorText, Loading, MIN_TOUCH, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
 import {
@@ -28,7 +29,11 @@ import { mentalModule } from './module';
 const LEVEL_COLOUR: Record<GdsLevel, string> = { INDICE_NORMAL: c.success, LEGERE_A_MODEREE: c.warning, SEVERE: c.danger };
 
 export default function MentalScreen() {
-  return <ModuleScreen module={mentalModule}>{(patient) => <GdsPanel patient={patient} />}</ModuleScreen>;
+  return (
+    <ModuleScreen module={mentalModule} guide={<MeasurementGuideCard module={mentalModule} guide={(t) => t.gds.guide} />}>
+      {(patient) => <GdsPanel patient={patient} />}
+    </ModuleScreen>
+  );
 }
 
 type Phase = 'intro' | 'questions' | 'result';
@@ -91,7 +96,8 @@ function GdsPanel({ patient }: { patient: string }) {
   const downloadPdf = async (report: GdsReport) => {
     setError(null);
     try {
-      await sharePdf(t, gdsReportHtml(t, patient, report, new Date()), g.pdf.dialog);
+      const now = new Date();
+      await sharePdf(t, gdsReportHtml(t, patient, report, now), { dialogTitle: g.pdf.dialog, module: 'mental', patient, generatedAt: now });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }

@@ -88,6 +88,19 @@ const findrisc = {
     scoring:
       'Barème : moins de 7 points risque faible (1 %) ; 7 à 11 légèrement accru (4 %) ; 12 à 14 modéré (17 %) ; 15 à 20 élevé (33 %) ; plus de 20 très élevé (50 %). Risque estimé de diabète de type 2 à 10 ans.',
   },
+  guide: {
+    title: 'Mesurer poids, taille et tour de taille',
+    device: 'Utilisez un pèse-personne, une toise (ou un mètre contre un mur) et un mètre ruban :',
+    readings: [
+      'Poids : sur le pèse-personne, en tenue légère, sans chaussures.',
+      'Taille : debout, dos et talons contre le mur, sans chaussures.',
+      'Tour de taille : mètre ruban horizontal au niveau du nombril, sans serrer, en fin d’expiration.',
+    ],
+    pharmacy: 'Sans appareil : la pharmacie peut vous peser et mesurer votre taille et votre tour de taille.',
+    conditions: [
+      'Glycémie capillaire (lecteur et bandelette) : notez toujours si elle est faite à jeun (au moins 8 h sans manger) ou 2 heures après le début du repas.',
+    ],
+  },
 };
 
 export default findrisc;

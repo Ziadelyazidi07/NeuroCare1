@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,10 +33,14 @@ export default function ModulesHome() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.welcome}>
+          <Image
+            source={LOGO}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityRole="image"
+            accessibilityLabel={t.home.logoLabel}
+          />
           <Row style={styles.brandRow}>
-            <View style={styles.logo}>
-              <Ionicons name="medical" size={28} color={c.primaryText} />
-            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.brand} accessibilityRole="header">
                 {t.home.title}
@@ -82,6 +86,8 @@ export default function ModulesHome() {
     </SafeAreaView>
   );
 }
+
+const LOGO = require('../../assets/images/neurocare-logo.png') as number;
 
 const LANGUAGES: { value: Language; code: string; name: string }[] = [
   { value: 'fr', code: 'FR', name: 'Français' },
@@ -137,7 +143,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16, paddingBottom: 32 },
   welcome: { backgroundColor: c.card, borderRadius: radius.card + 4, padding: 20, gap: 14, borderWidth: 1, borderColor: c.border, ...shadow },
   brandRow: { gap: 12 },
-  logo: { width: 52, height: 52, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: '100%', height: 168, borderRadius: radius.card, backgroundColor: '#F0F6FD' },
   brand: { fontSize: 30, fontWeight: '800', color: c.title },
   hello: { fontSize: 17, color: c.muted },
   subtitle: { fontSize: 18, lineHeight: 26, color: c.text },

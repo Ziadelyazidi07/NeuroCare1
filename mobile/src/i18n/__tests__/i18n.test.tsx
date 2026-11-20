@@ -66,8 +66,10 @@ describe('dictionnaires', () => {
 
   it('n’ont aucun texte vide et l’arabe est bien écrit en arabe', () => {
     const arabic = /[؀-ۿ]/;
-    // Libellés identiques dans les deux langues : codes, unités et noms d'échelles.
-    const neutral = /^(ltr|rtl|ar|PDF|NeuroCare|SpO2 \(%\)|SpO2|#|Mini-GDS|GDS-15|, |cle|clef|citron|horloge|olivier)$/;
+    // Libellés identiques dans les deux langues : codes, unités, noms d'échelles et marquages imprimés sur
+    // les écrans des appareils de mesure (SYS, DIA, PUL, SpO₂, PR, kg, g/L…).
+    const neutral =
+      /^(ltr|rtl|ar|PDF|NeuroCare|SpO2 \(%\)|SpO2|#|Mini-GDS|GDS-15|, |cle|clef|citron|horloge|olivier|SYS|DIA|PUL|mmHg|SpO₂|PR|%|bpm|kg|g\/L|cm)$/;
     for (const [path, text] of strings(ar)) {
       expect({ path, empty: text.trim() === '' }).toEqual({ path, empty: false });
       if (!neutral.test(text)) expect({ path, arabic: arabic.test(text) }).toEqual({ path, arabic: true });
@@ -89,10 +91,13 @@ describe('sélecteur de langue de l’accueil', () => {
     );
     expect(await screen.findByText('Alzheimer & Mémoire')).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Français' }).props.accessibilityState).toMatchObject({ selected: true });
+    // Logo officiel en haut de la carte de bienvenue, sans déformation.
+    expect(screen.getByLabelText(fr.home.logoLabel).props.resizeMode).toBe('contain');
 
     await fireEvent.press(screen.getByRole('radio', { name: 'العربية' }));
 
     expect(await screen.findByText('الزهايمر والذاكرة')).toBeTruthy();
+    expect(screen.getByLabelText(ar.home.logoLabel)).toBeTruthy();
     expect(screen.queryByText('Alzheimer & Mémoire')).toBeNull();
     for (const module of Object.values(ar.home.modules)) expect(screen.getByText(module.title)).toBeTruthy();
     const title = StyleSheet.flatten(screen.getByText(ar.home.subtitle).props.style);

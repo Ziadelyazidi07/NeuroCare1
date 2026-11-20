@@ -275,8 +275,28 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 ### 12.3 Rapports PDF nominatifs
 
 - Générés sur le téléphone avec **expo-print** (HTML → PDF) puis partagés avec **expo-sharing**.
-- Édition en français ou en arabe (`<html lang="ar" dir="rtl">`), nom du patient, date de génération, contenu
-  propre au module et mention de non-diagnostic.
+- Édition en français ou en arabe (`<html lang="ar" dir="rtl">`), en-tête avec le **logo officiel NeuroCare**
+  (intégré en data URI, sans réseau), nom du patient, date de génération, contenu propre au module et mention
+  de non-diagnostic.
+- **Nom de fichier explicite et horodaté** (renommage `moveAsync` avant le partage) :
+  `NeuroCare_<Module>_<Patient>_<YYYY-MM-DD>_<HHhMM>.pdf`, avec `Rappels-Suivi`, `Saturation-SpO2`,
+  `Sante-Mentale-GDS`, `Diabete-FINDRISC`, `Tension-HTA` ou `Alzheimer-4A` ; caractères interdits
+  (`/ \ : * ? " < > |`) retirés, espaces remplacés par des tirets, « Patient » par défaut. Ex. :
+  `NeuroCare_Tension-HTA_Ahmed-Benali_2026-11-20_11h30.pdf`. Le rapport hebdomadaire du Module 1 porte le nom
+  du senior.
+
+### 12.3 bis Bandeaux d'aide à la mesure
+
+- En haut des modules 2 à 6, une carte `MeasurementGuideCard` (FR / AR) : **illustration de l'appareil**
+  (`DeviceIllustration`, dessinée en composants natifs, sans dépendance native), lecture de l'écran avec code
+  couleur, alternative **en pharmacie** et conditions de mesure.
+- Tension : tensiomètre électronique au bras (écran `SYS 120` → TAS, `DIA 80` → TAD, `PUL 72` → pouls) ; assis
+  au calme 5 min, bras à hauteur du cœur, le matin avant le petit-déjeuner et les médicaments.
+- SpO₂ : oxymètre de pouls au doigt (`SpO₂ 98 %`, `PR 72`) ; repos complet 5 min, doigt propre, sec et
+  réchauffé, sans vernis ni faux ongles.
+- Diabète : pèse-personne (`70.0 kg`), mètre ruban au nombril, lecteur de glycémie (`0.95 g/L`) ; toute
+  glycémie capillaire est notée à jeun (≥ 8 h) ou 2 h après le début du repas.
+- Santé mentale et Alzheimer : conseils de passation (calme, 7 derniers jours ; lunettes et appareils auditifs).
 
 ### 12.4 Hors ligne
 
@@ -352,7 +372,7 @@ backend, pour le traitement des voix.
 | Contrôle | Portée |
 |---|---|
 | Tests backend | Tests unitaires (barèmes, sécurité, services) et tests d'intégration sur PostgreSQL (Testcontainers), dont `EthicsTest` (mentions de non-diagnostic) — 164 tests unitaires et 81 tests d'intégration au dernier passage |
-| Tests mobile | **156 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module, stockage local, PDF français et arabe, parcours complets des écrans sur téléphone vierge, bascule de langue et RTL, indépendance des modules |
+| Tests mobile | **162 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module, stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, bascule de langue et RTL, indépendance des modules |
 | Typage et style | `tsc --noEmit`, `expo lint` |
 | Bundle | `expo export` (Android) |
 | Livraison | EAS Build (APK `preview`) et EAS Update (OTA, sans réinstallation tant qu'aucun module natif n'est ajouté) |

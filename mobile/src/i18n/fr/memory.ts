@@ -155,6 +155,14 @@ const memory = {
     summary: (signs: number, recall: number | null) => `${signs}/8 signes · ${recall === null ? 'sans exercice' : `rappel ${recall}/4`}`,
     noHistory: 'Aucun autre bilan.',
   },
+  guide: {
+    title: 'Avant de commencer',
+    conditions: [
+      'Passation au calme, sans bruit ni télévision.',
+      'Avec les lunettes et les appareils auditifs habituels, si la personne en porte.',
+      'Prenez votre temps : ce n’est pas un examen.',
+    ],
+  },
 };
 
 export default memory;

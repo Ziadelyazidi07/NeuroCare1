@@ -9,6 +9,7 @@ import { useFocusEffect } from 'expo-router';
 
 import { useLanguage } from '../../i18n';
 import { Button, Card, ErrorText, Field, Loading, MIN_TOUCH, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
 import { OptionGroup } from '../ui';
@@ -37,7 +38,11 @@ import { alzheimerModule } from './module';
 const COLOUR: Record<Vigilance, string> = { RASSURANT: c.success, SIGNES_A_SIGNALER: c.warning };
 
 export default function AlzheimerScreen() {
-  return <ModuleScreen module={alzheimerModule}>{(patient) => <MemoryPanel patient={patient} />}</ModuleScreen>;
+  return (
+    <ModuleScreen module={alzheimerModule} guide={<MeasurementGuideCard module={alzheimerModule} guide={(t) => t.memory.guide} />}>
+      {(patient) => <MemoryPanel patient={patient} />}
+    </ModuleScreen>
+  );
 }
 
 type Phase = 'intro' | 'questions' | 'exercise' | 'result';
@@ -102,7 +107,8 @@ function MemoryPanel({ patient }: { patient: string }) {
     setError(null);
     try {
       const list = history?.some((h) => h.id === assessment.id) ? history : [assessment, ...(history ?? [])];
-      await sharePdf(t, memoryReportHtml(t, patient, assessment, list, new Date()), m.pdf.dialog);
+      const now = new Date();
+      await sharePdf(t, memoryReportHtml(t, patient, assessment, list, now), { dialogTitle: m.pdf.dialog, module: 'alzheimer', patient, generatedAt: now });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }

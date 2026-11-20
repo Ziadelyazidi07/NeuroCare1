@@ -5,7 +5,12 @@
     "version": "1.0.0",
     "scheme": "neurocare",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/neurocare-logo.png",
+    "splash": {
+      "image": "./assets/images/neurocare-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F8FC"
+    },
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -14,10 +19,8 @@
     "android": {
       "package": "ma.neurocare.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/neurocare-logo.png",
+        "backgroundColor": "#F5F8FC"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

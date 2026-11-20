@@ -104,6 +104,9 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   TypeScript refuse un dictionnaire arabe incomplet. La logique clinique ne renvoie que des codes.
 - Limites : les messages d'erreur détaillés du serveur, l'avertissement du tableau de bord et le rapport
   hebdomadaire PDF du Module 1 (générés par le backend) restent en français.
+- Logo officiel `assets/images/neurocare-logo.png` : en haut de la carte de bienvenue, en-tête des PDF
+  (data URI `src/modules/pdfLogo.ts`), icône, icône adaptative Android (fond `#F5F8FC`) et écran de démarrage
+  (`app.json` ; un changement d'icône demande un nouveau build EAS).
 - Thème médical « clean » (`src/theme/`) : fond `#F5F8FC`, cartes blanches arrondies (20) avec ombre légère,
   bleu `#246BFD`, titres `#112950`, badges pastel par module ; composants `Card`, `PrimaryButton`, `Badge`,
   `ModuleHeader`, `Text` orienté. Texte courant ≥ 16, titres et boutons 20-24. L'espace senior garde son
@@ -121,6 +124,14 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   `neurocare.findrisc.*`, `neurocare.bp.*`, `neurocare.memory.*`, 500 éléments au plus par historique, 20 protocoles HTA).
   Un champ facultatif « Nom et prénom du patient », mémorisé et commun aux 5 modules, personnalise les PDF
   (« Patient » s'il est vide). Désinstaller l'application efface ces données.
+- PDF : chaque fichier est renommé avant le partage (`renamePdf`, `moveAsync`) en
+  `NeuroCare_<Module>_<Patient>_<YYYY-MM-DD>_<HHhMM>.pdf` (`src/lib/pdfFileName.ts` : `Saturation-SpO2`,
+  `Sante-Mentale-GDS`, `Diabete-FINDRISC`, `Tension-HTA`, `Alzheimer-4A`, `Rappels-Suivi` ; caractères
+  interdits retirés, espaces → tirets). Ex. : `NeuroCare_Tension-HTA_Ahmed-Benali_2026-11-20_11h30.pdf`.
+- Bandeau d'aide à la mesure en haut de chaque module 2 à 6 (`src/modules/MeasurementGuideCard.tsx`,
+  textes `guide` de chaque dictionnaire) : illustration de l'appareil (`DeviceIllustration.tsx` : tensiomètre,
+  oxymètre, balance + mètre ruban + lecteur de glycémie), chiffres à recopier avec code couleur, pharmacie,
+  conditions de mesure ou conseils de passation (GDS, Alzheimer).
 - **Saturation SpO₂** (`src/modules/saturation/`) : question du profil respiratoire (maladie respiratoire
   chronique : Oui / Non, modifiable), saisie au repos de la SpO₂ et du pouls, alerte immédiate même hors ligne.
   Standard : 95-100 % vert, 90-94 % orange (repos, vérifier le capteur, recontrôler dans 10 min), < 90 % rouge
@@ -185,7 +196,8 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   mise à jour immédiate des pastilles, historique 7 jours, alertes « sans réponse » et « téléphone injoignable ».
 - Consentements : chaque changement demande de confirmer la présence et l'accord du senior.
 - Voix : enregistrement d'environ 12 s (M4A), réécoute, envoi, remplacement et suppression.
-- Rapport : choix de la semaine, observations pour le médecin, téléchargement authentifié puis partage du PDF.
+- Rapport : choix de la semaine, observations pour le médecin, téléchargement authentifié, renommage
+  `NeuroCare_Rappels-Suivi_<Senior>_<date>_<HHhMM>.pdf` puis partage du PDF.
 
 ## Structure
 

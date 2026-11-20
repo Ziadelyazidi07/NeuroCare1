@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useLanguage } from '../../i18n';
 import { toIsoDate } from '../../lib/dates';
 import { Badge, Button, Card, Checkbox, ErrorText, Field, Loading, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
 import { EmergencyButtons } from '../ui';
@@ -43,7 +44,11 @@ const LEVEL_COLOUR: Record<BpLevel, { bg: string; fg: string }> = {
 };
 
 export default function CardioScreen() {
-  return <ModuleScreen module={cardioModule}>{(patient) => <CardioPanel patient={patient} />}</ModuleScreen>;
+  return (
+    <ModuleScreen module={cardioModule} guide={<MeasurementGuideCard module={cardioModule} device="tensiometer" guide={(t) => t.bp.guide} />}>
+      {(patient) => <CardioPanel patient={patient} />}
+    </ModuleScreen>
+  );
 }
 
 interface LastResult extends BpValues {
@@ -111,7 +116,8 @@ function CardioPanel({ patient }: { patient: string }) {
   const downloadPdf = async (s: BpSeries) => {
     setError(null);
     try {
-      await sharePdf(t, bpReportHtml(t, patient, s, new Date()), b.pdf.dialog);
+      const now = new Date();
+      await sharePdf(t, bpReportHtml(t, patient, s, now), { dialogTitle: b.pdf.dialog, module: 'cardio', patient, generatedAt: now });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }

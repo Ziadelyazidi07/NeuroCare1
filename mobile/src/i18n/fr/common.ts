@@ -34,6 +34,7 @@ const common = {
   },
   home: {
     title: 'NeuroCare',
+    logoLabel: 'Logo NeuroCare',
     welcome: 'Bonjour 👋',
     subtitle: 'Prenez soin de votre santé, simplement. Choisissez un module.',
     languageLabel: 'Langue de l’application',
@@ -61,6 +62,30 @@ const common = {
     notSaved: 'Non mémorisé sur ce téléphone (le résultat reste affiché).',
     history: 'Historique',
     downloadThisPdf: 'Télécharger ce rapport en PDF',
+    guide: {
+      device: 'Appareil requis',
+      pharmacy: 'Sans appareil : en pharmacie',
+      conditions: 'Conditions de mesure',
+      tips: 'Conseils de passation',
+    },
+    devices: {
+      tensiometer: 'Illustration : tensiomètre électronique, brassard autour du bras relié par un tuyau au boîtier ; l’écran affiche SYS 120, DIA 80 et PUL 72.',
+      oximeter: 'Illustration : oxymètre de pouls clipsé au bout du doigt ; l’écran affiche SpO₂ 98 % et PR 72.',
+      metabolic: 'Illustration : pèse-personne affichant 70.0 kg, mètre ruban autour de la taille au niveau du nombril et lecteur de glycémie avec bandelette affichant 0.95 g/L.',
+      screen: {
+        sys: 'SYS',
+        dia: 'DIA',
+        pul: 'PUL',
+        mmHg: 'mmHg',
+        spo2: 'SpO₂',
+        pr: 'PR',
+        percent: '%',
+        bpm: 'bpm',
+        kg: 'kg',
+        gl: 'g/L',
+        cm: 'cm',
+      },
+    },
   },
   pdf: {
     patient: 'Patient',

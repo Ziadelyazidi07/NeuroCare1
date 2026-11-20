@@ -94,6 +94,21 @@ const bp = {
     alertsTitle: 'Alertes',
     noAlerts: 'Aucune alerte.',
   },
+  guide: {
+    title: 'Bien mesurer sa tension',
+    device: 'Utilisez un tensiomètre électronique au bras, brassard enroulé autour du bras nu. Recopiez les 3 chiffres de l’écran dans les bons champs :',
+    readings: [
+      'SYS → TAS (grand chiffre)',
+      'DIA → TAD (petit chiffre)',
+      'PUL → Pouls (battements par minute)',
+    ],
+    pharmacy: 'Pas de tensiomètre ? Allez mesurer votre tension en pharmacie et notez les 3 chiffres SYS, DIA et PUL.',
+    conditions: [
+      'Rester assis au calme 5 minutes avant la mesure, dos appuyé, sans parler.',
+      'Bras posé sur la table, brassard à hauteur du cœur.',
+      'Le matin : avant le petit-déjeuner et avant la prise des médicaments.',
+    ],
+  },
 };
 
 export default bp;
