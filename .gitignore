@@ -1,5 +1,7 @@
 # Secrets
 .env
+.env.*
+!.env.example
 *.env.local
 **/secrets/
 firebase*.json
@@ -24,3 +26,12 @@ venv/
 # Node / Expo
 node_modules/
 .expo/
+dist/
+web-build/
+mobile/android/
+mobile/ios/
+*.apk
+*.aab
+
+# Outils locaux
+.claude/
