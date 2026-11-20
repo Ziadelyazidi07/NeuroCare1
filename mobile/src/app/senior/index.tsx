@@ -250,6 +250,7 @@ export default function SeniorHome() {
             {t.senior.offline}
           </Text>
         ) : null}
+        {session?.demo ? <Text style={[styles.offline, { fontSize: SENIOR_MIN_FONT, color: colours.muted }]}>{t.demo.badge}</Text> : null}
 
         {alertsMissing ? (
           <View style={styles.permissions}>

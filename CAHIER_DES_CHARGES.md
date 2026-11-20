@@ -160,6 +160,23 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 - **Rapport hebdomadaire PDF** pour le médecin (choix de la semaine, observations libres jusqu'à 1 000
   caractères), généré par le serveur.
 
+### 6.1 Secours pour les démonstrations (serveur injoignable)
+
+- **Adresse du serveur modifiable sur place**, sans recompiler : sous les formulaires de connexion aidant et
+  d'appairage senior (et sur l'écran de choix du rôle), champ « URL de l'API » avec **Tester** (appel de
+  `/actuator/health`, délai 4 s) et **Enregistrer** (AsyncStorage `neurocare.apiBase`).
+- **Mode Démo Hors Ligne (Sans serveur)** : lien discret sous les formulaires, ouvert d'office quand la requête
+  échoue pour cause réseau. Il ouvre l'espace **aidant** ou **senior** sur des données fictives réalistes stockées
+  sur le téléphone (`neurocare.demo.state`) : senior « Hajja Zahra », Metformine 850 mg (08:00, 20:00),
+  Amlodipine 5 mg (09:00) et Vitamine D3 recalée **2 minutes** après l'entrée en démo (alerte et bouton « C'est
+  fait » montrables tout de suite), 7 jours d'historique simulé (surtout confirmées, quelques « sans réponse »),
+  consentements, téléphone appairé, exercices de mémoire.
+- Le client HTTP aiguille alors toutes les routes `/api/v1` du Module 1 vers un serveur local (`demo/demoBackend.ts`)
+  qui applique les mêmes règles (fenêtre de confirmation de 30 min, consentements requis, file hors ligne,
+  diffusion temps réel locale des changements). Le **rapport hebdomadaire PDF** est généré sur le téléphone
+  (même nom de fichier `NeuroCare_Rappels-Suivi_…pdf`, mentions éthiques, mention « données de démonstration
+  fictives »). Un bandeau « Mode démo hors ligne · données fictives » reste affiché dans les deux espaces.
+
 ## 7. Module 2 — Saturation en oxygène (SpO₂)
 
 - **Profil respiratoire** (question initiale, modifiable) : « Le patient souffre-t-il d'une maladie
@@ -406,7 +423,7 @@ backend, pour le traitement des voix.
 | Contrôle | Portée |
 |---|---|
 | Tests backend | Tests unitaires (barèmes, sécurité, services) et tests d'intégration sur PostgreSQL (Testcontainers), dont `EthicsTest` (mentions de non-diagnostic) — 164 tests unitaires et 81 tests d'intégration au dernier passage |
-| Tests mobile | **171 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, bascule de langue et RTL, indépendance des modules |
+| Tests mobile | **183 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, mode démo hors ligne du Module 1 (serveur local, connexion en échec, adresse du serveur), bascule de langue et RTL, indépendance des modules |
 | Typage et style | `tsc --noEmit`, `expo lint` |
 | Bundle | `expo export` (Android) |
 | Livraison | EAS Build (APK `preview`) et EAS Update (OTA, sans réinstallation tant qu'aucun module natif n'est ajouté) |

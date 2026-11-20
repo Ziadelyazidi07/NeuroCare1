@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSession } from '../../auth/SessionContext';
 import { useLanguage } from '../../i18n';
 import { Loading, ModuleHeader, Row, Text, colours as c, radius, shadow, type IconName } from '../../theme';
+import { DemoFallback } from '../../ui/DemoAccess';
 import { HomeButton } from '../../ui/HomeButton';
 import { observanceModule } from './module';
 
@@ -34,6 +35,7 @@ export default function ObservanceRoleScreen() {
         />
         <Choice icon="person" colour="#246BFD" tint="#EBF2FF" title={t.role.senior} hint={t.role.seniorHint} onPress={() => router.push('/senior/pair')} />
         <Choice icon="people" colour="#10B981" tint="#D1FAE5" title={t.role.aidant} hint={t.role.aidantHint} onPress={() => router.push('/aidant/login')} />
+        <DemoFallback />
       </View>
     </SafeAreaView>
   );

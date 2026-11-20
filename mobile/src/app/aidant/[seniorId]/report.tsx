@@ -11,6 +11,8 @@ import * as Sharing from 'expo-sharing';
 
 import { aidantApi, weeklyReportPath } from '../../../api/api';
 import { authorizationHeader } from '../../../api/client';
+import { isDemoSession } from '../../../auth/sessionStore';
+import { shareDemoReport } from '../../../demo/demoReport';
 import { getApiBase } from '../../../api/config';
 import { addDays, formatDay, mondayOf, toIsoDate } from '../../../lib/dates';
 import { pdfFileName } from '../../../lib/pdfFileName';
@@ -38,6 +40,11 @@ export default function Report() {
     setDone(null);
     try {
       const weekStart = toIsoDate(week);
+      if (isDemoSession()) {
+        // Mode démo hors ligne : rapport généré sur le téléphone à partir des données locales.
+        setDone(t.report.saved(await shareDemoReport(t, seniorId, week, observations)));
+        return;
+      }
       const authorization = await authorizationHeader();
       let response: Response;
       try {

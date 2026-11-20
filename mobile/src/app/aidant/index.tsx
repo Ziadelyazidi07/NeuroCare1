@@ -8,7 +8,7 @@ import type { SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
 import { errorMessage } from '../../lib/problem';
 import { useLanguage } from '../../i18n';
-import { Button, Card, colours as c, ErrorText, Loading, pillColours, Row, styles, Text } from '../../theme';
+import { Button, Card, colours as c, ErrorText, Loading, Notice, pillColours, Row, styles, Text } from '../../theme';
 
 export default function SeniorsList() {
   const { session, signOut } = useSession();
@@ -50,6 +50,7 @@ export default function SeniorsList() {
       }
     >
       <Text style={styles.muted}>{t.list.connected(session.nomComplet)}</Text>
+      {session.demo ? <Notice>{t.demo.badge}</Notice> : null}
       <ErrorText message={error} />
       {seniors === null && !error ? <Loading /> : null}
       {seniors?.length === 0 ? <Text style={styles.text}>{t.list.none}</Text> : null}

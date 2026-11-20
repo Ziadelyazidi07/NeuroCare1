@@ -13,8 +13,10 @@ export type Session =
       accessExpiresAt: number;
       userId: string;
       nomComplet: string;
+      /** Mode démo hors ligne : les appels de l'API sont servis par `demo/demoBackend.ts`. */
+      demo?: boolean;
     }
-  | { kind: 'senior'; deviceToken: string; seniorId: string; nomComplet: string };
+  | { kind: 'senior'; deviceToken: string; seniorId: string; nomComplet: string; demo?: boolean };
 
 const KEY = 'neurocare.session';
 let current: Session | null = null;
@@ -28,6 +30,11 @@ export async function loadSession(): Promise<Session | null> {
 
 export function getSession(): Session | null {
   return current;
+}
+
+/** Vrai pendant une session du mode démo hors ligne (aucun appel réseau). */
+export function isDemoSession(): boolean {
+  return current?.demo === true;
 }
 
 export async function saveSession(session: Session | null): Promise<void> {

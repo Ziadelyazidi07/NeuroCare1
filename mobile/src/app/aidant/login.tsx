@@ -8,10 +8,11 @@ import { router } from 'expo-router';
 import { authApi } from '../../api/api';
 import { useSession } from '../../auth/SessionContext';
 import { clearSavedCredentials, loadSavedCredentials, saveCredentials } from '../../auth/savedCredentials';
-import { errorMessage } from '../../lib/problem';
+import { ApiError, errorMessage } from '../../lib/problem';
 import { isE164, normalizePhone, registrationError } from '../../lib/validation';
 import { useLanguage } from '../../i18n';
 import { Button, Card, Checkbox, ErrorText, Field, PasswordField, Screen } from '../../theme';
+import { DemoFallback } from '../../ui/DemoAccess';
 
 type Mode = 'connexion' | 'inscription';
 
@@ -26,6 +27,7 @@ export default function AidantLogin() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     void loadSavedCredentials().then((saved) => {
@@ -56,6 +58,7 @@ export default function AidantLogin() {
     }
     setBusy(true);
     setError(null);
+    setUnreachable(false);
     try {
       if (mode === 'inscription') await authApi.register(name.trim(), telephone, password);
       await signInAidant(telephone, password);
@@ -64,6 +67,7 @@ export default function AidantLogin() {
       router.replace('/aidant');
     } catch (e) {
       setError(errorMessage(e, t));
+      setUnreachable(e instanceof ApiError && e.isNetwork);
     } finally {
       setBusy(false);
     }
@@ -112,6 +116,7 @@ export default function AidantLogin() {
           disabled={busy}
         />
       </Card>
+      <DemoFallback unreachable={unreachable} />
     </Screen>
   );
 }

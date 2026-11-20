@@ -119,6 +119,14 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   et aide à la décision, jamais de diagnostic).
 - « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
   déjà appairé ou un aidant connecté va directement dans son espace.
+- Secours de démonstration (`src/ui/DemoAccess.tsx`, `src/demo/`) : sous le choix du rôle, la connexion aidant et
+  l'appairage senior, lien discret « Mode Démo Hors Ligne (Sans serveur) », ouvert d'office si le serveur est
+  injoignable. Adresse du serveur modifiable avec « Tester » (`/actuator/health`) et « Enregistrer », sans
+  recompiler. Le mode démo ouvre l'espace aidant ou senior sur des données fictives locales (senior « Hajja
+  Zahra », 3 traitements, Vitamine D3 à confirmer 2 min après l'entrée, 7 jours d'historique) : le client HTTP
+  sert alors toutes les routes du Module 1 depuis `demo/demoBackend.ts` (AsyncStorage `neurocare.demo.state`),
+  temps réel local et rapport PDF hebdomadaire généré sur le téléphone. « Réinitialiser les données de démo »
+  repart de zéro.
 - Modules 2 à 6 : accès direct depuis la grille, sans appairage, sans connexion et sans réseau. La relation
   aidant / senior (code à 6 chiffres, compte aidant, consentements) ne concerne que « Rappels & Suivi ».
   Historiques stockés sur le téléphone (AsyncStorage, clés `neurocare.spo2.*`, `neurocare.gds.*`,

@@ -13,6 +13,11 @@ export function wsUrlFromApi(apiBase: string): string {
   return base.replace(/^http/, 'ws') + '/ws';
 }
 
+/** Santé du backend : « http://h:8088/api/v1 » → « http://h:8088/actuator/health ». */
+export function healthUrl(apiBase: string): string {
+  return cleanApiBase(apiBase).replace(/\/api\/v1$/, '') + '/actuator/health';
+}
+
 export function seniorTopic(seniorId: string): string {
   return `/topic/seniors/${seniorId}/events`;
 }

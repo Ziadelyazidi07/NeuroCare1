@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 
 import { authApi } from '../api/api';
 import { aidantSession } from '../api/client';
+import { DEMO_AIDANT, DEMO_SENIOR_ID } from '../demo/demoData';
+import { prepareDemo } from '../demo/demoBackend';
 import { clearSeniorData, flushQueue } from '../senior/offlineStore';
 import { clearReminderAudio } from '../senior/reminderAudio';
 import { cancelReminders } from '../senior/reminders';
@@ -14,6 +16,8 @@ interface SessionContextValue {
   loading: boolean;
   signInAidant: (telephone: string, motDePasse: string) => Promise<void>;
   pairSenior: (code: string) => Promise<void>;
+  /** Mode démo hors ligne : entre dans l'espace aidant ou senior avec des données locales, sans serveur. */
+  enterDemo: (kind: 'aidant' | 'senior') => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -41,6 +45,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       pairSenior: async (code) => {
         const paired = await authApi.redeemPairingCode(code, Platform.OS === 'ios' ? 'IOS' : 'ANDROID');
         await saveSession({ kind: 'senior', deviceToken: paired.deviceToken, seniorId: paired.seniorId, nomComplet: paired.nomComplet });
+      },
+      enterDemo: async (kind) => {
+        await prepareDemo();
+        await saveSession(
+          kind === 'aidant'
+            ? {
+                kind: 'aidant',
+                demo: true,
+                accessToken: 'demo',
+                refreshToken: 'demo',
+                accessExpiresAt: Date.now() + 365 * 86_400_000,
+                userId: DEMO_AIDANT.id,
+                nomComplet: DEMO_AIDANT.nomComplet,
+              }
+            : { kind: 'senior', demo: true, deviceToken: 'demo', seniorId: DEMO_SENIOR_ID, nomComplet: 'Hajja Zahra' },
+        );
       },
       signOut: async () => {
         const current = getSession();

@@ -66,7 +66,7 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.
 - Après chaque étape backend, lance `backend/mvnw compile` ou `test` et corrige les erreurs avant de continuer.
-- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (171 tests au dernier passage),
+- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (183 tests au dernier passage),
   et `npx expo export --platform android --output-dir <tmp>` pour valider le bundle.
 - Lint : `react-hooks/set-state-in-effect` → charger les données avec `useFocusEffect(useCallback(…))` ;
   `react-hooks/refs` interdit d'écrire un ref pendant le rendu.
@@ -76,6 +76,8 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
   Fais un commit à chaque étape validée. Ne jamais committer les modifications locales de `mobile/package.json`
   (scripts `android`/`ios` → `expo run:*` de l'utilisateur) : ne stager que ses propres lignes.
 - Ajout d'un module natif → nouveau build EAS ; sinon `eas update --channel preview` suffit.
+- Mode démo hors ligne du Module 1 (`src/demo/`) : toute nouvelle route `/api/v1` utilisée par l'app doit aussi
+  être servie par `demo/demoBackend.ts` (sinon 404 en démo).
 
 ## Environnement local (Windows)
 - `mvn` n'est pas dans le PATH : utiliser `backend/mvnw` (Maven Wrapper).
@@ -83,7 +85,10 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
 - tzdata du JDK 25 local (2025b) en retard sur l'image Docker (2026e) et PostgreSQL (2026f) : les règles
   d'`Africa/Casablanca` diffèrent (UTC+1 contre UTC+0 en nov. 2026). Les tests unitaires utilisent un fuseau
   aux règles fixes ; ne pas y coder en dur le décalage de Casablanca. La référence est l'image Docker.
-- Stack complète : `cd infra && docker compose up -d --build` (ports hôtes dans `infra/.env`).
+- Stack complète : `cd infra && docker compose up -d --build` (ports hôtes dans `infra/.env` : API sur **8088** ;
+  le port 8080 du poste est pris par le conteneur `api-gateway` d'un autre projet). Téléphone réel :
+  `EXPO_PUBLIC_API_URL=http://<IPv4 Wi-Fi>:8088/api/v1` ; réseau Wi-Fi en profil « Public » → ouvrir le port 8088
+  dans le pare-feu (PowerShell administrateur, voir `docs/demo.md`).
 - Git Bash : les heredocs contenant des apostrophes ou de l'arabe échouent souvent → écrire les fichiers avec l'outil
   d'écriture ou des scripts Python placés dans le scratchpad.
 - GitHub CLI installé dans `C:\Program Files\GitHub CLI\gh.exe` (hors PATH de Git Bash). Aucun remote configuré :

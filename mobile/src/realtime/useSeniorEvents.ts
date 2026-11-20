@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 
 import { authorizationHeader } from '../api/client';
+import { isDemoSession } from '../auth/sessionStore';
+import { onDemoEvent } from '../demo/demoEvents';
 import { getApiBase } from '../api/config';
 import type { RealtimeEvent } from '../api/types';
 import { seniorTopic, wsUrlFromApi } from '../lib/urls';
@@ -21,6 +23,17 @@ export function useSeniorEvents(seniorId: string | undefined, onEvent: (event: R
 
   useEffect(() => {
     if (!seniorId) return;
+    if (isDemoSession()) {
+      // Démo hors ligne : événements du serveur local, sans WebSocket.
+      const unsubscribe = onDemoEvent((event) => {
+        if ('seniorId' in event && event.seniorId === seniorId) handler.current(event);
+      });
+      const timer = setTimeout(() => setStatus('connecte'), 0);
+      return () => {
+        clearTimeout(timer);
+        unsubscribe();
+      };
+    }
     let client: Client | null = null;
     let cancelled = false;
 

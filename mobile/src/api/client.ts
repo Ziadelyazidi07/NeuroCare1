@@ -3,7 +3,8 @@
  * rafraîchit le jeton de l'aidant une fois en cas de 401 (rotation, cahier §8.1) et convertit les
  * erreurs RFC 7807 en {@link ApiError}.
  */
-import { getSession, saveSession, type Session } from '../auth/sessionStore';
+import { getSession, isDemoSession, saveSession, type Session } from '../auth/sessionStore';
+import { demoRequest } from '../demo/demoBackend';
 import { ApiError, networkError, toApiError } from '../lib/problem';
 import { getApiBase } from './config';
 import type { AuthResponse } from './types';
@@ -24,6 +25,10 @@ const REFRESH_MARGIN_MS = 60_000;
 let refreshing: Promise<boolean> | null = null;
 
 export async function request<T>(method: Method, path: string, options: RequestOptions = {}): Promise<T> {
+  if (isDemoSession()) {
+    const session = getSession();
+    return demoRequest<T>(method, path, options.body, session?.kind === 'senior' ? session.seniorId : undefined);
+  }
   const response = await send(method, path, options);
   if (response.status === 204) return undefined as T;
   const text = await response.text();

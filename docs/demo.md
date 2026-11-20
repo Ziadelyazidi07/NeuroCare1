@@ -14,6 +14,16 @@ docker compose up --build
 
 Délais du profil `demo` : moteur toutes les **10 s**, relance à **+30 s**, `SANS_REPONSE` à **+1 min**.
 
+## Plan B : Wi-Fi de la salle sans accès au PC
+
+- Adresse du serveur : `http://<IPv4 du PC>:8088/api/v1` (port **8088** : `BACKEND_PORT` de `infra/.env`). Sur le
+  téléphone, sous la connexion aidant ou l'appairage senior : « Mode Démo Hors Ligne (Sans serveur) » → champ
+  « URL de l'API », **Tester** puis **Enregistrer** (aucune recompilation).
+- Pare-feu Windows (réseau « Public ») : PowerShell **administrateur**
+  `New-NetFirewallRule -DisplayName "NeuroCare API 8088" -Direction Inbound -Protocol TCP -LocalPort 8088 -Action Allow -Profile Any`.
+- Sans réseau du tout : « Entrer comme aidant (démo) » ou « Entrer comme senior (démo) » : données fictives sur le
+  téléphone, Vitamine D3 à confirmer 2 min après l'entrée, rapport PDF généré localement.
+
 ## Personnages et accès
 
 | Rôle | Nom | Accès |
