@@ -425,7 +425,7 @@ def slide_4_demo():
     subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-ss', '11.2', '-i', str(VIDEO), '-frames:v', '1', str(poster)], check=True)
     movie = s.shapes.add_movie(str(VIDEO), Inches(0.68), Inches(1.73), Inches(8.09), Inches(4.48), poster_frame_image=str(poster), mime_type='video/mp4')
     movie.name = 'VideoDemo'
-    hint = text(s, 0.6, 6.42, 8.25, 0.4, 'Cliquer sur la vidéo pour la lancer · fichier : NeuroCare_Demo_45s.mp4 (1080p, 60 i/s)', size=12, colour=MUTED,
+    hint = text(s, 0.6, 6.42, 8.25, 0.4, 'Cliquer sur la vidéo pour la lancer · NeuroCare_Demo_45s.mp4 (1080p, 60 i/s, musique originale)', size=12, colour=MUTED,
                 align=PP_ALIGN.CENTER, name='Consigne')
     points = [
         ('language', 'Français ⇄ العربية', 'bascule instantanée, RTL'),
@@ -714,7 +714,8 @@ if media_timing is not None:
     # Les références <p:tn val="2"/> pointent vers la séquence principale (id 2).
 notes(demo_slide, """[1:55 – 2:40] — DÉMONSTRATION (45 s)
 
-Cliquer sur la vidéo pour la lancer (45 s, sans son : commenter en direct).
+Cliquer sur la vidéo pour la lancer (45 s). Elle a une musique instrumentale originale (« NeuroCare Launch Theme ») :
+vérifier le son de la salle avant le passage ; parler par-dessus pendant la vidéo, la musique est mixée à un niveau standard (-14 LUFS).
 Repères pour commenter :
  0-8 s  « Voici l'accueil : six modules, une grille d'icônes. »
  8-15 s « Un toucher… et toute l'application passe en arabe, de droite à gauche. »
