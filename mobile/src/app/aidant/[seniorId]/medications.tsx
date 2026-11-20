@@ -4,7 +4,7 @@
  * Une modification réaligne les prises côté serveur, qui prévient le téléphone du senior en temps réel.
  */
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { aidantApi } from '../../../api/api';
@@ -12,8 +12,8 @@ import { JOURS, type JourSemaine, type MedicationDto } from '../../../api/types'
 import { toIsoDate } from '../../../lib/dates';
 import { ApiError, errorMessage } from '../../../lib/problem';
 import { parseHHMM } from '../../../lib/validation';
-import { Button, Card, ErrorText, Field, Loading, Notice, Screen, styles } from '../../../ui/components';
-import { aidantColours as c } from '../../../ui/theme';
+import { useLanguage } from '../../../i18n';
+import { Button, Card, colours as c, ErrorText, Field, Loading, Notice, radius, Screen, styles, Text } from '../../../theme';
 
 interface HoraireForm {
   heure: string;
@@ -24,6 +24,7 @@ const NEW_HORAIRES: HoraireForm[] = [{ heure: '08:00', jours: [...JOURS] }];
 
 export default function Medications() {
   const { seniorId } = useLocalSearchParams<{ seniorId: string }>();
+  const { t, row } = useLanguage();
   const [list, setList] = useState<MedicationDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consentMissing, setConsentMissing] = useState(false);
@@ -44,9 +45,9 @@ export default function Medications() {
       setConsentMissing(false);
     } catch (e) {
       setConsentMissing(e instanceof ApiError && e.isConsentRequired);
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
-  }, [seniorId]);
+  }, [seniorId, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,11 +86,11 @@ export default function Medications() {
   const submit = async () => {
     const parsed = horaires.map((h) => ({ heure: parseHHMM(h.heure), jours: JOURS.filter((j) => h.jours.includes(j)) }));
     if (parsed.some((h) => !h.heure)) {
-      setFormError('Heure invalide : utilisez le format HH:MM (ex. 08:00).');
+      setFormError(t.medications.invalidTime);
       return;
     }
     if (parsed.some((h) => h.jours.length === 0)) {
-      setFormError('Choisissez au moins un jour pour chaque horaire.');
+      setFormError(t.medications.noDay);
       return;
     }
     setBusy(true);
@@ -107,17 +108,17 @@ export default function Medications() {
       resetForm();
       await load();
     } catch (e) {
-      setFormError(errorMessage(e));
+      setFormError(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
   };
 
   const deactivate = (medication: MedicationDto) =>
-    Alert.alert(`Arrêter « ${medication.nomMedicament} » ?`, "Les rappels à venir seront annulés. L'historique est conservé.", [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t.medications.stopTitle(medication.nomMedicament), t.medications.stopText, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: 'Arrêter',
+        text: t.medications.stop,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -125,7 +126,7 @@ export default function Medications() {
             if (editing?.id === medication.id) resetForm();
             await load();
           } catch (e) {
-            setError(errorMessage(e));
+            setError(errorMessage(e, t));
           }
         },
       },
@@ -134,24 +135,21 @@ export default function Medications() {
   if (consentMissing) {
     return (
       <Screen>
-        <Notice>
-          Les rappels nécessitent le consentement « Rappels » et le partage familial du senior. Recueillez-les avec lui dans
-          « Consentements ».
-        </Notice>
+        <Notice>{t.medications.consentRequired}</Notice>
       </Screen>
     );
   }
 
   const form = (
-    <Card title={editing ? `Modifier « ${editing.nomMedicament} »` : 'Ajouter un traitement'}>
-      <Field label="Nom du médicament" value={nom} onChangeText={setNom} placeholder="Metformine 500" />
-      <Field label="Consigne de l'ordonnance" value={consigne} onChangeText={setConsigne} placeholder="1 comprimé pendant le repas" />
-      <Field label="Début (AAAA-MM-JJ)" value={dateDebut} onChangeText={setDateDebut} />
-      <Field label="Fin (facultatif, AAAA-MM-JJ)" value={dateFin} onChangeText={setDateFin} />
+    <Card title={editing ? t.medications.editTitle(editing.nomMedicament) : t.medications.addTitle} icon="medkit">
+      <Field label={t.medications.name} value={nom} onChangeText={setNom} placeholder="Metformine 500" />
+      <Field label={t.medications.instruction} value={consigne} onChangeText={setConsigne} placeholder={t.medications.instructionPlaceholder} />
+      <Field label={t.medications.start} value={dateDebut} onChangeText={setDateDebut} />
+      <Field label={t.medications.end} value={dateFin} onChangeText={setDateFin} />
       {horaires.map((h, index) => (
-        <View key={index} style={{ gap: 6, padding: 10, borderRadius: 10, backgroundColor: c.background }}>
-          <Field label={`Horaire ${index + 1} (HH:MM)`} value={h.heure} onChangeText={(heure) => updateHoraire(index, { heure })} keyboardType="numbers-and-punctuation" />
-          <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        <View key={index} style={{ gap: 8, padding: 12, borderRadius: radius.control, backgroundColor: c.background }}>
+          <Field label={t.medications.time(index + 1)} value={h.heure} onChangeText={(heure) => updateHoraire(index, { heure })} keyboardType="numbers-and-punctuation" />
+          <View style={[styles.row, row, { flexWrap: 'wrap' }]}>
             {JOURS.map((jour) => {
               const on = h.jours.includes(jour);
               return (
@@ -159,35 +157,36 @@ export default function Medications() {
                   key={jour}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on }}
-                  accessibilityLabel={jour}
+                  accessibilityLabel={t.days[jour]}
                   onPress={() => toggleJour(index, jour)}
                   style={{
                     minWidth: 44,
                     minHeight: 44,
+                    paddingHorizontal: 10,
                     borderRadius: 22,
                     borderWidth: 1.5,
-                    borderColor: c.primary,
-                    backgroundColor: on ? c.primary : 'transparent',
+                    borderColor: on ? c.primary : c.inputBorder,
+                    backgroundColor: on ? c.primary : c.card,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: on ? c.primaryText : c.primary, fontWeight: '600', fontSize: 12 }}>{jour}</Text>
+                  <Text style={{ color: on ? c.primaryText : c.title, fontWeight: '700', fontSize: 15, textAlign: 'center' }}>{t.days[jour]}</Text>
                 </Pressable>
               );
             })}
           </View>
           {horaires.length > 1 ? (
-            <Button label="Retirer cet horaire" variant="secondary" onPress={() => setHoraires(horaires.filter((_, i) => i !== index))} />
+            <Button label={t.medications.removeTime} variant="secondary" onPress={() => setHoraires(horaires.filter((_, i) => i !== index))} />
           ) : null}
         </View>
       ))}
       {horaires.length < 12 ? (
-        <Button label="Ajouter un horaire" variant="secondary" onPress={() => setHoraires([...horaires, { heure: '20:00', jours: [...JOURS] }])} />
+        <Button label={t.medications.addTime} variant="secondary" onPress={() => setHoraires([...horaires, { heure: '20:00', jours: [...JOURS] }])} />
       ) : null}
       <ErrorText message={formError} />
-      <Button label={editing ? 'Enregistrer les modifications' : 'Enregistrer le traitement'} onPress={submit} loading={busy} disabled={!nom.trim()} />
-      {editing ? <Button label="Annuler la modification" variant="secondary" onPress={resetForm} disabled={busy} /> : null}
+      <Button label={editing ? t.medications.saveChanges : t.medications.save} onPress={submit} loading={busy} disabled={!nom.trim()} />
+      {editing ? <Button label={t.medications.cancelEdit} variant="secondary" onPress={resetForm} disabled={busy} /> : null}
     </Card>
   );
 
@@ -195,23 +194,23 @@ export default function Medications() {
     <Screen>
       <ErrorText message={error} />
       {editing ? form : null}
-      <Card title="Traitements en cours">
+      <Card title={t.medications.current} icon="list">
         {list === null && !error ? <Loading /> : null}
-        {list?.length === 0 ? <Text style={styles.muted}>Aucun traitement.</Text> : null}
+        {list?.length === 0 ? <Text style={styles.muted}>{t.medications.none}</Text> : null}
         {list?.map((m) => (
           <View key={m.id} style={{ gap: 4, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border }}>
             <Text style={[styles.text, { fontWeight: '700' }]}>{m.nomMedicament}</Text>
             {m.consigne ? <Text style={styles.muted}>{m.consigne}</Text> : null}
             <Text style={styles.muted}>
-              {m.horaires.map((h) => `${h.heure.slice(0, 5)} (${h.jours.length === 7 ? 'tous les jours' : h.jours.join(', ')})`).join(' · ')}
+              {m.horaires.map((h) => `${h.heure.slice(0, 5)} (${h.jours.length === 7 ? t.medications.everyDay : h.jours.map((j) => t.days[j]).join(t.meta.listSeparator)})`).join(' · ')}
             </Text>
-            <Button label="Modifier ce traitement" variant="secondary" onPress={() => startEditing(m)} disabled={editing?.id === m.id} />
-            <Button label="Arrêter ce traitement" variant="secondary" onPress={() => deactivate(m)} />
+            <Button label={t.medications.edit} variant="secondary" onPress={() => startEditing(m)} disabled={editing?.id === m.id} />
+            <Button label={t.medications.deactivate} variant="secondary" onPress={() => deactivate(m)} />
           </View>
         ))}
       </Card>
       {editing ? null : form}
-      <Notice>NeuroCare ne propose ni ne calcule aucune dose : saisissez uniquement la consigne de la prescription existante.</Notice>
+      <Notice>{t.medications.noDose}</Notice>
     </Screen>
   );
 }

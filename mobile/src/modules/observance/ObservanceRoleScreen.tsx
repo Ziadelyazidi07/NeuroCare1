@@ -2,18 +2,20 @@
  * Entrée du module « Rappels & Suivi » : choix de l'espace (senior ou aidant). Un téléphone déjà
  * appairé ou un aidant déjà connecté va directement dans son espace.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '../../auth/SessionContext';
+import { useLanguage } from '../../i18n';
+import { Loading, ModuleHeader, Row, Text, colours as c, radius, shadow, type IconName } from '../../theme';
 import { HomeButton } from '../../ui/HomeButton';
-import { Loading } from '../../ui/components';
-import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
 import { observanceModule } from './module';
 
 export default function ObservanceRoleScreen() {
   const { session, loading } = useSession();
+  const { t } = useLanguage();
 
   if (loading) return <Loading />;
   if (session?.kind === 'senior') return <Redirect href="/senior" />;
@@ -23,36 +25,43 @@ export default function ObservanceRoleScreen() {
     <SafeAreaView style={styles.container}>
       <HomeButton />
       <View style={styles.body}>
-        <View style={styles.header}>
-          <Text style={styles.title} accessibilityRole="header">
-            {observanceModule.title}
-          </Text>
-          <Text style={styles.subtitle}>Rappels de traitement et suivi bienveillant</Text>
-        </View>
-
-        <Pressable accessibilityRole="button" style={[styles.choice, styles.senior]} onPress={() => router.push('/senior/pair')}>
-          <Text style={styles.choiceTitle}>Je suis senior</Text>
-          <Text style={styles.choiceText}>J’entre le code donné par mon proche</Text>
-        </Pressable>
-
-        <Pressable accessibilityRole="button" style={[styles.choice, styles.aidant]} onPress={() => router.push('/aidant/login')}>
-          <Text style={[styles.choiceTitle, { color: c.primary }]}>Je suis aidant</Text>
-          <Text style={[styles.choiceText, { color: c.text }]}>Connexion par téléphone et mot de passe</Text>
-        </Pressable>
+        <ModuleHeader
+          title={t.home.modules.observance.title}
+          subtitle={t.role.subtitle}
+          icon={observanceModule.icon}
+          colour={observanceModule.colour}
+          tint={observanceModule.tint}
+        />
+        <Choice icon="person" colour="#246BFD" tint="#EBF2FF" title={t.role.senior} hint={t.role.seniorHint} onPress={() => router.push('/senior/pair')} />
+        <Choice icon="people" colour="#10B981" tint="#D1FAE5" title={t.role.aidant} hint={t.role.aidantHint} onPress={() => router.push('/aidant/login')} />
       </View>
     </SafeAreaView>
   );
 }
 
+function Choice({ icon, colour, tint, title, hint, onPress }: { icon: IconName; colour: string; tint: string; title: string; hint: string; onPress: () => void }) {
+  const { isRTL } = useLanguage();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${hint}`} onPress={onPress} style={({ pressed }) => [styles.choice, pressed && { opacity: 0.75 }]}>
+      <Row style={{ gap: 16 }}>
+        <View style={[styles.icon, { backgroundColor: tint }]}>
+          <Ionicons name={icon} size={34} color={colour} />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.choiceTitle}>{title}</Text>
+          <Text style={styles.choiceText}>{hint}</Text>
+        </View>
+        <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={26} color={c.muted} />
+      </Row>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background, padding: 20 },
-  body: { flex: 1, gap: 16, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', color: c.primary, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: c.muted, marginTop: 4, textAlign: 'center' },
-  choice: { minHeight: MIN_TOUCH * 2, borderRadius: 16, padding: 20, justifyContent: 'center' },
-  senior: { backgroundColor: '#000000' },
-  aidant: { backgroundColor: c.card, borderWidth: 2, borderColor: c.primary },
-  choiceTitle: { fontSize: 28, fontWeight: '800', color: '#FFD60A' },
-  choiceText: { fontSize: 18, color: '#FFFFFF', marginTop: 4 },
+  container: { flex: 1, backgroundColor: c.background, padding: 16, gap: 12 },
+  body: { flex: 1, gap: 18, justifyContent: 'center' },
+  choice: { minHeight: 128, borderRadius: radius.card, padding: 20, justifyContent: 'center', backgroundColor: c.card, borderWidth: 1, borderColor: c.border, ...shadow },
+  icon: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  choiceTitle: { fontSize: 26, fontWeight: '800', color: c.title },
+  choiceText: { fontSize: 18, lineHeight: 25, color: c.muted },
 });

@@ -12,6 +12,8 @@ import { isRunningInExpoGo } from 'expo';
 
 import type { DoseDto } from '../api/types';
 
+import { currentLanguage, dictionaryFor } from '../i18n';
+
 type NotificationsModule = typeof import('expo-notifications');
 type NotificationContent = { data?: Record<string, unknown> | null };
 
@@ -45,9 +47,12 @@ function alarmDoseId(content: NotificationContent): unknown {
   return content.data?.kind === PRE_REMINDER_KIND ? undefined : content.data?.doseId;
 }
 
+/** Textes des notifications dans la langue choisie au moment où elles sont programmées. */
+const texts = () => dictionaryFor(currentLanguage()).notifications;
+
 async function configureAndroid(Notifications: NotificationsModule): Promise<void> {
   await Notifications.setNotificationChannelAsync(ALARM_CHANNEL, {
-    name: 'Alarme médicament',
+    name: texts().alarmChannel,
     importance: Notifications.AndroidImportance.MAX,
     sound: ALARM_SOUND,
     audioAttributes: {
@@ -60,7 +65,7 @@ async function configureAndroid(Notifications: NotificationsModule): Promise<voi
     bypassDnd: true,
   });
   await Notifications.setNotificationChannelAsync(PRE_REMINDER_CHANNEL, {
-    name: 'Rappel avant le médicament',
+    name: texts().preChannel,
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'default',
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -86,7 +91,7 @@ export async function configureReminders(): Promise<boolean> {
     });
     if (Platform.OS === 'android') await configureAndroid(Notifications);
     await Notifications.setNotificationCategoryAsync(ALARM_CATEGORY, [
-      { identifier: 'ecouter', buttonTitle: 'Écouter le message', options: { opensAppToForeground: true } },
+      { identifier: 'ecouter', buttonTitle: texts().listen, options: { opensAppToForeground: true } },
     ]);
     const current = await Notifications.getPermissionsAsync();
     if (current.granted) return true;
@@ -163,7 +168,8 @@ export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()
   }
   let scheduled = 0;
   for (const dose of doses.filter((d) => d.statut === 'EN_ATTENTE')) {
-    const name = dose.nomMedicament ?? 'Médicament';
+    const text = texts();
+    const name = dose.nomMedicament ?? text.defaultName;
     const data = { doseId: dose.id, medicationId: dose.medicationId ?? '' };
     const alarmAt = new Date(dose.datePrevue);
     const preReminderAt = new Date(alarmAt.getTime() - PRE_REMINDER_MS);
@@ -171,8 +177,8 @@ export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()
     if (preReminderAt > now) {
       scheduled += await scheduleSafely(Notifications, {
         content: {
-          title: 'Rappel bientôt',
-          body: `L'heure de votre médicament (${name}) approche dans 10 minutes`,
+          title: text.soonTitle,
+          body: text.soonBody(name),
           sound: true,
           data: { ...data, kind: PRE_REMINDER_KIND },
         },
@@ -186,8 +192,8 @@ export async function scheduleReminders(doses: DoseDto[], now: Date = new Date()
     if (alarmAt > now) {
       scheduled += await scheduleSafely(Notifications, {
         content: {
-          title: "C'est l'heure de ton médicament",
-          body: `${name} — appuie sur « C'est fait »`,
+          title: text.dueTitle,
+          body: text.dueBody(name),
           sound: ALARM_SOUND,
           priority: Notifications.AndroidNotificationPriority.MAX,
           vibrate: ALARM_VIBRATION,

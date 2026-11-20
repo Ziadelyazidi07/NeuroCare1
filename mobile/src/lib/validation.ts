@@ -7,18 +7,21 @@ export function isE164(value: string): boolean {
   return E164.test(value);
 }
 
+/** Code d'erreur d'inscription (message : `t.registration`). */
+export type RegistrationError = 'NOM' | 'NOM_LONG' | 'TELEPHONE' | 'MOT_DE_PASSE' | 'CONFIRMATION';
+
 /** Mêmes règles que le backend (POST /auth/register) ; null si le formulaire est valide. */
 export function registrationError(form: {
   nomComplet: string;
   telephone: string;
   motDePasse: string;
   confirmation: string;
-}): string | null {
-  if (!form.nomComplet.trim()) return 'Indiquez votre nom complet.';
-  if (form.nomComplet.trim().length > 120) return 'Le nom ne doit pas dépasser 120 caractères.';
-  if (!isE164(form.telephone)) return 'Numéro invalide. Exemple : 06 12 34 56 78 ou +212612345678.';
-  if (form.motDePasse.length < 8 || form.motDePasse.length > 72) return 'Le mot de passe doit contenir entre 8 et 72 caractères.';
-  if (form.motDePasse !== form.confirmation) return 'Les deux mots de passe ne sont pas identiques.';
+}): RegistrationError | null {
+  if (!form.nomComplet.trim()) return 'NOM';
+  if (form.nomComplet.trim().length > 120) return 'NOM_LONG';
+  if (!isE164(form.telephone)) return 'TELEPHONE';
+  if (form.motDePasse.length < 8 || form.motDePasse.length > 72) return 'MOT_DE_PASSE';
+  if (form.motDePasse !== form.confirmation) return 'CONFIRMATION';
   return null;
 }
 

@@ -8,7 +8,9 @@ import * as gds from '../mental/gdsStore';
 import { gdsReportHtml } from '../mental/gdsPdf';
 import { findriscReportHtml } from '../metabolic/findriscPdf';
 import * as findrisc from '../metabolic/findriscStore';
-import { DEFAULT_PATIENT, PATIENT_NAME_KEY, displayName } from '../PatientName';
+import { ar } from '../../i18n/ar';
+import { fr } from '../../i18n/fr';
+import { PATIENT_NAME_KEY, displayName } from '../PatientName';
 import { spo2ReportHtml } from '../saturation/spo2Pdf';
 import * as spo2 from '../saturation/spo2Store';
 import { readJson, writeJson } from '../storage';
@@ -37,10 +39,11 @@ describe('téléphone vierge (ni appairage ni compte)', () => {
   });
 
   it('nomme les PDF « Patient » tant que le nom est vide, puis mémorise le nom saisi', async () => {
-    expect(displayName('   ')).toBe(DEFAULT_PATIENT);
+    expect(displayName('   ', fr)).toBe('Patient');
+    expect(displayName('   ', ar)).toBe('المريض');
     await writeJson(PATIENT_NAME_KEY, 'Fatima Z.');
     await expect(readJson(PATIENT_NAME_KEY, '')).resolves.toBe('Fatima Z.');
-    expect(displayName('Fatima Z.')).toBe('Fatima Z.');
+    expect(displayName('Fatima Z.', ar)).toBe('Fatima Z.');
   });
 
   it('tolère une donnée locale illisible', async () => {
@@ -57,7 +60,7 @@ describe('SpO2', () => {
     await spo2.addMeasure({ spo2: 84, pouls: 101 }, true, new Date('2026-11-19T09:00:00Z'));
     const measures = await spo2.loadMeasures();
     expect(measures.map((m) => [m.spo2, m.niveau])).toEqual([[84, 'ROUGE'], [90, 'VERT']]);
-    expect(spo2ReportHtml(displayName(''), true, measures, now)).toContain('Patient : <strong>Patient</strong>');
+    expect(spo2ReportHtml(fr, displayName('', fr), true, measures, now)).toContain('Patient : <strong>Patient</strong>');
   });
 
   it('ne perd aucune mesure lors d’enregistrements simultanés', async () => {
@@ -73,7 +76,7 @@ describe('Santé mentale', () => {
     expect(saved).toMatchObject({ scoreMiniGds: 0, scoreGds15: null, niveau: 'INDICE_NORMAL' });
     await expect(gds.loadAssessments()).resolves.toHaveLength(1);
     await expect(gds.addAssessment({ MINI_DECOURAGE: true }, now)).rejects.toThrow('incomplet');
-    expect(gdsReportHtml('Patient', saved, now)).toContain('0 / 4');
+    expect(gdsReportHtml(fr, 'Patient', saved, now)).toContain('0 / 4');
   });
 });
 
@@ -97,7 +100,7 @@ describe('Diabète (FINDRISC)', () => {
     expect(assessment).toMatchObject({ imc: 28.7, scoreTotal: 14, niveau: 'MODERE' });
     await findrisc.saveAssessment(assessment);
     const [stored] = await findrisc.loadAssessments();
-    expect(findriscReportHtml('Patient', stored, now)).toContain('14 / 26');
+    expect(findriscReportHtml(fr, 'Patient', stored, now)).toContain('14 / 26');
   });
 });
 
@@ -114,6 +117,6 @@ describe('Tension (HTA)', () => {
     expect(stored.mesures.map((m) => [m.moment, m.tas])).toEqual([['MATIN', 120], ['SOIR', 140]]);
     await expect(bp.loadMeasures()).resolves.toHaveLength(1);
     await expect(bp.recordSlot('inconnu', { jour: 1, moment: 'MATIN', rang: 1 }, { tas: 120, tad: 75, pouls: 70 })).rejects.toThrow();
-    expect(bpReportHtml('Patient', stored, now)).toContain('120/75');
+    expect(bpReportHtml(fr, 'Patient', stored, now)).toContain('120/75');
   });
 });

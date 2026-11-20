@@ -4,20 +4,15 @@
  * téléphone. Pré-dépistage, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HomeButton } from '../../ui/HomeButton';
-import { Button, Card, ErrorText, Loading, Notice, styles as ui } from '../../ui/components';
-import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
-import { PatientNameField, displayName, usePatientName } from '../PatientName';
-import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
+import { useLanguage } from '../../i18n';
+import { Button, Card, ErrorText, Loading, MIN_TOUCH, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { ModuleScreen } from '../ModuleScreen';
+import { formatDateTime, sharePdf } from '../pdf';
 import {
-  INSTRUCTIONS,
-  LEVEL_TEXT,
   MINI_GDS,
-  QUESTIONS,
   answersToSend,
   nextQuestion,
   outcome,
@@ -30,28 +25,17 @@ import { gdsReportHtml, type GdsReport } from './gdsPdf';
 import { addAssessment, loadAssessments, type GdsAssessment } from './gdsStore';
 import { mentalModule } from './module';
 
-const LEVEL_COLOUR: Record<GdsLevel, string> = { INDICE_NORMAL: '#1E7B34', LEGERE_A_MODEREE: '#8A4600', SEVERE: '#B3261E' };
+const LEVEL_COLOUR: Record<GdsLevel, string> = { INDICE_NORMAL: c.success, LEGERE_A_MODEREE: c.warning, SEVERE: c.danger };
 
 export default function MentalScreen() {
-  const [name, setName] = usePatientName();
-  return (
-    <SafeAreaView style={ui.screen}>
-      <ScrollView contentContainerStyle={ui.content}>
-        <HomeButton />
-        <Text style={styles.title} accessibilityRole="header">
-          {mentalModule.title}
-        </Text>
-        <PatientNameField value={name} onChange={setName} />
-        <GdsPanel patient={displayName(name)} />
-        <Notice>{NOT_A_DIAGNOSIS}</Notice>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <ModuleScreen module={mentalModule}>{(patient) => <GdsPanel patient={patient} />}</ModuleScreen>;
 }
 
 type Phase = 'intro' | 'questions' | 'result';
 
 function GdsPanel({ patient }: { patient: string }) {
+  const { t, row } = useLanguage();
+  const g = t.gds;
   const [phase, setPhase] = useState<Phase>('intro');
   const [answers, setAnswers] = useState<GdsAnswers>({});
   const [saved, setSaved] = useState<GdsAssessment | null>(null);
@@ -76,7 +60,7 @@ function GdsPanel({ patient }: { patient: string }) {
       setSaved(assessment);
       setHistory((list) => [assessment, ...(list ?? [])]);
     } catch {
-      setError('Questionnaire non mémorisé sur ce téléphone (le résultat reste affiché).');
+      setError(g.notSaved);
     }
   };
 
@@ -107,9 +91,9 @@ function GdsPanel({ patient }: { patient: string }) {
   const downloadPdf = async (report: GdsReport) => {
     setError(null);
     try {
-      await sharePdf(gdsReportHtml(patient, report, new Date()), 'Rapport GDS NeuroCare');
+      await sharePdf(t, gdsReportHtml(t, patient, report, new Date()), g.pdf.dialog);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
+      setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }
   };
 
@@ -120,22 +104,22 @@ function GdsPanel({ patient }: { patient: string }) {
     const index = sequence.indexOf(code);
     const step2 = index >= MINI_GDS.length;
     return (
-      <Card title={step2 ? 'Étape 2 : questions complémentaires (GDS-15)' : 'Étape 1 : Mini-GDS'}>
+      <Card title={step2 ? g.step2 : g.step1} icon="chatbubble-ellipses">
         <Text style={ui.muted}>
           {step2
-            ? `Question ${index - MINI_GDS.length + 1} sur ${sequence.length - MINI_GDS.length}`
-            : `Question ${index + 1} sur ${MINI_GDS.length}`}{' '}
-          · {INSTRUCTIONS}
+            ? t.common.questionOf(index - MINI_GDS.length + 1, sequence.length - MINI_GDS.length)
+            : t.common.questionOf(index + 1, MINI_GDS.length)}{' '}
+          · {g.instructions}
         </Text>
         <Text style={styles.question} accessibilityRole="header" accessibilityLiveRegion="polite">
-          {QUESTIONS[code].text}
+          {g.questions[code]}
         </Text>
-        <View style={styles.choices}>
-          <AnswerButton label="Oui" onPress={() => answer(true)} />
-          <AnswerButton label="Non" onPress={() => answer(false)} />
+        <View style={[styles.choices, row]}>
+          <AnswerButton label={t.common.yes} onPress={() => answer(true)} />
+          <AnswerButton label={t.common.no} onPress={() => answer(false)} />
         </View>
-        {index > 0 ? <Button label="Question précédente" variant="secondary" onPress={previous} /> : null}
-        <Button label="Abandonner" variant="secondary" onPress={() => setPhase('intro')} />
+        {index > 0 ? <Button label={t.common.previousQuestion} variant="secondary" onPress={previous} /> : null}
+        <Button label={t.common.giveUp} variant="secondary" onPress={() => setPhase('intro')} />
       </Card>
     );
   }
@@ -156,45 +140,42 @@ function GdsPanel({ patient }: { patient: string }) {
     return (
       <>
         <View style={[styles.result, { borderColor: LEVEL_COLOUR[result.level] }]} accessibilityRole="alert">
-          <Text style={[styles.resultTitle, { color: LEVEL_COLOUR[result.level] }]}>{outcomeTitle(result)}</Text>
-          <Text style={ui.text}>Score Mini-GDS : {result.miniGds} / 4</Text>
-          {result.gds15 !== null ? <Text style={ui.text}>Score GDS-15 : {result.gds15} / 15</Text> : null}
-          <Text style={ui.text}>{LEVEL_TEXT[result.level].orientation}</Text>
+          <Text style={[styles.resultTitle, { color: LEVEL_COLOUR[result.level] }]}>{outcomeTitle(t, result)}</Text>
+          <Text style={ui.text}>{g.miniScore(result.miniGds)}</Text>
+          {result.gds15 !== null ? <Text style={ui.text}>{g.gdsScore(result.gds15)}</Text> : null}
+          <Text style={ui.text}>{g.level[result.level].orientation}</Text>
           <ErrorText message={error} />
         </View>
-        <Button label="Télécharger le rapport GDS PDF" onPress={() => void downloadPdf(report)} />
-        <Button label="Refaire le questionnaire" variant="secondary" onPress={restart} />
-        <Button label="Terminer" variant="secondary" onPress={() => setPhase('intro')} />
+        <Button label={g.download} icon="document-text" onPress={() => void downloadPdf(report)} />
+        <Button label={g.restart} variant="secondary" onPress={restart} />
+        <Button label={t.common.finish} variant="secondary" onPress={() => setPhase('intro')} />
       </>
     );
   }
 
   return (
     <>
-      <Card title="Questionnaire sur l’humeur">
-        <Text style={ui.text}>
-          Quelques questions sur l’état émotionnel des 7 derniers jours. Étape 1 : 4 questions (Mini-GDS). Si une réponse
-          le justifie, l’étape 2 complète avec les questions de la GDS-15.
-        </Text>
-        <Button label="Commencer" onPress={restart} />
+      <Card title={g.introTitle} icon="happy">
+        <Text style={ui.text}>{g.intro}</Text>
+        <Button label={t.common.start} onPress={restart} />
       </Card>
-      <Card title="Passations précédentes">
+      <Card title={g.previous} icon="time">
         {history === null && !error ? <Loading /> : null}
         <ErrorText message={error} />
-        {history?.length === 0 ? <Text style={ui.muted}>Aucune passation pour le moment.</Text> : null}
+        {history?.length === 0 ? <Text style={ui.muted}>{g.none}</Text> : null}
         {history?.map((h) => (
-          <View key={h.id} style={styles.historyRow}>
+          <Row key={h.id} style={styles.historyRow}>
             <View style={{ flex: 1 }}>
               <Text style={ui.text}>{formatDateTime(h.datePassation)}</Text>
               <Text style={[ui.muted, { color: LEVEL_COLOUR[h.niveau] }]}>
-                {h.scoreGds15 == null ? `Mini-GDS ${h.scoreMiniGds}/4` : `GDS-15 ${h.scoreGds15}/15`} ·{' '}
-                {outcomeTitle({ miniGds: h.scoreMiniGds, gds15: h.scoreGds15 ?? null, level: h.niveau })}
+                {g.historyScore(h.scoreMiniGds, h.scoreGds15 ?? null)} ·{' '}
+                {outcomeTitle(t, { miniGds: h.scoreMiniGds, gds15: h.scoreGds15 ?? null, level: h.niveau })}
               </Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Télécharger ce rapport en PDF" onPress={() => void downloadPdf(h)} hitSlop={8}>
-              <Text style={{ color: c.primary, fontWeight: '700' }}>PDF</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t.shared.downloadThisPdf} onPress={() => void downloadPdf(h)} hitSlop={8}>
+              <Text style={styles.link}>{t.common.pdf}</Text>
             </Pressable>
-          </View>
+          </Row>
         ))}
       </Card>
     </>
@@ -210,12 +191,12 @@ function AnswerButton({ label, onPress }: { label: string; onPress: () => void }
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: c.text },
-  question: { fontSize: 24, fontWeight: '700', color: c.text, marginVertical: 8 },
-  choices: { flexDirection: 'row', gap: 12 },
-  answer: { flex: 1, minHeight: MIN_TOUCH * 1.25, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  answerText: { color: c.primaryText, fontSize: 28, fontWeight: '800' },
-  result: { borderWidth: 2, borderRadius: 14, padding: 16, gap: 8, backgroundColor: c.card },
-  resultTitle: { fontSize: 20, fontWeight: '800' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border },
+  link: { color: c.primary, fontWeight: '700', fontSize: 17 },
+  question: { fontSize: 24, fontWeight: '700', color: c.title, marginVertical: 8 },
+  choices: { gap: 12 },
+  answer: { flex: 1, minHeight: MIN_TOUCH * 1.25, borderRadius: radius.control, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  answerText: { color: c.primaryText, fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  result: { borderWidth: 2, borderRadius: radius.card, padding: 16, gap: 8, backgroundColor: c.card },
+  resultTitle: { fontSize: 22, fontWeight: '800' },
+  historyRow: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border },
 });

@@ -4,61 +4,47 @@
  * le téléphone. Pré-dépistage et aide à la consultation, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HomeButton } from '../../ui/HomeButton';
-import { Button, Card, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
-import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
-import { PatientNameField, displayName, usePatientName } from '../PatientName';
-import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
+import { useLanguage } from '../../i18n';
+import { Button, Card, ErrorText, Field, Loading, MIN_TOUCH, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { ModuleScreen } from '../ModuleScreen';
+import { formatDateTime, sharePdf } from '../pdf';
 import { OptionGroup } from '../ui';
 import {
   CALCULATION,
   DOMAINS,
-  DOMAIN_LABELS,
-  QUESTIONNAIRE_INSTRUCTIONS,
   QUESTIONS,
   RECOGNITION_CHOICES,
-  VIGILANCE_TEXT,
-  WEEKDAYS,
   WORDS,
   nextQuestion,
   personalisedTips,
+  reasonText,
   recalledWords,
   scoreRecognition,
   weekdayOf,
   type Answers,
   type ExerciseResult,
+  type ThingId,
   type Vigilance,
+  type WordId,
 } from './memory';
-import { SCREENING_NOTICE, memoryReportHtml } from './memoryPdf';
+import { memoryReportHtml } from './memoryPdf';
 import { buildAssessment, loadAssessments, saveAssessment, type MemoryAssessment } from './memoryStore';
 import { alzheimerModule } from './module';
 
-const COLOUR: Record<Vigilance, string> = { RASSURANT: '#1E7B34', SIGNES_A_SIGNALER: '#8A4600' };
+const COLOUR: Record<Vigilance, string> = { RASSURANT: c.success, SIGNES_A_SIGNALER: c.warning };
 
 export default function AlzheimerScreen() {
-  const [name, setName] = usePatientName();
-  return (
-    <SafeAreaView style={ui.screen}>
-      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
-        <HomeButton />
-        <Text style={styles.title} accessibilityRole="header">
-          {alzheimerModule.title}
-        </Text>
-        <PatientNameField value={name} onChange={setName} />
-        <MemoryPanel patient={displayName(name)} />
-        <Notice>{NOT_A_DIAGNOSIS}</Notice>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <ModuleScreen module={alzheimerModule}>{(patient) => <MemoryPanel patient={patient} />}</ModuleScreen>;
 }
 
 type Phase = 'intro' | 'questions' | 'exercise' | 'result';
 
 function MemoryPanel({ patient }: { patient: string }) {
+  const { t, row } = useLanguage();
+  const m = t.memory;
   const [phase, setPhase] = useState<Phase>('intro');
   const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<MemoryAssessment | null>(null);
@@ -108,7 +94,7 @@ function MemoryPanel({ patient }: { patient: string }) {
       await saveAssessment(assessment);
       setHistory((list) => [assessment, ...(list ?? [])]);
     } catch {
-      setError('Bilan non mémorisé sur ce téléphone (le résultat reste affiché).');
+      setError(m.notSaved);
     }
   };
 
@@ -116,9 +102,9 @@ function MemoryPanel({ patient }: { patient: string }) {
     setError(null);
     try {
       const list = history?.some((h) => h.id === assessment.id) ? history : [assessment, ...(history ?? [])];
-      await sharePdf(memoryReportHtml(patient, assessment, list, new Date()), 'Bilan Mémoire NeuroCare');
+      await sharePdf(t, memoryReportHtml(t, patient, assessment, list, new Date()), m.pdf.dialog);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
+      setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }
   };
 
@@ -126,20 +112,21 @@ function MemoryPanel({ patient }: { patient: string }) {
     const q = nextQuestion(answers);
     if (!q) return <Loading />;
     const index = QUESTIONS.indexOf(q);
+    const domain = m.domains[q.domain];
     return (
-      <Card title={`Section A : les 4 A · ${DOMAIN_LABELS[q.domain].title} (${DOMAIN_LABELS[q.domain].area})`}>
+      <Card title={m.sectionA(domain.title, domain.area)} icon="chatbubble-ellipses">
         <Text style={ui.muted}>
-          Question {index + 1} sur {QUESTIONS.length} · {QUESTIONNAIRE_INSTRUCTIONS}
+          {t.common.questionOf(index + 1, QUESTIONS.length)} · {m.instructions}
         </Text>
         <Text style={styles.question} accessibilityRole="header" accessibilityLiveRegion="polite">
-          Ces dernières semaines : {q.text}
+          {m.lastWeeks(m.questions[q.code])}
         </Text>
-        <View style={styles.choices}>
-          <BigButton label="Oui" onPress={() => answer(true)} />
-          <BigButton label="Non" onPress={() => answer(false)} />
+        <View style={[styles.choices, row]}>
+          <BigButton label={t.common.yes} onPress={() => answer(true)} />
+          <BigButton label={t.common.no} onPress={() => answer(false)} />
         </View>
-        {index > 0 ? <Button label="Question précédente" variant="secondary" onPress={previous} /> : null}
-        <Button label="Abandonner" variant="secondary" onPress={() => setPhase('intro')} />
+        {index > 0 ? <Button label={t.common.previousQuestion} variant="secondary" onPress={previous} /> : null}
+        <Button label={t.common.giveUp} variant="secondary" onPress={() => setPhase('intro')} />
       </Card>
     );
   }
@@ -151,39 +138,35 @@ function MemoryPanel({ patient }: { patient: string }) {
       <>
         <ResultCard assessment={result} />
         <ErrorText message={error} />
-        <Button label="Télécharger le bilan Mémoire & 4 A PDF" onPress={() => void downloadPdf(result)} />
-        <Button label="Refaire le bilan" variant="secondary" onPress={start} />
-        <Button label="Terminer" variant="secondary" onPress={() => setPhase('intro')} />
+        <Button label={m.download} icon="document-text" onPress={() => void downloadPdf(result)} />
+        <Button label={m.restart} variant="secondary" onPress={start} />
+        <Button label={t.common.finish} variant="secondary" onPress={() => setPhase('intro')} />
       </>
     );
   }
 
   return (
     <>
-      <Card title="Bilan Mémoire & 4 A">
-        <Text style={ui.text}>
-          Section A : 8 questions d’observation sur les dernières semaines (mémoire, langage, gestes, reconnaissance).
-          Section B : un petit jeu de mémoire de 4 mots, sans chronomètre et sans piège. Comptez environ 5 minutes.
-        </Text>
-        <Button label="Commencer" onPress={start} />
+      <Card title={m.introTitle} icon="bulb">
+        <Text style={ui.text}>{m.intro}</Text>
+        <Button label={t.common.start} onPress={start} />
       </Card>
-      <Card title="Bilans précédents">
+      <Card title={m.previous} icon="time">
         {history === null && !error ? <Loading /> : null}
         <ErrorText message={error} />
-        {history?.length === 0 ? <Text style={ui.muted}>Aucun bilan pour le moment.</Text> : null}
+        {history?.length === 0 ? <Text style={ui.muted}>{m.none}</Text> : null}
         {history?.map((h) => (
-          <View key={h.id} style={styles.historyRow}>
+          <Row key={h.id} style={styles.historyRow}>
             <View style={{ flex: 1 }}>
               <Text style={ui.text}>{formatDateTime(h.date)}</Text>
               <Text style={[ui.muted, { color: COLOUR[h.indice] }]}>
-                {h.indice === 'RASSURANT' ? 'Rassurant' : 'Signes à signaler'} ·{' '}
-                {h.exercice ? `rappel ${h.exercice.rappelLibre.length}/4` : 'sans exercice'}
+                {m.vigilance[h.indice].short} · {m.historyDetail(h.exercice ? h.exercice.rappelLibre.length : null)}
               </Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Télécharger ce bilan en PDF" onPress={() => void downloadPdf(h)} hitSlop={8}>
-              <Text style={{ color: c.primary, fontWeight: '700' }}>PDF</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={m.downloadThis} onPress={() => void downloadPdf(h)} hitSlop={8}>
+              <Text style={styles.link}>{t.common.pdf}</Text>
             </Pressable>
-          </View>
+          </Row>
         ))}
       </Card>
     </>
@@ -193,63 +176,65 @@ function MemoryPanel({ patient }: { patient: string }) {
 type Step = 'learn' | 'distraction' | 'recall' | 'recognition';
 
 function MemoryExercise({ onDone }: { onDone: (result: ExerciseResult | null) => void }) {
+  const { t, row } = useLanguage();
+  const m = t.memory;
   const [step, setStep] = useState<Step>('learn');
   const [day, setDay] = useState<string | null>(null);
   const [calc, setCalc] = useState<string | null>(null);
-  const [askedDay, setAskedDay] = useState('');
+  const [askedDay, setAskedDay] = useState(0);
   const [recallText, setRecallText] = useState('');
-  const [recalled, setRecalled] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [recalled, setRecalled] = useState<WordId[]>([]);
+  const [selected, setSelected] = useState<ThingId[]>([]);
 
   if (step === 'learn') {
     return (
-      <Card title="Section B : jeu de mémoire (1/4)">
-        <Text style={ui.text}>Lisez ces 4 mots à voix haute et prenez le temps de bien les retenir. Je vous les redemanderai dans un instant.</Text>
-        <View style={styles.wordGrid}>
+      <Card title={m.learnTitle} icon="bulb">
+        <Text style={ui.text}>{m.learn}</Text>
+        <View style={[styles.wordGrid, row]}>
           {WORDS.map((w) => (
-            <View key={w.word} style={styles.wordCard}>
+            <View key={w.id} style={styles.wordCard}>
               <Text style={styles.emoji}>{w.emoji}</Text>
-              <Text style={styles.word}>{w.word}</Text>
+              <Text style={styles.word}>{m.things[w.id]}</Text>
             </View>
           ))}
         </View>
         <Button
-          label="J’ai retenu les 4 mots"
+          label={m.learned}
           onPress={() => {
             setAskedDay(weekdayOf(new Date()));
             setStep('distraction');
           }}
         />
-        <Button label="Passer le jeu de mémoire" variant="secondary" onPress={() => onDone(null)} />
+        <Button label={m.skip} variant="secondary" onPress={() => onDone(null)} />
       </Card>
     );
   }
 
   if (step === 'distraction') {
     return (
-      <Card title="Section B : petite pause (2/4)">
-        <Text style={ui.muted}>Deux questions pour changer d’idée, sans pression.</Text>
-        <OptionGroup label="Quel jour de la semaine sommes-nous ?" options={WEEKDAYS.map((d) => ({ value: d, label: d }))} value={day} onChange={setDay} />
+      <Card title={m.pauseTitle} icon="cafe">
+        <Text style={ui.muted}>{m.pause}</Text>
+        <OptionGroup label={m.dayQuestion} options={m.weekdays.map((d, i) => ({ value: String(i), label: d }))} value={day} onChange={setDay} />
         <OptionGroup
-          label={CALCULATION.question}
+          label={m.calculation}
           options={CALCULATION.options.map((n) => ({ value: String(n), label: String(n) }))}
           value={calc}
           onChange={setCalc}
         />
-        <Button label="Continuer" onPress={() => setStep('recall')} disabled={!day || !calc} />
+        <Button label={m.continue} onPress={() => setStep('recall')} disabled={!day || !calc} />
       </Card>
     );
   }
 
   if (step === 'recall') {
     return (
-      <Card title="Section B : rappel des mots (3/4)">
-        <Text style={ui.text}>Quels étaient les 4 mots ? Écrivez (ou faites écrire) ceux dont vous vous souvenez, dans n’importe quel ordre.</Text>
-        <Field label="Mots retrouvés" value={recallText} onChangeText={setRecallText} placeholder="Ex. : mot1, mot2…" autoCorrect={false} />
+      <Card title={m.recallTitle} icon="create">
+        <Text style={ui.text}>{m.recall}</Text>
+        <Field label={m.recallField} value={recallText} onChangeText={setRecallText} placeholder={m.recallPlaceholder} autoCorrect={false} />
         <Button
-          label={recallText.trim() ? 'Valider mes mots' : 'Je ne m’en souviens pas'}
+          label={recallText.trim() ? m.validate : m.forgot}
           onPress={() => {
-            const words = recalledWords(recallText);
+            const words = recalledWords(recallText, m.forms);
             setRecalled(words);
             setSelected(words);
             setStep('recognition');
@@ -259,39 +244,39 @@ function MemoryExercise({ onDone }: { onDone: (result: ExerciseResult | null) =>
     );
   }
 
-  const toggle = (word: string) => setSelected((list) => (list.includes(word) ? list.filter((w) => w !== word) : [...list, word]));
+  const toggle = (id: ThingId) => setSelected((list) => (list.includes(id) ? list.filter((w) => w !== id) : [...list, id]));
   return (
-    <Card title="Section B : reconnaissance (4/4)">
+    <Card title={m.recognitionTitle} icon="images">
       <Text style={ui.text}>
-        Touchez les images des 4 mots appris tout à l’heure.
-        {recalled.length ? ` Les mots déjà retrouvés (${recalled.join(', ')}) sont cochés.` : ''}
+        {m.recognition}
+        {recalled.length ? m.alreadyFound(recalled.map((id) => m.things[id]).join(t.meta.listSeparator)) : ''}
       </Text>
-      <View style={styles.choiceGrid}>
+      <View style={[styles.choiceGrid, row]}>
         {RECOGNITION_CHOICES.map((item) => {
-          const on = selected.includes(item.word);
+          const on = selected.includes(item.id);
           return (
             <Pressable
-              key={item.word}
+              key={item.id}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
-              accessibilityLabel={item.word}
-              onPress={() => toggle(item.word)}
+              accessibilityLabel={m.things[item.id]}
+              onPress={() => toggle(item.id)}
               style={[styles.choiceTile, on && styles.choiceTileOn]}
             >
               <Text style={styles.emoji}>{item.emoji}</Text>
-              <Text style={[styles.choiceLabel, on && { color: c.primaryText }]}>{item.word}</Text>
+              <Text style={[styles.choiceLabel, on && { color: c.primaryText }]}>{m.things[item.id]}</Text>
             </Pressable>
           );
         })}
       </View>
       <Button
-        label="Voir le résultat"
+        label={m.seeResult}
         onPress={() =>
           onDone({
             rappelLibre: recalled,
             ...scoreRecognition(selected, recalled),
             jourDemande: askedDay,
-            jourRepondu: day ?? '',
+            jourRepondu: day === null ? -1 : Number(day),
             calculCorrect: calc === String(CALCULATION.answer),
           })
         }
@@ -301,39 +286,40 @@ function MemoryExercise({ onDone }: { onDone: (result: ExerciseResult | null) =>
 }
 
 function ResultCard({ assessment: a }: { assessment: MemoryAssessment }) {
-  const text = VIGILANCE_TEXT[a.indice];
+  const { t } = useLanguage();
+  const m = t.memory;
+  const text = m.vigilance[a.indice];
   const colour = COLOUR[a.indice];
   return (
     <>
       <View style={[styles.result, { borderColor: colour }]} accessibilityRole="alert">
         <Text style={[styles.resultTitle, { color: colour }]}>{text.title}</Text>
         <Text style={ui.text}>{text.message}</Text>
-        {a.raisons.map((r) => (
-          <Text key={r} style={ui.text}>
-            • {r}
-          </Text>
-        ))}
+        {a.raisons.map((r) => {
+          const line = reasonText(t, r);
+          return (
+            <Text key={line} style={ui.text}>
+              • {line}
+            </Text>
+          );
+        })}
       </View>
-      <Card title="Résultats par domaine (4 A)">
+      <Card title={m.domainsTitle} icon="grid">
         {DOMAINS.map((d) => (
           <Text key={d} style={ui.text}>
-            {DOMAIN_LABELS[d].title} ({DOMAIN_LABELS[d].area}) : {a.signes[d]} signe{a.signes[d] > 1 ? 's' : ''} sur 2
+            {m.domainLine(m.domains[d].title, m.domains[d].area, a.signes[d])}
           </Text>
         ))}
-        <Text style={ui.text}>
-          {a.exercice
-            ? `Rappel des mots : ${a.exercice.rappelLibre.length} / 4 retrouvés, ${a.exercice.reconnus.length} reconnu(s) en images.`
-            : 'Jeu de mémoire non réalisé.'}
-        </Text>
+        <Text style={ui.text}>{a.exercice ? m.recallLine(a.exercice.rappelLibre.length, a.exercice.reconnus.length) : m.noExercise}</Text>
       </Card>
-      <Card title="Conseils pour prendre soin de sa mémoire">
-        {personalisedTips(a.reponses).map((t) => (
-          <Text key={t} style={ui.text}>
-            • {t}
+      <Card title={m.tipsTitle} icon="leaf">
+        {personalisedTips(t, a.reponses).map((tip) => (
+          <Text key={tip} style={ui.text}>
+            • {tip}
           </Text>
         ))}
       </Card>
-      <Text style={ui.muted}>{SCREENING_NOTICE}</Text>
+      <Text style={ui.muted}>{m.screeningNotice}</Text>
     </>
   );
 }
@@ -347,30 +333,30 @@ function BigButton({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: c.text },
-  question: { fontSize: 22, fontWeight: '700', color: c.text, marginVertical: 8 },
-  choices: { flexDirection: 'row', gap: 12 },
-  big: { flex: 1, minHeight: MIN_TOUCH * 1.25, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  bigText: { color: c.primaryText, fontSize: 28, fontWeight: '800' },
-  wordGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  wordCard: { flexBasis: '46%', flexGrow: 1, alignItems: 'center', padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.card },
-  emoji: { fontSize: 40 },
-  word: { fontSize: 24, fontWeight: '800', color: c.text },
-  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  link: { color: c.primary, fontWeight: '700', fontSize: 17 },
+  question: { fontSize: 22, lineHeight: 31, fontWeight: '700', color: c.title, marginVertical: 8 },
+  choices: { gap: 12 },
+  big: { flex: 1, minHeight: MIN_TOUCH * 1.25, borderRadius: radius.control, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  bigText: { color: c.primaryText, fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  wordGrid: { flexWrap: 'wrap', gap: 10 },
+  wordCard: { flexBasis: '46%', flexGrow: 1, alignItems: 'center', padding: 14, borderRadius: radius.card, borderWidth: 1, borderColor: c.border, backgroundColor: c.background },
+  emoji: { fontSize: 40, textAlign: 'center' },
+  word: { fontSize: 24, fontWeight: '800', color: c.title, textAlign: 'center' },
+  choiceGrid: { flexWrap: 'wrap', gap: 8 },
   choiceTile: {
     flexBasis: '30%',
     flexGrow: 1,
     minHeight: MIN_TOUCH * 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: radius.control,
     borderWidth: 1.5,
-    borderColor: c.primary,
+    borderColor: c.inputBorder,
     backgroundColor: c.card,
   },
-  choiceTileOn: { backgroundColor: c.primary },
-  choiceLabel: { fontSize: 14, fontWeight: '600', color: c.primary },
-  result: { borderWidth: 2, borderRadius: 14, padding: 16, gap: 8, backgroundColor: c.card },
-  resultTitle: { fontSize: 20, fontWeight: '800' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border },
+  choiceTileOn: { backgroundColor: c.primary, borderColor: c.primary },
+  choiceLabel: { fontSize: 16, fontWeight: '600', color: c.title, textAlign: 'center' },
+  result: { borderWidth: 2, borderRadius: radius.card, padding: 18, gap: 8, backgroundColor: c.card },
+  resultTitle: { fontSize: 22, fontWeight: '800' },
+  historyRow: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border },
 });

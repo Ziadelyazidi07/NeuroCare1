@@ -2,6 +2,8 @@
  * Règles d'alerte tensionnelle et protocole d'automesure (mêmes seuils que le backend, `BpLevel` /
  * `BpAverage`), appliqués tout de suite sur le téléphone, même hors ligne. Pré-dépistage, pas un diagnostic.
  */
+import type { Dictionary } from '../../i18n';
+
 export type BpLevel = 'URGENCE_HYPERTENSIVE' | 'HYPOTENSION' | 'TENSION_ELEVEE' | 'NORMALE';
 export type Moment = 'MATIN' | 'SOIR';
 
@@ -26,44 +28,22 @@ export interface BpValues {
 
 const inRange = (value: number, [min, max]: readonly [number, number]) => value >= min && value <= max;
 
-/** Saisie → valeurs, ou message d'erreur. */
-export function parseBp(tasText: string, tadText: string, pulseText: string): BpValues | string {
+/** Code d'erreur de saisie (message : `t.bp.errors`). */
+export type BpError = 'TAS' | 'TAD' | 'ORDRE' | 'POULS';
+
+/** Saisie → valeurs, ou code d'erreur. */
+export function parseBp(tasText: string, tadText: string, pulseText: string): BpValues | BpError {
   const [tas, tad, pouls] = [tasText, tadText, pulseText].map((t) => (/^\d{2,3}$/.test(t.trim()) ? Number(t.trim()) : NaN));
-  if (!inRange(tas, TAS_RANGE)) return 'Systolique (TAS, le grand chiffre) : entre 60 et 260 mmHg.';
-  if (!inRange(tad, TAD_RANGE)) return 'Diastolique (TAD, le petit chiffre) : entre 30 et 160 mmHg.';
-  if (tad >= tas) return 'La systolique (grand chiffre) doit être supérieure à la diastolique.';
-  if (!inRange(pouls, PULSE_RANGE)) return 'Pouls : entre 30 et 220 battements par minute.';
+  if (!inRange(tas, TAS_RANGE)) return 'TAS';
+  if (!inRange(tad, TAD_RANGE)) return 'TAD';
+  if (tad >= tas) return 'ORDRE';
+  if (!inRange(pouls, PULSE_RANGE)) return 'POULS';
   return { tas, tad, pouls };
 }
 
-export const ELDERLY_NOTE =
-  'Note : après 80 ans, une systolique jusqu’à 140-145 mmHg peut être tolérée selon l’avis du médecin.';
-
-export const BP_ADVICE: Record<BpLevel, { title: string; message: string }> = {
-  URGENCE_HYPERTENSIVE: {
-    title: 'Alerte rouge : tension très élevée (≥ 180/110)',
-    message:
-      'Restez au calme, assis. Vérifiez les symptômes ci-dessous : au moindre symptôme, appelez immédiatement le 15 ou le 141. Sans symptôme, refaites une mesure dans 5 minutes et contactez rapidement un médecin.',
-  },
-  HYPOTENSION: {
-    title: 'Alerte orange : tension basse (TAS < 100)',
-    message:
-      'Risque de malaise et de chute : allongez-vous, buvez un verre d’eau, puis relevez-vous lentement en vérifiant que la position debout est bien supportée. Signalez-le au médecin si cela se répète.',
-  },
-  TENSION_ELEVEE: {
-    title: 'Vigilance : valeurs compatibles avec une HTA modérée (135-179 / 85-109)',
-    message:
-      'Une mesure isolée ne suffit pas : suivez le protocole d’automesure sur 3 jours pour un relevé fiable, et limitez le sel en attendant l’avis du médecin.',
-  },
-  NORMALE: { title: 'Tension normale (< 135/85)', message: 'Les valeurs sont dans la zone habituelle à domicile.' },
-};
-
-export const SYMPTOMS = [
-  'Maux de tête violents',
-  'Douleur dans la poitrine',
-  'Essoufflement',
-  'Trouble de la parole ou de la vision',
-] as const;
+/** Symptômes de la check-list d'urgence (libellés : `t.bp.symptoms`). */
+export const SYMPTOMS = ['MAUX_DE_TETE', 'POITRINE', 'ESSOUFFLEMENT', 'PAROLE_VISION'] as const;
+export type Symptom = (typeof SYMPTOMS)[number];
 
 export interface Slot {
   jour: 1 | 2 | 3;
@@ -78,8 +58,8 @@ export const PROTOCOL_SLOTS: Slot[] = ([1, 2, 3] as const).flatMap((jour) =>
 
 export const slotKey = (s: { jour?: number | null; moment?: Moment | null; rang?: number | null }) => `${s.jour}-${s.moment}-${s.rang}`;
 
-export function slotLabel(s: Slot): string {
-  return `Jour ${s.jour} · ${s.moment === 'MATIN' ? 'Matin' : 'Soir'} · M${s.rang}`;
+export function slotLabel(t: Dictionary, s: Slot): string {
+  return t.bp.slotLabel(s.jour, t.bp.moment[s.moment], s.rang);
 }
 
 /** Premier créneau sans mesure, ou null si les 18 sont saisis. */
@@ -114,13 +94,6 @@ export function averageOf(measures: BpValues[]): BpAverage | null {
   };
 }
 
-export const PROTOCOL_INSTRUCTIONS = [
-  'Assis, dos appuyé, bras posé sur la table, brassard à hauteur du cœur, après 5 minutes de repos.',
-  'Matin : avant le petit-déjeuner et avant la prise des médicaments.',
-  'Soir : avant le coucher.',
-  'À chaque fois, 3 mesures (M1, M2, M3) espacées de 1 à 2 minutes.',
-];
-
 /** « 12/11 » → libellé d'une date locale AAAA-MM-JJ décalée de `offset` jours. */
 export function protocolDay(dateDebut: string, offset: number): string {
   const d = new Date(`${dateDebut}T12:00:00`);
@@ -129,6 +102,11 @@ export function protocolDay(dateDebut: string, offset: number): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }
 
-export function formatAverage(avg: { tas: number; tad: number }): string {
-  return `${avg.tas.toFixed(1).replace('.', ',')} / ${avg.tad.toFixed(1).replace('.', ',')} mmHg`;
+/** Nombre à une décimale avec virgule (« 142,5 »). */
+export function decimal(value: number): string {
+  return value.toFixed(1).replace('.', ',');
+}
+
+export function formatAverage(avg: { tas: number; tad: number }, unit: string): string {
+  return `${decimal(avg.tas)} / ${decimal(avg.tad)} ${unit}`;
 }

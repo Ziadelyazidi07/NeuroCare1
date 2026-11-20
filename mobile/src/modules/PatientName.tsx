@@ -1,17 +1,18 @@
 /**
  * Nom du patient pour les PDF des modules cliniques : champ facultatif, mémorisé sur le téléphone et
- * partagé par les modules cliniques. Laissé vide, les rapports portent « Patient ». Ne bloque jamais l'utilisation.
+ * partagé par les modules cliniques. Laissé vide, les rapports portent « Patient » (ou « المريض » en arabe).
+ * Ne bloque jamais l'utilisation.
  */
 import { useEffect, useState } from 'react';
 
-import { Card, Field } from '../ui/components';
+import { useLanguage, type Dictionary } from '../i18n';
+import { Card, Field } from '../theme';
 import { readJson, writeJson } from './storage';
 
 export const PATIENT_NAME_KEY = 'neurocare.modules.patientName';
-export const DEFAULT_PATIENT = 'Patient';
 
-export function displayName(name: string): string {
-  return name.trim() || DEFAULT_PATIENT;
+export function displayName(name: string, t: Dictionary): string {
+  return name.trim() || t.shared.defaultPatient;
 }
 
 export function usePatientName(): [string, (name: string) => void] {
@@ -35,13 +36,14 @@ export function usePatientName(): [string, (name: string) => void] {
 }
 
 export function PatientNameField({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+  const { t } = useLanguage();
   return (
     <Card>
       <Field
-        label="Nom et prénom du patient (facultatif, pour les rapports PDF)"
+        label={t.shared.patientNameLabel}
         value={value}
         onChangeText={onChange}
-        placeholder={DEFAULT_PATIENT}
+        placeholder={t.shared.defaultPatient}
         autoCapitalize="words"
         maxLength={80}
       />

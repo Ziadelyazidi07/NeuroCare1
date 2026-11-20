@@ -4,18 +4,13 @@
  * Ce n'est pas une échelle validée : l'« indice de vigilance cognitive » n'est ni un score Alzheimer, ni un
  * risque, ni une probabilité. Il ne dit que deux choses : « rien d'inhabituel n'est ressorti » ou « des signes
  * méritent d'être signalés à un médecin ». Pré-dépistage et aide à la consultation, jamais un diagnostic.
+ * Les textes (français ou arabe) sont dans `t.memory` ; ce fichier ne contient que des codes et des règles.
  */
+import type { Dictionary } from '../../i18n';
 
 export type Domain = 'AMNESIE' | 'APHASIE' | 'APRAXIE' | 'AGNOSIE';
 
 export const DOMAINS: readonly Domain[] = ['AMNESIE', 'APHASIE', 'APRAXIE', 'AGNOSIE'];
-
-export const DOMAIN_LABELS: Record<Domain, { title: string; area: string }> = {
-  AMNESIE: { title: 'Amnésie', area: 'Mémoire récente' },
-  APHASIE: { title: 'Aphasie', area: 'Langage' },
-  APRAXIE: { title: 'Apraxie', area: 'Gestes et autonomie' },
-  AGNOSIE: { title: 'Agnosie', area: 'Reconnaissance et repères' },
-};
 
 export type QuestionCode =
   | 'OUBLIS_RECENTS'
@@ -30,43 +25,19 @@ export type QuestionCode =
 export interface Question {
   code: QuestionCode;
   domain: Domain;
-  text: string;
 }
 
 /** 8 questions, 2 par domaine ; « Oui » = signe observé. */
 export const QUESTIONS: readonly Question[] = [
-  {
-    code: 'OUBLIS_RECENTS',
-    domain: 'AMNESIE',
-    text: 'La personne oublie-t-elle de façon répétée des événements récents (une visite, une conversation, le repas de la veille) ?',
-  },
-  { code: 'QUESTIONS_REPETEES', domain: 'AMNESIE', text: 'La personne pose-t-elle plusieurs fois la même question dans la même heure ?' },
-  { code: 'MANQUE_DU_MOT', domain: 'APHASIE', text: 'La personne cherche-t-elle souvent ses mots pour parler de choses courantes ?' },
-  {
-    code: 'PERIPHRASES',
-    domain: 'APHASIE',
-    text: 'La personne remplace-t-elle le nom d’un objet simple par une périphrase (« le truc pour écrire » au lieu de « stylo ») ?',
-  },
-  {
-    code: 'GESTES_SIMPLES',
-    domain: 'APRAXIE',
-    text: 'La personne a-t-elle une difficulté inhabituelle pour des gestes simples : lacer ses chaussures, fermer des boutons ?',
-  },
-  {
-    code: 'OBJETS_USUELS',
-    domain: 'APRAXIE',
-    text: 'La personne a-t-elle du mal à se servir d’objets du quotidien qu’elle utilisait sans peine (couverts, téléphone, télécommande) ?',
-  },
-  { code: 'OBJETS_FAMILIERS', domain: 'AGNOSIE', text: 'La personne a-t-elle du mal à reconnaître des objets familiers de la maison ?' },
-  {
-    code: 'LIEUX_VISAGES',
-    domain: 'AGNOSIE',
-    text: 'La personne s’est-elle perdue dans un lieu habituel, ou a-t-elle eu du mal à reconnaître le visage d’un proche ?',
-  },
+  { code: 'OUBLIS_RECENTS', domain: 'AMNESIE' },
+  { code: 'QUESTIONS_REPETEES', domain: 'AMNESIE' },
+  { code: 'MANQUE_DU_MOT', domain: 'APHASIE' },
+  { code: 'PERIPHRASES', domain: 'APHASIE' },
+  { code: 'GESTES_SIMPLES', domain: 'APRAXIE' },
+  { code: 'OBJETS_USUELS', domain: 'APRAXIE' },
+  { code: 'OBJETS_FAMILIERS', domain: 'AGNOSIE' },
+  { code: 'LIEUX_VISAGES', domain: 'AGNOSIE' },
 ];
-
-export const QUESTIONNAIRE_INSTRUCTIONS =
-  'Pensez aux dernières semaines et comparez à ses habitudes. Les questions parlent de « la personne » : elles peuvent être remplies par elle-même ou par un proche.';
 
 export type Answers = Partial<Record<QuestionCode, boolean>>;
 
@@ -87,45 +58,43 @@ export function signsByDomain(answers: Answers): Record<Domain, number> {
 
 // ── Exercice des 4 mots ──────────────────────────────────────────────────────
 
-export interface MemoryItem {
-  word: string;
-  emoji: string;
-  /** Formes acceptées au rappel, sans accent ni majuscule. */
-  forms: string[];
-}
+export type WordId = 'CLE' | 'CITRON' | 'HORLOGE' | 'OLIVIER';
+export type ThingId = WordId | 'POMME' | 'CISEAUX' | 'VELO' | 'PARAPLUIE' | 'LUNETTES' | 'POISSON' | 'ROSE' | 'TELEPHONE';
 
-export const WORDS: readonly MemoryItem[] = [
-  { word: 'Clé', emoji: '🔑', forms: ['cle', 'cles', 'clef', 'clefs'] },
-  { word: 'Citron', emoji: '🍋', forms: ['citron', 'citrons'] },
-  { word: 'Horloge', emoji: '🕰️', forms: ['horloge', 'horloges'] },
-  { word: 'Olivier', emoji: '🌳', forms: ['olivier', 'oliviers'] },
+export const WORDS: readonly { id: WordId; emoji: string }[] = [
+  { id: 'CLE', emoji: '🔑' },
+  { id: 'CITRON', emoji: '🍋' },
+  { id: 'HORLOGE', emoji: '🕰️' },
+  { id: 'OLIVIER', emoji: '🌳' },
 ];
+
+const WORD_IDS: readonly ThingId[] = WORDS.map((w) => w.id);
 
 /** Objets proposés en reconnaissance visuelle : les 4 mots appris mêlés à 8 intrus, dans un ordre fixe. */
-export const RECOGNITION_CHOICES: readonly { word: string; emoji: string }[] = [
-  { word: 'Pomme', emoji: '🍎' },
-  { word: 'Horloge', emoji: '🕰️' },
-  { word: 'Ciseaux', emoji: '✂️' },
-  { word: 'Vélo', emoji: '🚲' },
-  { word: 'Clé', emoji: '🔑' },
-  { word: 'Parapluie', emoji: '☂️' },
-  { word: 'Lunettes', emoji: '👓' },
-  { word: 'Citron', emoji: '🍋' },
-  { word: 'Poisson', emoji: '🐟' },
-  { word: 'Rose', emoji: '🌹' },
-  { word: 'Olivier', emoji: '🌳' },
-  { word: 'Téléphone', emoji: '📱' },
+export const RECOGNITION_CHOICES: readonly { id: ThingId; emoji: string }[] = [
+  { id: 'POMME', emoji: '🍎' },
+  { id: 'HORLOGE', emoji: '🕰️' },
+  { id: 'CISEAUX', emoji: '✂️' },
+  { id: 'VELO', emoji: '🚲' },
+  { id: 'CLE', emoji: '🔑' },
+  { id: 'PARAPLUIE', emoji: '☂️' },
+  { id: 'LUNETTES', emoji: '👓' },
+  { id: 'CITRON', emoji: '🍋' },
+  { id: 'POISSON', emoji: '🐟' },
+  { id: 'ROSE', emoji: '🌹' },
+  { id: 'OLIVIER', emoji: '🌳' },
+  { id: 'TELEPHONE', emoji: '📱' },
 ];
 
-export const CALCULATION = { question: 'Petit calcul : combien font 20 − 3 ?', options: [13, 17, 23, 27], answer: 17 };
+export const CALCULATION = { options: [13, 17, 23, 27], answer: 17 };
 
-export const WEEKDAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] as const;
-
-export function weekdayOf(date: Date): (typeof WEEKDAYS)[number] {
-  return WEEKDAYS[date.getDay()] as (typeof WEEKDAYS)[number];
+/** Numéro du jour de la semaine (0 = dimanche), libellé : `t.memory.weekdays`. */
+export function weekdayOf(date: Date): number {
+  return date.getDay();
 }
 
-function normalize(text: string): string {
+/** Minuscules, sans accents latins ni voyelles courtes arabes ; formes arabes unifiées (أ إ آ → ا, ة → ه, ى → ي). */
+export function normalizeWord(text: string): string {
   return text
     .toLowerCase()
     .replace(/[àâä]/g, 'a')
@@ -133,33 +102,43 @@ function normalize(text: string): string {
     .replace(/[îï]/g, 'i')
     .replace(/[ôö]/g, 'o')
     .replace(/[ùûü]/g, 'u')
-    .replace(/ç/g, 'c');
+    .replace(/ç/g, 'c')
+    .replace(/[ً-ْـ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي');
 }
 
-/** Mots appris retrouvés dans le texte saisi (ordre, accents, majuscules et pluriel indifférents). */
-export function recalledWords(text: string): string[] {
-  const tokens = new Set(normalize(text).split(/[^a-z]+/).filter(Boolean));
-  return WORDS.filter((item) => item.forms.some((form) => tokens.has(form))).map((item) => item.word);
+function tokens(text: string): Set<string> {
+  const words = normalizeWord(text).split(/[^a-zء-ي]+/).filter(Boolean);
+  // L'article arabe « ال » est ignoré (« المفتاح » = « مفتاح »).
+  return new Set(words.flatMap((w) => (w.startsWith('ال') && w.length > 3 ? [w, w.slice(2)] : [w])));
+}
+
+/** Mots appris retrouvés dans le texte saisi (ordre, accents, majuscules, article et pluriel indifférents). */
+export function recalledWords(text: string, forms: Record<WordId, string[]>): WordId[] {
+  const found = tokens(text);
+  return WORDS.filter((w) => forms[w.id].some((form) => found.has(normalizeWord(form)))).map((w) => w.id);
 }
 
 export interface ExerciseResult {
   /** Mots retrouvés spontanément (0 à 4). */
-  rappelLibre: string[];
+  rappelLibre: WordId[];
   /** Mots non retrouvés spontanément mais reconnus parmi les images. */
-  reconnus: string[];
+  reconnus: WordId[];
   /** Images d'intrus choisies par erreur. */
-  intrusChoisis: string[];
-  jourDemande: string;
-  jourRepondu: string;
+  intrusChoisis: ThingId[];
+  /** Jour de la semaine (0 = dimanche). */
+  jourDemande: number;
+  jourRepondu: number;
   calculCorrect: boolean;
 }
 
 /** Résultat de la reconnaissance visuelle à partir des images choisies. */
-export function scoreRecognition(selected: readonly string[], recalled: readonly string[]): Pick<ExerciseResult, 'reconnus' | 'intrusChoisis'> {
-  const targets = WORDS.map((w) => w.word);
+export function scoreRecognition(selected: readonly ThingId[], recalled: readonly WordId[]): Pick<ExerciseResult, 'reconnus' | 'intrusChoisis'> {
   return {
-    reconnus: targets.filter((w) => !recalled.includes(w) && selected.includes(w)),
-    intrusChoisis: selected.filter((w) => !targets.includes(w)),
+    reconnus: WORDS.map((w) => w.id).filter((id) => !recalled.includes(id) && selected.includes(id)),
+    intrusChoisis: selected.filter((id) => !WORD_IDS.includes(id)),
   };
 }
 
@@ -167,10 +146,18 @@ export function scoreRecognition(selected: readonly string[], recalled: readonly
 
 export type Vigilance = 'RASSURANT' | 'SIGNES_A_SIGNALER';
 
+export type Reason =
+  | { code: 'SIGNES'; n: number }
+  | { code: 'DOMAINE'; domain: Domain }
+  | { code: 'RAPPEL'; n: number }
+  | { code: 'OUBLIES'; n: number }
+  | { code: 'INTRUS'; n: number }
+  | { code: 'JOUR' };
+
 export interface VigilanceResult {
   indice: Vigilance;
-  /** Raisons lisibles des signes d'alerte (vide si rassurant). */
-  raisons: string[];
+  /** Raisons des signes d'alerte (vide si rassurant). */
+  raisons: Reason[];
 }
 
 /**
@@ -179,55 +166,44 @@ export interface VigilanceResult {
  * erreur sur le jour de la semaine.
  */
 export function vigilance(answers: Answers, exercise: ExerciseResult | null): VigilanceResult {
-  const raisons: string[] = [];
+  const raisons: Reason[] = [];
   const signs = signsByDomain(answers);
   const total = DOMAINS.reduce((sum, d) => sum + signs[d], 0);
-  if (total >= 2) raisons.push(`${total} signes observés sur les 8 questions des 4 A.`);
-  else for (const d of DOMAINS) if (signs[d] === 2) raisons.push(`Les 2 signes du domaine ${DOMAIN_LABELS[d].title} sont présents.`);
+  if (total >= 2) raisons.push({ code: 'SIGNES', n: total });
+  else for (const d of DOMAINS) if (signs[d] === 2) raisons.push({ code: 'DOMAINE', domain: d });
 
   if (exercise) {
     const libre = exercise.rappelLibre.length;
     const retrouves = libre + exercise.reconnus.length;
-    if (libre <= 1) raisons.push(`${libre} mot sur 4 retrouvé spontanément.`);
-    if (retrouves < WORDS.length) raisons.push(`${WORDS.length - retrouves} mot(s) ni retrouvé(s) ni reconnu(s) parmi les images.`);
-    if (exercise.intrusChoisis.length >= 2) raisons.push(`${exercise.intrusChoisis.length} images choisies qui ne faisaient pas partie des mots.`);
-    if (exercise.jourRepondu !== exercise.jourDemande) raisons.push('Jour de la semaine non retrouvé.');
+    if (libre <= 1) raisons.push({ code: 'RAPPEL', n: libre });
+    if (retrouves < WORDS.length) raisons.push({ code: 'OUBLIES', n: WORDS.length - retrouves });
+    if (exercise.intrusChoisis.length >= 2) raisons.push({ code: 'INTRUS', n: exercise.intrusChoisis.length });
+    if (exercise.jourRepondu !== exercise.jourDemande) raisons.push({ code: 'JOUR' });
   }
   return { indice: raisons.length ? 'SIGNES_A_SIGNALER' : 'RASSURANT', raisons };
 }
 
-export const VIGILANCE_TEXT: Record<Vigilance, { title: string; message: string }> = {
-  RASSURANT: {
-    title: 'Indice de vigilance cognitive : rassurant',
-    message:
-      'Aucun signe inhabituel n’est ressorti aujourd’hui. Bravo ! Continuez à entretenir votre mémoire au quotidien, et parlez-en à votre médecin si quelque chose change.',
-  },
-  SIGNES_A_SIGNALER: {
-    title: 'Indice de vigilance cognitive : signes à signaler',
-    message:
-      'Certaines réponses méritent d’en parler à un professionnel. Ce n’est pas un diagnostic : beaucoup de causes (fatigue, stress, médicaments, carence, audition, humeur) peuvent jouer. Prenez rendez-vous avec votre médecin traitant, qui pourra orienter vers un neurologue ou une consultation mémoire pour un bilan neuropsychologique approfondi.',
-  },
-};
-
-/** Conseils de prévention cognitive (inspirés du régime MIND et des recommandations d'hygiène de vie). */
-export const PREVENTION_TIPS: readonly string[] = [
-  'Marcher 30 minutes par jour, en une ou plusieurs fois.',
-  'Dormir environ 7 heures par nuit, à heures régulières.',
-  'Garder des liens : appels, visites, repas en famille, activités de groupe ou associatives.',
-  'Assiette de type MIND : huile d’olive, poisson 1 à 2 fois par semaine, une poignée de noix, fruits et légumes verts chaque jour ; limiter sucreries, fritures et charcuterie.',
-  'Stimuler l’esprit : lecture, jeux de mots, cartes, apprentissage d’une activité nouvelle.',
-  'Faire contrôler tension, glycémie, audition et vue, qui comptent aussi pour la mémoire.',
-];
-
-const DOMAIN_TIPS: Record<Domain, string> = {
-  AMNESIE: 'Mémoire : un agenda ou un calendrier bien visible, des routines fixes et un endroit unique pour les objets importants (clés, lunettes).',
-  APHASIE: 'Langage : parler calmement, une idée à la fois, laisser le temps de trouver le mot sans le finir à sa place.',
-  APRAXIE: 'Gestes : simplifier le quotidien (chaussures à scratch, vêtements faciles), décomposer les gestes et sécuriser la maison.',
-  AGNOSIE: 'Repères : éclairer la maison, étiqueter les placards, éviter de sortir seul dans un lieu inconnu et garder sur soi un contact d’urgence.',
-};
+/** Raison lisible dans la langue choisie. */
+export function reasonText(t: Dictionary, reason: Reason): string {
+  const r = t.memory.reasons;
+  switch (reason.code) {
+    case 'SIGNES':
+      return r.signs(reason.n);
+    case 'DOMAINE':
+      return r.domain(t.memory.domains[reason.domain].title);
+    case 'RAPPEL':
+      return r.recall(reason.n);
+    case 'OUBLIES':
+      return r.missed(reason.n);
+    case 'INTRUS':
+      return r.intruders(reason.n);
+    case 'JOUR':
+      return r.day;
+  }
+}
 
 /** Conseils personnalisés : un conseil par domaine où un signe a été observé, puis la prévention générale. */
-export function personalisedTips(answers: Answers): string[] {
+export function personalisedTips(t: Dictionary, answers: Answers): string[] {
   const signs = signsByDomain(answers);
-  return [...DOMAINS.filter((d) => signs[d] > 0).map((d) => DOMAIN_TIPS[d]), ...PREVENTION_TIPS];
+  return [...DOMAINS.filter((d) => signs[d] > 0).map((d) => t.memory.domainTips[d]), ...t.memory.prevention];
 }

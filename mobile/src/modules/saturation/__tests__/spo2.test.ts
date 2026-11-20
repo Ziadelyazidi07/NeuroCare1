@@ -1,6 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { classifySpo2, parseMeasurement, spo2Advice } from '../spo2';
+import { ar } from '../../../i18n/ar';
+import { fr } from '../../../i18n/fr';
+import { classifySpo2, parseMeasurement } from '../spo2';
 import { spo2ReportHtml } from '../spo2Pdf';
 
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
@@ -20,34 +22,38 @@ describe('alertes SpO2', () => {
   });
 
   it('oriente vers les urgences en alerte rouge et vers un médecin en orange', () => {
-    expect(spo2Advice('ROUGE', false).message).toContain('15 ou 141');
-    expect(spo2Advice('ORANGE', false).message).toMatch(/10 minutes.*médecin/);
-    expect(spo2Advice('ORANGE', true).title).toContain('88-92');
+    expect(fr.spo2.advice('ROUGE', false).message).toContain('15 ou 141');
+    expect(fr.spo2.advice('ORANGE', false).message).toMatch(/10 minutes.*médecin/);
+    expect(fr.spo2.advice('ORANGE', true).title).toContain('88-92');
   });
 
   it('refuse les saisies impossibles', () => {
     expect(parseMeasurement('97', '72')).toEqual({ spo2: 97, pouls: 72 });
-    expect(typeof parseMeasurement('101', '72')).toBe('string');
-    expect(typeof parseMeasurement('9a', '72')).toBe('string');
-    expect(typeof parseMeasurement('97', '20')).toBe('string');
+    expect(parseMeasurement('101', '72')).toBe('SPO2');
+    expect(parseMeasurement('9a', '72')).toBe('SPO2');
+    expect(parseMeasurement('97', '20')).toBe('PULSE');
   });
 });
 
 describe('relevé PDF', () => {
   it('est nominatif, liste les mesures et les alertes, et échappe le HTML', () => {
-    const html = spo2ReportHtml(
-      'Hajj <Ahmed>',
-      true,
-      [
+    const measures = [
         { id: '1', dateMesure: '2026-11-19T08:00:00Z', spo2: 84, pouls: 101, maladieRespiratoireChronique: true, niveau: 'ROUGE' },
         { id: '2', dateMesure: '2026-11-18T08:00:00Z', spo2: 90, pouls: 80, maladieRespiratoireChronique: true, niveau: 'VERT' },
-      ],
-      new Date('2026-11-19T09:00:00Z'),
-    );
+    ] as const;
+    const html = spo2ReportHtml(fr, 'Hajj <Ahmed>', true, [...measures], new Date('2026-11-19T09:00:00Z'));
     expect(html).toContain('Hajj &lt;Ahmed&gt;');
     expect(html).toContain('BPCO');
     expect(html).toContain('84 %');
     expect(html).toContain('Mesures : 2 · Alertes : 1');
     expect(html).toContain('ne constitue pas un diagnostic médical officiel');
+    expect(html).toContain('dir="ltr"');
+  });
+
+  it('s’édite en arabe, de droite à gauche', () => {
+    const html = spo2ReportHtml(ar, 'المريض', false, [], new Date('2026-11-19T09:00:00Z'));
+    expect(html).toContain('<html lang="ar" dir="rtl">');
+    expect(html).toContain('كشف تشبّع الدم بالأكسجين');
+    expect(html).toContain('ليست تشخيصًا طبيًا رسميًا');
   });
 });

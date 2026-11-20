@@ -1,17 +1,18 @@
 /** Liste des seniors suivis par l'aidant. */
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 
 import { aidantApi } from '../../api/api';
 import type { SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
 import { errorMessage } from '../../lib/problem';
-import { Button, Card, ErrorText, Loading, styles } from '../../ui/components';
-import { aidantColours as c } from '../../ui/theme';
+import { useLanguage } from '../../i18n';
+import { Button, Card, colours as c, ErrorText, Loading, pillColours, Row, styles, Text } from '../../theme';
 
 export default function SeniorsList() {
   const { session, signOut } = useSession();
+  const { t } = useLanguage();
   const [seniors, setSeniors] = useState<SeniorDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,9 +22,9 @@ export default function SeniorsList() {
       setSeniors(await aidantApi.seniors());
       setError(null);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,30 +49,30 @@ export default function SeniorsList() {
         />
       }
     >
-      <Text style={styles.muted}>Connecté(e) : {session.nomComplet}</Text>
+      <Text style={styles.muted}>{t.list.connected(session.nomComplet)}</Text>
       <ErrorText message={error} />
       {seniors === null && !error ? <Loading /> : null}
-      {seniors?.length === 0 ? <Text style={styles.text}>Aucun proche pour l’instant.</Text> : null}
+      {seniors?.length === 0 ? <Text style={styles.text}>{t.list.none}</Text> : null}
       {seniors?.map((senior) => (
         <Pressable key={senior.id} accessibilityRole="button" onPress={() => router.push(`/aidant/${senior.id}`)}>
-          <Card title={senior.nomComplet}>
+          <Card title={senior.nomComplet} icon="person">
             <Text style={styles.muted}>
               {[senior.lien?.lienParente, senior.lien?.surnomSenior && `« ${senior.lien.surnomSenior} »`]
                 .filter(Boolean)
-                .join(' · ') || 'Proche'}
-              {senior.donneesFictives ? ' · données fictives' : ''}
+                .join(' · ') || t.list.relative}
+              {senior.donneesFictives ? t.list.fictive : ''}
             </Text>
-            <View style={styles.row}>
-              <View style={[styles.dot, { backgroundColor: senior.lien?.consentementValide ? '#1E8E3E' : '#80868B' }]} />
+            <Row>
+              <View style={[styles.dot, { backgroundColor: senior.lien?.consentementValide ? pillColours.VERT : pillColours.GRIS }]} />
               <Text style={[styles.muted, { color: c.text }]}>
-                {senior.lien?.consentementValide ? 'Partage familial accordé' : 'Partage familial non accordé'}
+                {senior.lien?.consentementValide ? t.list.shared : t.list.notShared}
               </Text>
-            </View>
+            </Row>
           </Card>
         </Pressable>
       ))}
-      <Button label="Ajouter un proche" onPress={() => router.push('/aidant/new-senior')} />
-      <Button label="Se déconnecter" variant="secondary" onPress={() => void signOut().then(() => router.replace('/'))} />
+      <Button label={t.list.add} icon="person-add" onPress={() => router.push('/aidant/new-senior')} />
+      <Button label={t.list.signOut} variant="secondary" onPress={() => void signOut().then(() => router.replace('/'))} />
     </ScrollView>
   );
 }

@@ -10,12 +10,14 @@ import { useSession } from '../../auth/SessionContext';
 import { clearSavedCredentials, loadSavedCredentials, saveCredentials } from '../../auth/savedCredentials';
 import { errorMessage } from '../../lib/problem';
 import { isE164, normalizePhone, registrationError } from '../../lib/validation';
-import { Button, Card, Checkbox, ErrorText, Field, PasswordField, Screen } from '../../ui/components';
+import { useLanguage } from '../../i18n';
+import { Button, Card, Checkbox, ErrorText, Field, PasswordField, Screen } from '../../theme';
 
 type Mode = 'connexion' | 'inscription';
 
 export default function AidantLogin() {
   const { signInAidant } = useSession();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<Mode>('connexion');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,9 +49,9 @@ export default function AidantLogin() {
         ? registrationError({ nomComplet: name, telephone, motDePasse: password, confirmation })
         : isE164(telephone)
           ? null
-          : 'Numéro invalide. Exemple : 06 12 34 56 78 ou +212612345678.';
+          : 'TELEPHONE';
     if (invalid) {
-      setError(invalid);
+      setError(t.registration[invalid]);
       return;
     }
     setBusy(true);
@@ -61,7 +63,7 @@ export default function AidantLogin() {
       else await clearSavedCredentials();
       router.replace('/aidant');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -72,12 +74,12 @@ export default function AidantLogin() {
 
   return (
     <Screen>
-      <Card title={registering ? 'Créer un compte aidant' : 'Espace aidant'}>
+      <Card title={registering ? t.login.titleRegister : t.login.titleLogin} icon="person-circle">
         {registering ? (
-          <Field label="Nom complet" value={name} onChangeText={setName} autoComplete="name" autoCapitalize="words" />
+          <Field label={t.login.name} value={name} onChangeText={setName} autoComplete="name" autoCapitalize="words" />
         ) : null}
         <Field
-          label="Téléphone"
+          label={t.login.phone}
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
@@ -85,7 +87,7 @@ export default function AidantLogin() {
           placeholder="06 12 34 56 78"
         />
         <PasswordField
-          label="Mot de passe"
+          label={t.login.password}
           value={password}
           onChangeText={setPassword}
           autoComplete={registering ? 'new-password' : 'password'}
@@ -93,18 +95,18 @@ export default function AidantLogin() {
         />
         {registering ? (
           <PasswordField
-            label="Confirmation du mot de passe"
+            label={t.login.confirmation}
             value={confirmation}
             onChangeText={setConfirmation}
             autoComplete="new-password"
             onSubmitEditing={submit}
           />
         ) : null}
-        <Checkbox label="Enregistrer mes identifiants" checked={remember} onChange={setRemember} />
+        <Checkbox label={t.login.remember} checked={remember} onChange={setRemember} />
         <ErrorText message={error} />
-        <Button label={registering ? 'Créer mon compte' : 'Se connecter'} onPress={submit} loading={busy} disabled={incomplete} />
+        <Button label={registering ? t.login.register : t.login.signIn} onPress={submit} loading={busy} disabled={incomplete} />
         <Button
-          label={registering ? "J'ai déjà un compte" : 'Créer un compte'}
+          label={registering ? t.login.haveAccount : t.login.createAccount}
           variant="secondary"
           onPress={() => switchMode(registering ? 'connexion' : 'inscription')}
           disabled={busy}

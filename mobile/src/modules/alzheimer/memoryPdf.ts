@@ -1,63 +1,66 @@
+import type { Dictionary } from '../../i18n';
 import { escapeHtml, formatDateTime, pdfDocument } from '../pdf';
-import { DOMAINS, DOMAIN_LABELS, QUESTIONS, VIGILANCE_TEXT, WORDS, personalisedTips } from './memory';
+import { DOMAINS, QUESTIONS, WORDS, personalisedTips, reasonText } from './memory';
 import type { MemoryAssessment } from './memoryStore';
-
-export const SCREENING_NOTICE =
-  'Questionnaire d’observation et exercice de mémoire non validés comme test diagnostique : outil de pré-dépistage et d’aide à la consultation médicale. Seul un médecin peut interpréter ces éléments et décider d’un bilan.';
 
 const CLASS = { RASSURANT: 'VERT', SIGNES_A_SIGNALER: 'ORANGE' } as const;
 
-function exerciseHtml(a: MemoryAssessment): string {
+function exerciseHtml(t: Dictionary, a: MemoryAssessment): string {
+  const m = t.memory;
   const e = a.exercice;
-  if (!e) return '<div class="box">Exercice de mémoire non réalisé lors de ce bilan.</div>';
-  const missed = WORDS.map((w) => w.word).filter((w) => !e.rappelLibre.includes(w) && !e.reconnus.includes(w));
+  if (!e) return `<div class="box">${escapeHtml(m.pdf.noExercise)}</div>`;
+  const list = (ids: readonly (keyof typeof m.things)[]) => (ids.length ? ids.map((id) => escapeHtml(m.things[id])).join(t.meta.listSeparator) : escapeHtml(m.pdf.none));
+  const missed = WORDS.map((w) => w.id).filter((id) => !e.rappelLibre.includes(id) && !e.reconnus.includes(id));
+  const dayName = (index: number) => m.weekdays[index] ?? '—';
   return `<table>
-    <tr><th>Mots à retenir</th><td>${WORDS.map((w) => escapeHtml(w.word)).join(', ')}</td></tr>
-    <tr><th>Rappel libre</th><td><strong>${e.rappelLibre.length} / 4</strong>${e.rappelLibre.length ? ` (${e.rappelLibre.map(escapeHtml).join(', ')})` : ''}</td></tr>
-    <tr><th>Reconnus parmi les images</th><td>${e.reconnus.length ? e.reconnus.map(escapeHtml).join(', ') : '—'}</td></tr>
-    <tr><th>Ni retrouvés ni reconnus</th><td>${missed.length ? missed.map(escapeHtml).join(', ') : 'aucun'}</td></tr>
-    <tr><th>Intrus choisis</th><td>${e.intrusChoisis.length ? e.intrusChoisis.map(escapeHtml).join(', ') : 'aucun'}</td></tr>
-    <tr><th>Orientation (jour de la semaine)</th><td>${e.jourRepondu === e.jourDemande ? 'Correct' : `Répondu « ${escapeHtml(e.jourRepondu)} » (jour : ${escapeHtml(e.jourDemande)})`}</td></tr>
-    <tr><th>Calcul simple (distraction)</th><td>${e.calculCorrect ? 'Correct' : 'Erreur'}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.wordsToLearn)}</th><td>${list(WORDS.map((w) => w.id))}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.freeRecall)}</th><td><strong>${e.rappelLibre.length} / 4</strong>${e.rappelLibre.length ? ` (${list(e.rappelLibre)})` : ''}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.recognised)}</th><td>${e.reconnus.length ? list(e.reconnus) : '—'}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.missed)}</th><td>${list(missed)}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.intruders)}</th><td>${list(e.intrusChoisis)}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.orientation)}</th><td>${escapeHtml(e.jourRepondu === e.jourDemande ? m.pdf.correct : m.pdf.wrongDay(dayName(e.jourRepondu), dayName(e.jourDemande)))}</td></tr>
+    <tr><th>${escapeHtml(m.pdf.calculation)}</th><td>${escapeHtml(e.calculCorrect ? m.pdf.correct : m.pdf.wrong)}</td></tr>
   </table>`;
 }
 
-function summary(a: MemoryAssessment): string {
-  const signs = DOMAINS.reduce((sum, d) => sum + a.signes[d], 0);
-  const recall = a.exercice ? `rappel ${a.exercice.rappelLibre.length}/4` : 'sans exercice';
-  return `${signs}/8 signes · ${recall}`;
-}
-
-/** Bilan nominatif : 4 A par domaine, exercice de rappel, orientation, conseils et historique local. */
-export function memoryReportHtml(patient: string, a: MemoryAssessment, history: readonly MemoryAssessment[], generatedAt: Date): string {
-  const text = VIGILANCE_TEXT[a.indice];
+/** Bilan nominatif (français ou arabe) : 4 A par domaine, exercice de rappel, orientation, conseils et historique local. */
+export function memoryReportHtml(t: Dictionary, patient: string, a: MemoryAssessment, history: readonly MemoryAssessment[], generatedAt: Date): string {
+  const m = t.memory;
+  const text = m.vigilance[a.indice];
   const domains = DOMAINS.map((d) => {
     const items = QUESTIONS.filter((q) => q.domain === d)
-      .map((q) => `${escapeHtml(q.text)} <strong>${a.reponses[q.code] ? 'Oui' : 'Non'}</strong>`)
+      .map((q) => `${escapeHtml(m.questions[q.code])} <strong>${escapeHtml(a.reponses[q.code] ? t.common.yes : t.common.no)}</strong>`)
       .join('<br />');
     const n = a.signes[d];
-    return `<tr><td><strong>${DOMAIN_LABELS[d].title}</strong><br />${DOMAIN_LABELS[d].area}</td>
+    return `<tr><td><strong>${escapeHtml(m.domains[d].title)}</strong><br />${escapeHtml(m.domains[d].area)}</td>
       <td class="${n ? 'ORANGE' : 'VERT'}">${n} / 2</td><td>${items}</td></tr>`;
   }).join('');
-  const reasons = a.raisons.length ? `<ul>${a.raisons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>` : '';
-  const tips = `<ul>${personalisedTips(a.reponses).map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
+  const reasons = a.raisons.length ? `<ul>${a.raisons.map((r) => `<li>${escapeHtml(reasonText(t, r))}</li>`).join('')}</ul>` : '';
+  const tips = `<ul>${personalisedTips(t, a.reponses).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}</ul>`;
+  const signs = (h: MemoryAssessment) => DOMAINS.reduce((sum, d) => sum + h.signes[d], 0);
   const rows = history
-    .map((h) => `<tr><td>${formatDateTime(h.date)}</td><td class="${CLASS[h.indice]}">${escapeHtml(VIGILANCE_TEXT[h.indice].title.replace('Indice de vigilance cognitive : ', ''))}</td><td>${escapeHtml(summary(h))}</td></tr>`)
+    .map(
+      (h) =>
+        `<tr><td>${formatDateTime(h.date)}</td><td class="${CLASS[h.indice]}">${escapeHtml(m.vigilance[h.indice].short)}</td><td>${escapeHtml(
+          m.pdf.summary(signs(h), h.exercice ? h.exercice.rappelLibre.length : null),
+        )}</td></tr>`,
+    )
     .join('');
+  const head = (cols: string[]) => cols.map((c) => `<th>${escapeHtml(c)}</th>`).join('');
 
   const body = `
-    <div class="box">Bilan du ${formatDateTime(a.date)} (observations des dernières semaines)</div>
-    <h2>Résultat et orientation</h2>
+    <div class="box">${escapeHtml(m.pdf.session(formatDateTime(a.date)))}</div>
+    <h2>${escapeHtml(m.pdf.resultTitle)}</h2>
     <div class="box"><strong class="${CLASS[a.indice]}">${escapeHtml(text.title)}</strong><br />${escapeHtml(text.message)}${reasons}</div>
-    <h2>Pré-dépistage des 4 A</h2>
-    <table><tr><th>Domaine</th><th>Signes</th><th>Questions et réponses</th></tr>${domains}</table>
-    <h2>Exercice de mémoire (4 mots)</h2>
-    ${exerciseHtml(a)}
-    <h2>Conseils pratiques</h2>
+    <h2>${escapeHtml(m.pdf.fourATitle)}</h2>
+    <table><tr>${head(m.pdf.fourAColumns)}</tr>${domains}</table>
+    <h2>${escapeHtml(m.pdf.exerciseTitle)}</h2>
+    ${exerciseHtml(t, a)}
+    <h2>${escapeHtml(m.pdf.tipsTitle)}</h2>
     ${tips}
-    <h2>Historique enregistré sur le téléphone</h2>
-    ${rows ? `<table><tr><th>Date</th><th>Indice</th><th>Détail</th></tr>${rows}</table>` : '<p>Aucun autre bilan.</p>'}
-    <div class="box">${escapeHtml(SCREENING_NOTICE)}</div>`;
+    <h2>${escapeHtml(m.pdf.historyTitle)}</h2>
+    ${rows ? `<table><tr>${head(m.pdf.historyColumns)}</tr>${rows}</table>` : `<p>${escapeHtml(m.pdf.noHistory)}</p>`}
+    <div class="box">${escapeHtml(m.screeningNotice)}</div>`;
 
-  return pdfDocument({ title: 'Bilan Mémoire & 4 A — pré-dépistage cognitif', patient, generatedAt, body });
+  return pdfDocument({ t, title: m.pdf.title, patient, generatedAt, body });
 }

@@ -4,12 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider, useSession } from '../auth/SessionContext';
+import { LanguageProvider, useLanguage } from '../i18n';
 import { onReminderOpened } from '../senior/reminders';
+import { colours } from '../theme';
 import { HomeButton } from '../ui/HomeButton';
-import { aidantColours } from '../ui/theme';
-
-/** En-tête des écrans aidant : titre et bouton « ← Accueil Modules » à droite. */
-const aidant = (title: string) => ({ title, headerRight: () => <HomeButton variant="header" /> });
 
 /**
  * Un appui sur une alarme ramène le téléphone senior sur son écran de rappel, quel que soit le module
@@ -35,41 +33,54 @@ function ReminderTapRouter() {
   return null;
 }
 
+/** Pile de navigation : titres dans la langue choisie, bouton « Accueil Modules » dans l'en-tête des écrans aidant. */
+function AppStack() {
+  const { t } = useLanguage();
+  const aidant = (title: string) => ({ title, headerRight: () => <HomeButton variant="header" /> });
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colours.card },
+        headerTintColor: colours.title,
+        headerTitleStyle: { fontWeight: '800', fontSize: 20 },
+        headerShadowVisible: false,
+        headerBackTitle: t.common.back,
+        contentStyle: { backgroundColor: colours.background },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="observance-role" options={{ headerShown: false }} />
+      <Stack.Screen name="modules/saturation" options={{ headerShown: false }} />
+      <Stack.Screen name="modules/mental" options={{ headerShown: false }} />
+      <Stack.Screen name="modules/metabolic" options={{ headerShown: false }} />
+      <Stack.Screen name="modules/cardio" options={{ headerShown: false }} />
+      <Stack.Screen name="modules/alzheimer" options={{ headerShown: false }} />
+      <Stack.Screen name="senior/pair" options={{ headerShown: false }} />
+      <Stack.Screen name="senior/index" options={{ headerShown: false }} />
+      <Stack.Screen name="senior/exercise" options={{ headerShown: false }} />
+      <Stack.Screen name="aidant/login" options={aidant(t.nav.aidantLogin)} />
+      <Stack.Screen name="aidant/index" options={aidant(t.nav.aidantHome)} />
+      <Stack.Screen name="aidant/new-senior" options={aidant(t.nav.newSenior)} />
+      <Stack.Screen name="aidant/[seniorId]/index" options={aidant(t.nav.dashboard)} />
+      <Stack.Screen name="aidant/[seniorId]/medications" options={aidant(t.nav.medications)} />
+      <Stack.Screen name="aidant/[seniorId]/consents" options={aidant(t.nav.consents)} />
+      <Stack.Screen name="aidant/[seniorId]/voice" options={aidant(t.nav.voice)} />
+      <Stack.Screen name="aidant/[seniorId]/report" options={aidant(t.nav.report)} />
+      <Stack.Screen name="aidant/[seniorId]/pairing" options={aidant(t.nav.pairing)} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <SessionProvider>
-        <StatusBar style="auto" />
-        <ReminderTapRouter />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: aidantColours.card },
-            headerTintColor: aidantColours.text,
-            headerTitleStyle: { fontWeight: '700' },
-            headerBackTitle: 'Retour',
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="observance-role" options={{ headerShown: false }} />
-          <Stack.Screen name="modules/saturation" options={{ headerShown: false }} />
-          <Stack.Screen name="modules/mental" options={{ headerShown: false }} />
-          <Stack.Screen name="modules/metabolic" options={{ headerShown: false }} />
-          <Stack.Screen name="modules/cardio" options={{ headerShown: false }} />
-          <Stack.Screen name="modules/alzheimer" options={{ headerShown: false }} />
-          <Stack.Screen name="senior/pair" options={{ headerShown: false }} />
-          <Stack.Screen name="senior/index" options={{ headerShown: false }} />
-          <Stack.Screen name="senior/exercise" options={{ headerShown: false }} />
-          <Stack.Screen name="aidant/login" options={aidant('Connexion aidant')} />
-          <Stack.Screen name="aidant/index" options={aidant('Mes proches')} />
-          <Stack.Screen name="aidant/new-senior" options={aidant('Nouveau profil senior')} />
-          <Stack.Screen name="aidant/[seniorId]/index" options={aidant('Tableau de bord')} />
-          <Stack.Screen name="aidant/[seniorId]/medications" options={aidant('Traitements')} />
-          <Stack.Screen name="aidant/[seniorId]/consents" options={aidant('Consentements')} />
-          <Stack.Screen name="aidant/[seniorId]/voice" options={aidant('Voix des rappels')} />
-          <Stack.Screen name="aidant/[seniorId]/report" options={aidant('Rapport hebdomadaire')} />
-          <Stack.Screen name="aidant/[seniorId]/pairing" options={aidant('Appairer le téléphone')} />
-        </Stack>
-      </SessionProvider>
+      <LanguageProvider>
+        <SessionProvider>
+          <StatusBar style="dark" />
+          <ReminderTapRouter />
+          <AppStack />
+        </SessionProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

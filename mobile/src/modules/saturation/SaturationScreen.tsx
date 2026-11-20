@@ -5,45 +5,26 @@
  */
 import { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HomeButton } from '../../ui/HomeButton';
-import { Button, Card, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
-import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
-import { PatientNameField, displayName, usePatientName } from '../PatientName';
-import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
+import { useLanguage } from '../../i18n';
+import { Badge, Button, Card, ErrorText, Field, Loading, MIN_TOUCH, Notice, Row, Text, colours as c, levelColours, radius, styles as ui } from '../../theme';
+import { ModuleScreen } from '../ModuleScreen';
+import { formatDateTime, sharePdf } from '../pdf';
 import { EmergencyButtons } from '../ui';
 import { saturationModule } from './module';
-import { PROFILE_QUESTION, parseMeasurement, profileLabel, spo2Advice, type Spo2Level } from './spo2';
+import { PULSE_MAX, PULSE_MIN, SPO2_MAX, SPO2_MIN, parseMeasurement, type Spo2Level } from './spo2';
 import { spo2ReportHtml } from './spo2Pdf';
 import { addMeasure, loadMeasures, loadProfile, saveProfile, type Spo2Measurement } from './spo2Store';
 
-const LEVEL_COLOUR: Record<Spo2Level, { bg: string; fg: string }> = {
-  VERT: { bg: '#E6F4EA', fg: '#1E7B34' },
-  ORANGE: { bg: '#FEF3E0', fg: '#8A4600' },
-  ROUGE: { bg: '#B3261E', fg: '#FFFFFF' },
-};
-
 export default function SaturationScreen() {
-  const [name, setName] = usePatientName();
-  return (
-    <SafeAreaView style={ui.screen}>
-      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
-        <HomeButton />
-        <Text style={styles.title} accessibilityRole="header">
-          {saturationModule.title}
-        </Text>
-        <PatientNameField value={name} onChange={setName} />
-        <Spo2Panel patient={displayName(name)} />
-        <Notice>{NOT_A_DIAGNOSIS}</Notice>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <ModuleScreen module={saturationModule}>{(patient) => <Spo2Panel patient={patient} />}</ModuleScreen>;
 }
 
 function Spo2Panel({ patient }: { patient: string }) {
+  const { t, row } = useLanguage();
+  const s = t.spo2;
   const [chronic, setChronic] = useState<boolean | null | undefined>(undefined); // undefined = chargement
   const [editingProfile, setEditingProfile] = useState(false);
   const [history, setHistory] = useState<Spo2Measurement[] | null>(null);
@@ -70,15 +51,15 @@ function Spo2Panel({ patient }: { patient: string }) {
     try {
       await saveProfile(value);
     } catch {
-      setError('Profil non mémorisé sur ce téléphone.');
+      setError(s.errors.profileNotSaved);
     }
   };
 
   const submit = async () => {
     if (chronic == null) return;
     const parsed = parseMeasurement(spo2, pouls);
-    if (typeof parsed === 'string') {
-      setError(parsed);
+    if (parsed === 'SPO2' || parsed === 'PULSE') {
+      setError(parsed === 'SPO2' ? s.errors.spo2(SPO2_MIN, SPO2_MAX) : s.errors.pulse(PULSE_MIN, PULSE_MAX));
       return;
     }
     setError(null);
@@ -89,7 +70,7 @@ function Spo2Panel({ patient }: { patient: string }) {
       setSpo2('');
       setPouls('');
     } catch {
-      setError('Mesure non mémorisée sur ce téléphone.');
+      setError(s.errors.measureNotSaved);
     }
   };
 
@@ -97,9 +78,9 @@ function Spo2Panel({ patient }: { patient: string }) {
     if (chronic == null || !history) return;
     setError(null);
     try {
-      await sharePdf(spo2ReportHtml(patient, chronic, history, new Date()), 'Relevé SpO2 NeuroCare');
+      await sharePdf(t, spo2ReportHtml(t, patient, chronic, history, new Date()), s.pdf.dialog);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
+      setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }
   };
 
@@ -107,14 +88,14 @@ function Spo2Panel({ patient }: { patient: string }) {
 
   if (chronic === null || editingProfile) {
     return (
-      <Card title="Profil respiratoire">
-        <Text style={ui.text}>{PROFILE_QUESTION}</Text>
-        <View style={styles.choices}>
-          <ChoiceButton label="Oui" onPress={() => void chooseProfile(true)} />
-          <ChoiceButton label="Non" onPress={() => void chooseProfile(false)} />
+      <Card title={s.profileTitle} icon="fitness">
+        <Text style={ui.text}>{s.profileQuestion}</Text>
+        <View style={[styles.choices, row]}>
+          <ChoiceButton label={t.common.yes} onPress={() => void chooseProfile(true)} />
+          <ChoiceButton label={t.common.no} onPress={() => void chooseProfile(false)} />
         </View>
-        <Text style={ui.muted}>Oui : cible 88-92 % (BPCO, insuffisance respiratoire). Non : cible standard 95-100 %.</Text>
-        {editingProfile ? <Button label="Annuler" variant="secondary" onPress={() => setEditingProfile(false)} /> : null}
+        <Text style={ui.muted}>{s.profileHelp}</Text>
+        {editingProfile ? <Button label={t.common.cancel} variant="secondary" onPress={() => setEditingProfile(false)} /> : null}
         <ErrorText message={error} />
       </Card>
     );
@@ -123,74 +104,68 @@ function Spo2Panel({ patient }: { patient: string }) {
   return (
     <>
       <Card
-        title="Profil respiratoire"
+        title={s.profileTitle}
+        icon="fitness"
         right={
           <Pressable accessibilityRole="button" onPress={() => setEditingProfile(true)} hitSlop={8}>
-            <Text style={{ color: c.primary, fontWeight: '600' }}>Modifier</Text>
+            <Text style={styles.link}>{t.common.edit}</Text>
           </Pressable>
         }
       >
-        <Text style={ui.text}>{profileLabel(chronic)}</Text>
+        <Text style={ui.text}>{s.profileLabel(chronic)}</Text>
       </Card>
 
-      <Card title="Nouvelle mesure au repos">
-        <Text style={ui.muted}>Patient assis, au calme depuis 5 minutes, main au chaud, sans vernis sur le doigt mesuré.</Text>
-        <Field label="SpO2 (%)" value={spo2} onChangeText={setSpo2} keyboardType="number-pad" maxLength={3} placeholder="97" />
-        <Field label="Pouls (bpm)" value={pouls} onChangeText={setPouls} keyboardType="number-pad" maxLength={3} placeholder="72" />
-        <Button label="Enregistrer la mesure" onPress={() => void submit()} disabled={!spo2 || !pouls} />
+      <Card title={s.newMeasure} icon="pulse">
+        <Text style={ui.muted}>{s.measureHelp}</Text>
+        <Field label={s.spo2Field} value={spo2} onChangeText={setSpo2} keyboardType="number-pad" maxLength={3} placeholder="97" />
+        <Field label={s.pulseField} value={pouls} onChangeText={setPouls} keyboardType="number-pad" maxLength={3} placeholder="72" />
+        <Button label={s.save} onPress={() => void submit()} disabled={!spo2 || !pouls} />
         <ErrorText message={error} />
       </Card>
 
       {last ? <AlertCard measure={last} /> : null}
 
-      <Card title="Historique">
+      <Card title={t.shared.history} icon="time">
         {history === null ? <Loading /> : null}
-        {history?.length === 0 ? <Text style={ui.muted}>Aucune mesure pour le moment.</Text> : null}
+        {history?.length === 0 ? <Text style={ui.muted}>{s.noMeasure}</Text> : null}
         {history?.map((m) => (
-          <View key={m.id} style={styles.historyRow}>
-            <Text style={[ui.text, { flex: 1 }]}>
-              {formatDateTime(m.dateMesure)} · {m.spo2} % · {m.pouls} bpm
-            </Text>
+          <Row key={m.id} style={styles.historyRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={ui.text}>{formatDateTime(m.dateMesure)}</Text>
+              <Text style={ui.muted}>{s.measureLine(m.spo2, m.pouls)}</Text>
+            </View>
             <LevelBadge level={m.niveau} />
-          </View>
+          </Row>
         ))}
-        <Button label="Télécharger le relevé SpO2 PDF" variant="secondary" onPress={() => void downloadPdf()} disabled={!history} />
+        <Button label={s.download} variant="secondary" icon="document-text" onPress={() => void downloadPdf()} disabled={!history} />
       </Card>
 
-      <Notice>
-        Orientation : en cas d’essoufflement important, de douleur thoracique, de lèvres bleutées ou de confusion, appelez
-        les urgences (15 ou 141) quelle que soit la mesure.
-      </Notice>
+      <Notice>{s.orientation}</Notice>
     </>
   );
 }
 
 function AlertCard({ measure }: { measure: Spo2Measurement }) {
-  const advice = spo2Advice(measure.niveau, measure.maladieRespiratoireChronique);
-  const colour = LEVEL_COLOUR[measure.niveau];
+  const { t } = useLanguage();
+  const advice = t.spo2.advice(measure.niveau, measure.maladieRespiratoireChronique);
+  const colour = levelColours[measure.niveau];
   return (
     <View style={[styles.alert, { backgroundColor: colour.bg, borderColor: colour.fg }]} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-      <View style={ui.row}>
+      <Row>
         <Ionicons name={measure.niveau === 'VERT' ? 'checkmark-circle' : 'warning'} size={28} color={colour.fg} />
         <Text style={[styles.alertTitle, { color: colour.fg }]}>{advice.title}</Text>
-      </View>
-      <Text style={[styles.alertValue, { color: colour.fg }]}>
-        SpO2 {measure.spo2} % · Pouls {measure.pouls} bpm
-      </Text>
-      <Text style={{ color: colour.fg, fontSize: 16 }}>{advice.message}</Text>
+      </Row>
+      <Text style={[styles.alertValue, { color: colour.fg }]}>{t.spo2.measureLine(measure.spo2, measure.pouls)}</Text>
+      <Text style={[ui.text, { color: colour.fg }]}>{advice.message}</Text>
       {measure.niveau === 'ROUGE' ? <EmergencyButtons /> : null}
     </View>
   );
 }
 
 function LevelBadge({ level }: { level: Spo2Level }) {
-  const label = level === 'VERT' ? 'Vert' : level === 'ORANGE' ? 'Orange' : 'Rouge';
-  const colour = LEVEL_COLOUR[level];
-  return (
-    <View style={[styles.badge, { backgroundColor: colour.bg, borderColor: colour.fg }]}>
-      <Text style={{ color: colour.fg, fontWeight: '700' }}>{label}</Text>
-    </View>
-  );
+  const { t } = useLanguage();
+  const colour = level === 'ROUGE' ? { bg: c.dangerSoft, fg: c.danger } : levelColours[level];
+  return <Badge label={t.spo2.level[level]} colours={colour} />;
 }
 
 function ChoiceButton({ label, onPress }: { label: string; onPress: () => void }) {
@@ -202,13 +177,12 @@ function ChoiceButton({ label, onPress }: { label: string; onPress: () => void }
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: c.text },
-  choices: { flexDirection: 'row', gap: 12 },
-  choice: { flex: 1, minHeight: MIN_TOUCH, borderRadius: 14, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  choiceText: { color: c.primaryText, fontSize: 24, fontWeight: '800' },
-  alert: { borderWidth: 2, borderRadius: 14, padding: 16, gap: 10 },
-  alertTitle: { fontSize: 20, fontWeight: '800', flex: 1 },
-  alertValue: { fontSize: 18, fontWeight: '700' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border },
-  badge: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 },
+  link: { color: c.primary, fontWeight: '700', fontSize: 17 },
+  choices: { gap: 12 },
+  choice: { flex: 1, minHeight: MIN_TOUCH, borderRadius: radius.control, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  choiceText: { color: c.primaryText, fontSize: 24, fontWeight: '800', textAlign: 'center' },
+  alert: { borderWidth: 2, borderRadius: radius.card, padding: 18, gap: 10 },
+  alertTitle: { fontSize: 21, fontWeight: '800', flex: 1 },
+  alertValue: { fontSize: 19, fontWeight: '700' },
+  historyRow: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border },
 });

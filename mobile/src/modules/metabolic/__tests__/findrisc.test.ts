@@ -14,6 +14,8 @@ import {
   type FindriscAnswers,
 } from '../findrisc';
 import { findriscReportHtml } from '../findriscPdf';
+import { ar } from '../../../i18n/ar';
+import { fr } from '../../../i18n/fr';
 
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -84,7 +86,7 @@ describe('barème FINDRISC', () => {
   });
 
   it('exige les 8 réponses', () => {
-    expect(typeof parseForm(EMPTY_FORM)).toBe('string');
+    expect(parseForm(EMPTY_FORM)).toBe('AGE');
     expect(
       parseForm({
         age: '60',
@@ -106,6 +108,7 @@ describe('bilan PDF', () => {
   it('détaille les 8 réponses, poids, taille, IMC, score et orientation', () => {
     const points = findriscPoints(answers);
     const html = findriscReportHtml(
+      fr,
       'Hajj Ahmed',
       { ...answers, datePassation: '2026-11-19T08:00:00Z', imc: 28.7, points, scoreTotal: 14, niveau: 'MODERE' },
       new Date('2026-11-19T09:00:00Z'),
@@ -116,5 +119,18 @@ describe('bilan PDF', () => {
     expect(html).toContain('14 / 26');
     expect(html).toContain('Risque modéré (environ 17 %');
     expect(html).toContain('ne constitue pas un diagnostic médical officiel');
+  });
+
+  it('s’édite en arabe, de droite à gauche', () => {
+    const points = findriscPoints(answers);
+    const html = findriscReportHtml(
+      ar,
+      'المريض',
+      { ...answers, datePassation: '2026-11-19T08:00:00Z', imc: 28.7, points, scoreTotal: 14, niveau: 'MODERE' },
+      new Date('2026-11-19T09:00:00Z'),
+    );
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('خطر متوسط (حوالي 17 %');
+    expect(html).toContain('14 / 26');
   });
 });

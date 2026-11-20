@@ -3,6 +3,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { PROTOCOL_SLOTS, averageOf, classifyBp, nextEmptySlot, parseBp } from '../bp';
 import type { BpSeries } from '../bpStore';
 import { bpReportHtml } from '../bpPdf';
+import { ar } from '../../../i18n/ar';
+import { fr } from '../../../i18n/fr';
 
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -23,9 +25,9 @@ describe('alertes tensionnelles', () => {
 
   it('refuse les saisies impossibles', () => {
     expect(parseBp('128', '78', '70')).toEqual({ tas: 128, tad: 78, pouls: 70 });
-    expect(typeof parseBp('80', '90', '70')).toBe('string');
-    expect(typeof parseBp('300', '90', '70')).toBe('string');
-    expect(typeof parseBp('120', '80', '10')).toBe('string');
+    expect(parseBp('80', '90', '70')).toBe('ORDRE');
+    expect(parseBp('300', '90', '70')).toBe('TAS');
+    expect(parseBp('120', '80', '10')).toBe('POULS');
   });
 });
 
@@ -61,7 +63,7 @@ describe('relevé PDF', () => {
         ...s,
       })),
     };
-    const html = bpReportHtml('Hajj Ahmed', series, new Date('2026-11-20T09:00:00Z'));
+    const html = bpReportHtml(fr, 'Hajj Ahmed', series, new Date('2026-11-20T09:00:00Z'));
     expect(html).toContain('Hajj Ahmed');
     expect(html.match(/<tr><td>Jour \d/g)).toHaveLength(6);
     expect(html).toContain('Jour 3 (19/11)');
@@ -69,5 +71,10 @@ describe('relevé PDF', () => {
     expect(html).toContain('montrez ce relevé à votre médecin');
     expect(html).toContain('185/80');
     expect(html).toContain('ne constitue pas un diagnostic médical officiel');
+
+    const arabic = bpReportHtml(ar, 'المريض', series, new Date('2026-11-20T09:00:00Z'));
+    expect(arabic).toContain('dir="rtl"');
+    expect(arabic).toContain('اليوم 3 (19/11)');
+    expect(arabic).toContain('142,5 / 80,0 مم زئبق');
   });
 });

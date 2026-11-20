@@ -2,15 +2,16 @@ import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 
-/** Fiche d'un module fonctionnel, affichée en tuile sur la grille d'accueil. */
+export type ModuleId = 'observance' | 'saturation' | 'mental' | 'metabolic' | 'cardio' | 'alzheimer';
+
+/** Fiche d'un module fonctionnel, affichée en carte sur la grille d'accueil (titre et sous-titre : `t.home.modules`). */
 export interface ModuleDefinition {
-  id: 'observance' | 'saturation' | 'mental' | 'metabolic' | 'cardio' | 'alzheimer';
-  title: string;
-  subtitle: string;
+  id: ModuleId;
   icon: ComponentProps<typeof Ionicons>['name'];
-  /** Fond de la pastille d'icône (icône blanche, contraste ≥ 3:1). */
+  /** Couleur de l'icône (accent du module). */
   colour: string;
+  /** Fond pastel du badge d'icône. */
+  tint: string;
   /** Écran d'entrée du module. */
   route: Href;
 }
-

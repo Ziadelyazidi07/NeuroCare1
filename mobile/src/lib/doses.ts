@@ -1,5 +1,7 @@
 /** Règles d'affichage des prises (cahier §3.7 EF-DA-01, §13.3). */
 
+import type { Dictionary } from '../i18n';
+
 export type DoseStatus = 'EN_ATTENTE' | 'CONFIRME' | 'SANS_REPONSE' | 'DESACTIVE';
 export type PillColour = 'VERT' | 'ORANGE' | 'GRIS';
 
@@ -25,17 +27,9 @@ export function pillColour(status: DoseStatus): PillColour {
  * Libellés affichés. « Sans réponse » n'est jamais présenté comme un oubli ou une non-prise (§13.3),
  * et « Confirmé » ne prouve pas la prise du médicament.
  */
-export function statusLabel(status: DoseStatus): string {
-  switch (status) {
-    case 'CONFIRME':
-      return 'Confirmé';
-    case 'SANS_REPONSE':
-      return 'Sans réponse';
-    case 'DESACTIVE':
-      return 'Désactivé';
-    default:
-      return 'En attente';
-  }
+/** Libellé du statut dans la langue choisie (jamais « oubli » : une absence de réponse n'est pas une omission). */
+export function statusLabel(status: DoseStatus, t: Dictionary): string {
+  return t.doseStatus[status] ?? t.doseStatus.EN_ATTENTE;
 }
 
 /** Une prise peut être confirmée dès 30 min avant l'heure prévue, tant qu'elle est en attente. */

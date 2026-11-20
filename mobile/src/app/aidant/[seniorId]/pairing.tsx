@@ -1,17 +1,18 @@
 /** Code d'appairage du téléphone senior : 6 chiffres, valable 10 minutes, usage unique (EF-AU-04). */
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { aidantApi } from '../../../api/api';
 import type { DeviceDto, PairingCodeResponse } from '../../../api/types';
 import { formatDay, formatTime, secondsUntil } from '../../../lib/dates';
 import { errorMessage } from '../../../lib/problem';
-import { Button, Card, ErrorText, Notice, Screen, styles } from '../../../ui/components';
-import { aidantColours as c } from '../../../ui/theme';
+import { useLanguage } from '../../../i18n';
+import { Button, Card, colours as c, ErrorText, Notice, Screen, styles, Text } from '../../../theme';
 
 export default function Pairing() {
   const { seniorId } = useLocalSearchParams<{ seniorId: string }>();
+  const { t } = useLanguage();
   const [pairing, setPairing] = useState<PairingCodeResponse | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +23,9 @@ export default function Pairing() {
     try {
       setDevices(await aidantApi.devices(seniorId));
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     }
-  }, [seniorId]);
+  }, [seniorId, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,17 +34,17 @@ export default function Pairing() {
   );
 
   const revoke = (device: DeviceDto) =>
-    Alert.alert('Révoquer ce téléphone ?', 'Il ne pourra plus recevoir les rappels ni confirmer les prises (perte, vol).', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t.pairing.revokeTitle, t.pairing.revokeText, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: 'Révoquer',
+        text: t.pairing.revoke,
         style: 'destructive',
         onPress: async () => {
           try {
             await aidantApi.revokeDevice(seniorId, device.id);
             await loadDevices();
           } catch (e) {
-            setError(errorMessage(e));
+            setError(errorMessage(e, t));
           }
         },
       },
@@ -64,7 +65,7 @@ export default function Pairing() {
       setPairing(created);
       void loadDevices();
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -74,41 +75,39 @@ export default function Pairing() {
 
   return (
     <Screen>
-      <Card title="Appairer le téléphone du senior">
-        <Text style={styles.text}>
-          Sur le téléphone du senior : ouvrez NeuroCare, choisissez « Je suis senior » et saisissez ce code.
-        </Text>
+      <Card title={t.pairing.title} icon="phone-portrait">
+        <Text style={styles.text}>{t.pairing.help}</Text>
         {pairing && !expired ? (
           <>
             <Text
               style={{ fontSize: 48, fontWeight: '800', letterSpacing: 10, textAlign: 'center', color: c.primary }}
-              accessibilityLabel={`Code ${pairing.code.split('').join(' ')}`}
+              accessibilityLabel={t.pairing.codeA11y(pairing.code.split('').join(' '))}
             >
               {pairing.code}
             </Text>
             <Text style={[styles.muted, { textAlign: 'center' }]}>
-              Valable encore {Math.floor(remaining / 60)} min {String(remaining % 60).padStart(2, '0')} s
+              {t.pairing.validFor(Math.floor(remaining / 60), String(remaining % 60).padStart(2, '0'))}
             </Text>
           </>
         ) : null}
-        {expired ? <Text style={styles.muted}>Ce code a expiré.</Text> : null}
+        {expired ? <Text style={styles.muted}>{t.pairing.expired}</Text> : null}
         <ErrorText message={error} />
-        <Button label={pairing ? 'Générer un nouveau code' : 'Générer un code'} onPress={() => void generate()} loading={busy} />
+        <Button label={pairing ? t.pairing.newCode : t.pairing.code} onPress={() => void generate()} loading={busy} />
       </Card>
-      <Card title="Téléphones appairés">
-        {devices.length === 0 ? <Text style={styles.muted}>Aucun téléphone appairé.</Text> : null}
+      <Card title={t.pairing.devices} icon="phone-portrait">
+        {devices.length === 0 ? <Text style={styles.muted}>{t.pairing.noDevice}</Text> : null}
         {devices.map((d) => (
           <View key={d.id} style={{ gap: 6 }}>
             <Text style={styles.text}>
               {d.plateforme === 'IOS' ? 'iPhone' : 'Android'}
-              {d.derniereActivite ? ` · actif le ${formatDay(d.derniereActivite)} à ${formatTime(d.derniereActivite)}` : ''}
-              {d.revoque ? ' · révoqué' : ''}
+              {d.derniereActivite ? t.pairing.active(formatDay(d.derniereActivite), formatTime(d.derniereActivite)) : ''}
+              {d.revoque ? t.pairing.revoked : ''}
             </Text>
-            {!d.revoque ? <Button label="Révoquer" variant="secondary" onPress={() => revoke(d)} /> : null}
+            {!d.revoque ? <Button label={t.pairing.revoke} variant="secondary" onPress={() => revoke(d)} /> : null}
           </View>
         ))}
       </Card>
-      <Notice>Un nouveau code annule le précédent. En cas de perte du téléphone, révoquez-le puis appairez le nouveau.</Notice>
+      <Notice>{t.pairing.notice}</Notice>
     </Screen>
   );
 }

@@ -2,6 +2,7 @@
  * Score FINDRISC sur 26 points (mêmes règles que le backend, `FindriscScore`), calculé tout de suite sur
  * le téléphone pour un résultat immédiat même hors ligne. Estimation de risque, jamais un diagnostic.
  */
+import type { Dictionary } from '../../i18n';
 import { parseDecimal } from '../ui';
 
 export type Sexe = 'HOMME' | 'FEMME';
@@ -82,6 +83,11 @@ export function totalOf(points: FindriscPoints): number {
   return Object.values(points).reduce((sum, p) => sum + p, 0);
 }
 
+/** Nombre à une décimale avec virgule (« 28,7 »). */
+export function decimal(value: number): string {
+  return value.toFixed(1).replace('.', ',');
+}
+
 export function levelOf(score: number): FindriscLevel {
   if (score > 20) return 'TRES_ELEVE';
   if (score >= 15) return 'ELEVE';
@@ -89,43 +95,30 @@ export function levelOf(score: number): FindriscLevel {
   return score >= 7 ? 'LEGEREMENT_ACCRU' : 'FAIBLE';
 }
 
-export const LEVEL_TEXT: Record<FindriscLevel, { title: string; percent: number; orientation: string }> = {
-  FAIBLE: { title: 'Risque faible', percent: 1, orientation: 'Continuez à bouger et à manger équilibré.' },
-  LEGEREMENT_ACCRU: {
-    title: 'Risque légèrement accru',
-    percent: 4,
-    orientation: 'Une activité physique régulière et une alimentation équilibrée aident à limiter ce risque.',
-  },
-  MODERE: { title: 'Risque modéré', percent: 17, orientation: 'Il est conseillé d’en parler à votre médecin.' },
-  ELEVE: { title: 'Risque élevé', percent: 33, orientation: 'Un bilan sanguin (glycémie à jeun) est recommandé : parlez-en à votre médecin.' },
-  TRES_ELEVE: {
-    title: 'Risque très élevé',
-    percent: 50,
-    orientation: 'Une consultation médicale (médecin traitant ou endocrinologue) est fortement recommandée.',
-  },
-};
+/** Risque estimé de diabète de type 2 à 10 ans, par niveau (barème officiel). */
+export const LEVEL_PERCENT: Record<FindriscLevel, number> = { FAIBLE: 1, LEGEREMENT_ACCRU: 4, MODERE: 17, ELEVE: 33, TRES_ELEVE: 50 };
 
-export function levelSummary(level: FindriscLevel): string {
-  return `${LEVEL_TEXT[level].title} (environ ${LEVEL_TEXT[level].percent} % de risque de diabète de type 2 à 10 ans)`;
+/** Niveau et pourcentage dans la langue choisie. */
+export function levelSummary(t: Dictionary, level: FindriscLevel): string {
+  return t.findrisc.summary(t.findrisc.level[level].title, LEVEL_PERCENT[level]);
 }
 
-/** Libellés des 8 questions (formulaire et PDF). */
-export const QUESTION_LABELS: Record<keyof FindriscPoints, string> = {
-  age: 'Âge',
-  imc: 'Indice de masse corporelle (IMC)',
-  tourTaille: 'Tour de taille',
-  activitePhysique: 'Au moins 30 minutes d’activité physique par jour',
-  fruitsLegumes: 'Fruits ou légumes tous les jours',
-  medicamentsHypertension: 'Médicaments contre l’hypertension pris régulièrement',
-  glycemieElevee: 'Taux de sucre élevé dans le sang déjà constaté',
-  antecedentsFamiliaux: 'Diabète dans la famille',
-};
+/** Ordre des 8 questions (formulaire et PDF ; libellés : `t.findrisc.questionLabels`). */
+export const QUESTION_KEYS: (keyof FindriscPoints)[] = [
+  'age',
+  'imc',
+  'tourTaille',
+  'activitePhysique',
+  'fruitsLegumes',
+  'medicamentsHypertension',
+  'glycemieElevee',
+  'antecedentsFamiliaux',
+];
 
-export const FAMILY_LABELS: Record<FamilyHistory, string> = {
-  AUCUN: 'Non',
-  ELOIGNES: 'Grand-parent, tante, oncle, cousin germain',
-  PROCHES: 'Parent, frère, sœur, enfant',
-};
+export const FAMILY_OPTIONS: FamilyHistory[] = ['AUCUN', 'ELOIGNES', 'PROCHES'];
+
+/** Code d'erreur du formulaire (message : `t.findrisc.errors`). */
+export type FormError = 'AGE' | 'SEXE' | 'POIDS' | 'TAILLE' | 'TOUR' | 'INCOMPLET';
 
 export interface FindriscForm {
   age: string;
@@ -153,18 +146,18 @@ export const EMPTY_FORM: FindriscForm = {
   antecedentsFamiliaux: null,
 };
 
-/** Formulaire → réponses validées, ou message d'erreur. */
-export function parseForm(f: FindriscForm): FindriscAnswers | string {
+/** Formulaire → réponses validées, ou code d'erreur. */
+export function parseForm(f: FindriscForm): FindriscAnswers | FormError {
   const age = Number(f.age.trim());
-  if (!/^\d{2,3}$/.test(f.age.trim()) || age < 18 || age > 120) return 'Âge : saisissez un nombre entre 18 et 120 ans.';
-  if (!f.sexe) return 'Indiquez le sexe (il fixe les seuils du tour de taille).';
+  if (!/^\d{2,3}$/.test(f.age.trim()) || age < 18 || age > 120) return 'AGE';
+  if (!f.sexe) return 'SEXE';
   const poidsKg = parseDecimal(f.poids);
-  if (!(poidsKg >= 20 && poidsKg <= 350)) return 'Poids : saisissez une valeur entre 20 et 350 kg.';
+  if (!(poidsKg >= 20 && poidsKg <= 350)) return 'POIDS';
   const tailleCm = parseHeightCm(f.taille);
-  if (!(tailleCm >= 100 && tailleCm <= 250)) return 'Taille : saisissez-la en cm (ex. 170) ou en m (ex. 1,70).';
+  if (!(tailleCm >= 100 && tailleCm <= 250)) return 'TAILLE';
   const tourTailleCm = Number(f.tourTaille.trim());
   if (!/^\d{2,3}$/.test(f.tourTaille.trim()) || tourTailleCm < 40 || tourTailleCm > 200) {
-    return 'Tour de taille : saisissez un nombre entier entre 40 et 200 cm.';
+    return 'TOUR';
   }
   if (
     f.activitePhysique === null ||
@@ -173,7 +166,7 @@ export function parseForm(f: FindriscForm): FindriscAnswers | string {
     f.glycemieEleveeAntecedent === null ||
     f.antecedentsFamiliaux === null
   ) {
-    return 'Répondez aux 8 questions.';
+    return 'INCOMPLET';
   }
   return {
     age,

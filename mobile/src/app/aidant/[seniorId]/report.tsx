@@ -3,7 +3,7 @@
  * enregistré dans le cache de l'application puis ouvert dans le partage du téléphone.
  */
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -13,13 +13,14 @@ import { authorizationHeader } from '../../../api/client';
 import { getApiBase } from '../../../api/config';
 import { addDays, formatDay, mondayOf, toIsoDate } from '../../../lib/dates';
 import { errorMessage, networkError, toApiError } from '../../../lib/problem';
-import { Button, Card, ErrorText, Field, Notice, Screen, styles } from '../../../ui/components';
-import { aidantColours as c } from '../../../ui/theme';
+import { useLanguage } from '../../../i18n';
+import { Button, Card, colours as c, ErrorText, Field, Notice, radius, Screen, styles, Text } from '../../../theme';
 
 const MAX_OBSERVATIONS = 1000;
 
 export default function Report() {
   const { seniorId } = useLocalSearchParams<{ seniorId: string }>();
+  const { t } = useLanguage();
   const thisMonday = mondayOf(new Date());
   const weeks = [0, 1, 2, 3].map((n) => addDays(thisMonday, -7 * n));
   const [week, setWeek] = useState(weeks[1]);
@@ -57,11 +58,11 @@ export default function Report() {
       file.create();
       file.write(new Uint8Array(await response.arrayBuffer()));
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Rapport NeuroCare' });
+        await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: t.report.dialog });
       }
-      setDone(`Rapport enregistré : ${file.uri.split('/').pop()}`);
+      setDone(t.report.saved(file.uri.split('/').pop() ?? ''));
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -69,7 +70,7 @@ export default function Report() {
 
   return (
     <Screen>
-      <Card title="Semaine">
+      <Card title={t.report.week} icon="calendar">
         <View style={{ gap: 8 }}>
           {weeks.map((monday, index) => {
             const selected = toIsoDate(monday) === toIsoDate(week);
@@ -80,27 +81,26 @@ export default function Report() {
                 accessibilityState={{ checked: selected }}
                 onPress={() => setWeek(monday)}
                 style={{
-                  minHeight: 48,
-                  borderRadius: 10,
+                  minHeight: 52,
+                  borderRadius: radius.control,
                   borderWidth: 1.5,
-                  borderColor: c.primary,
-                  backgroundColor: selected ? c.primary : 'transparent',
+                  borderColor: selected ? c.primary : c.inputBorder,
+                  backgroundColor: selected ? c.primary : c.card,
                   justifyContent: 'center',
                   paddingHorizontal: 12,
                 }}
               >
-                <Text style={{ color: selected ? c.primaryText : c.primary, fontWeight: '600' }}>
-                  {index === 0 ? 'Cette semaine' : index === 1 ? 'Semaine dernière' : `Il y a ${index} semaines`} — du{' '}
-                  {formatDay(toIsoDate(monday))} au {formatDay(toIsoDate(addDays(monday, 6)))}
+                <Text style={{ color: selected ? c.primaryText : c.title, fontWeight: '700', fontSize: 16 }}>
+                  {t.report.weekLabel(index, formatDay(toIsoDate(monday)), formatDay(toIsoDate(addDays(monday, 6))))}
                 </Text>
               </Pressable>
             );
           })}
         </View>
       </Card>
-      <Card title="Observations pour le médecin (facultatif)">
+      <Card title={t.report.observations} icon="create">
         <Field
-          label={`Vos remarques (${observations.length}/${MAX_OBSERVATIONS})`}
+          label={t.report.remarks(observations.length, MAX_OBSERVATIONS)}
           value={observations}
           onChangeText={(v) => setObservations(v.slice(0, MAX_OBSERVATIONS))}
           multiline
@@ -109,11 +109,8 @@ export default function Report() {
       </Card>
       <ErrorText message={error} />
       {done ? <Text style={styles.text}>{done}</Text> : null}
-      <Button label="Télécharger le rapport PDF" onPress={() => void download()} loading={busy} />
-      <Notice>
-        Document descriptif : il ne constitue pas un diagnostic. Une confirmation dans l’application ne prouve pas la prise effective du
-        médicament.
-      </Notice>
+      <Button label={t.report.download} icon="document-text" onPress={() => void download()} loading={busy} />
+      <Notice>{t.report.notice}</Notice>
     </Screen>
   );
 }

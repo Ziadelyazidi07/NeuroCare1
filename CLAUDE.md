@@ -28,6 +28,9 @@ Toute l'architecture, le SQL, les endpoints et les règles sont dans `docs/cahie
    calcule ni score Alzheimer, ni risque, ni probabilité, seulement un « indice de vigilance cognitive » à deux
    issues (rassurant / signes à signaler au médecin), avec orientation et mention de pré-dépistage.
 6. Mobile : un dossier par module dans `mobile/src/modules/`, sans import d'un module à l'autre (vérifié par les tests).
+   Aucun texte affiché en dur : tout passe par les dictionnaires `mobile/src/i18n/fr.ts` et `ar.ts` (même forme,
+   vérifiée par les tests) et le hook `useLanguage()` ; le sens droite-à-gauche se gère par styles, jamais par
+   `I18nManager.forceRTL`. Styles et composants : `mobile/src/theme/`.
 7. Seul le Module 1 (« Rappels & Suivi ») dépend de la relation aidant / senior (appairage, compte, consentements).
    Les modules 2 à 6 s'ouvrent sans compte ni réseau et stockent leurs données sur le téléphone ; ils n'importent
    jamais `auth/`, `api/`, `senior/` ni `realtime/` (vérifié par les tests).

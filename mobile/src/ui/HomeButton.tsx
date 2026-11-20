@@ -1,21 +1,20 @@
 /**
  * Bouton « ← Accueil Modules » : revient à la grille des modules depuis n'importe quel écran, en
- * dépilant la navigation (pas d'empilement infini d'accueils).
+ * dépilant la navigation (pas d'empilement infini d'accueils). La flèche suit le sens de lecture.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
-import { MIN_TOUCH, aidantColours as c } from './theme';
-
-export const HOME_LABEL = 'Accueil Modules';
+import { useLanguage } from '../i18n';
+import { MIN_TOUCH, Text, colours as c, radius } from '../theme';
 
 export function goToModules(): void {
   router.dismissTo('/');
 }
 
 type Props =
-  /** Écrans aidant et modules : bouton contour bleu. */
+  /** Écrans aidant et modules : bouton pilule bleu pastel. */
   | { variant?: 'default' }
   /** En-tête de navigation : compact. */
   | { variant: 'header' }
@@ -23,26 +22,28 @@ type Props =
   | { variant: 'senior'; colours: { text: string; card: string }; font: number };
 
 export function HomeButton(props: Props) {
+  const { t, isRTL, row, start } = useLanguage();
   const variant = props.variant ?? 'default';
   const senior = props.variant === 'senior' ? props : null;
   const colour = senior ? senior.colours.text : c.primary;
-  const size = senior ? senior.font : variant === 'header' ? 14 : 16;
+  const size = senior ? senior.font : variant === 'header' ? 15 : 17;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={HOME_LABEL}
-      accessibilityHint="Revenir à la grille des modules NeuroCare"
+      accessibilityLabel={t.common.home}
+      accessibilityHint={t.common.homeHint}
       hitSlop={variant === 'header' ? 8 : 0}
       onPress={goToModules}
       style={({ pressed }) => [
-        variant === 'header' ? styles.header : styles.button,
-        senior && { minHeight: MIN_TOUCH, backgroundColor: senior.colours.card, borderColor: senior.colours.text },
+        variant === 'header' ? styles.header : [styles.button, start],
+        row,
+        senior && { minHeight: MIN_TOUCH, backgroundColor: senior.colours.card, borderColor: senior.colours.text, borderWidth: 2 },
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Ionicons name="grid-outline" size={size + 4} color={colour} />
-      <Text style={[styles.label, { color: colour, fontSize: size }]}>← {HOME_LABEL}</Text>
+      <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={size + 4} color={colour} />
+      <Text style={[styles.label, { color: colour, fontSize: size }]}>{t.common.home}</Text>
     </Pressable>
   );
 }
@@ -50,16 +51,12 @@ export function HomeButton(props: Props) {
 const styles = StyleSheet.create({
   button: {
     minHeight: 48,
-    flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 8,
-    paddingHorizontal: 14,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: c.primary,
-    backgroundColor: c.card,
+    paddingHorizontal: 16,
+    borderRadius: radius.pill,
+    backgroundColor: c.primarySoft,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
+  header: { alignItems: 'center', gap: 4, paddingVertical: 6 },
   label: { fontWeight: '700', flexShrink: 1 },
 });

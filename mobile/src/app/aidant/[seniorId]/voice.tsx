@@ -4,7 +4,7 @@
  * tant qu'il n'y en a pas, son téléphone joue une simple tonalité.
  */
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Alert } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   RecordingPresets,
@@ -19,12 +19,14 @@ import {
 import { aidantApi } from '../../../api/api';
 import type { VoiceProfileDto } from '../../../api/types';
 import { ApiError, errorMessage } from '../../../lib/problem';
-import { Button, Card, ErrorText, Notice, Screen, styles } from '../../../ui/components';
+import { useLanguage } from '../../../i18n';
+import { Button, Card, ErrorText, Notice, Screen, styles, Text } from '../../../theme';
 
 const TARGET_MS = 12_000;
 
 export default function Voice() {
   const { seniorId } = useLocalSearchParams<{ seniorId: string }>();
+  const { t } = useLanguage();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 200);
   const [profile, setProfile] = useState<VoiceProfileDto | null>(null);
@@ -40,9 +42,9 @@ export default function Voice() {
       setProfile(await aidantApi.voiceProfile(seniorId));
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) setProfile(null);
-      else setError(errorMessage(e));
+      else setError(errorMessage(e, t));
     }
-  }, [seniorId]);
+  }, [seniorId, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,7 +68,7 @@ export default function Voice() {
     setError(null);
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
-      setError("L'accès au micro est nécessaire pour enregistrer votre voix.");
+      setError(t.voice.micRequired);
       return;
     }
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
@@ -94,69 +96,62 @@ export default function Voice() {
       setRecordingUri(null);
     } catch (e) {
       setConsentMissing(e instanceof ApiError && e.isConsentRequired);
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
     } finally {
       setBusy(false);
     }
   };
 
   const remove = () =>
-    Alert.alert('Supprimer votre voix ?', 'Le senior entendra une simple tonalité tant qu’aucune voix n’est enregistrée.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t.voice.deleteTitle, t.voice.deleteText, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t.voice.delete,
         style: 'destructive',
         onPress: async () => {
           try {
             await aidantApi.deleteVoice(seniorId);
             setProfile(null);
           } catch (e) {
-            setError(errorMessage(e));
+            setError(errorMessage(e, t));
           }
         },
       },
     ]);
 
   const seconds = Math.floor(recorderState.durationMillis / 1000);
-  const startLabel = recordingUri ? 'Recommencer' : profile ? 'Remplacer ma voix' : 'Commencer l’enregistrement';
+  const startLabel = recordingUri ? t.voice.restart : profile ? t.voice.replace : t.voice.start;
 
   return (
     <Screen>
-      <Card title="Votre voix">
-        <Text style={styles.text}>
-          {profile
-            ? 'Votre voix est enregistrée : elle est jouée pour les rappels.'
-            : 'Aucune voix enregistrée : le senior entend une simple tonalité.'}
-        </Text>
-        {profile ? <Button label="Supprimer ma voix" variant="secondary" onPress={remove} /> : null}
+      <Card title={t.voice.yours} icon="person-circle">
+        <Text style={styles.text}>{profile ? t.voice.saved : t.voice.none}</Text>
+        {profile ? <Button label={t.voice.deleteMine} variant="secondary" onPress={remove} /> : null}
       </Card>
 
-      <Card title="Enregistrer (environ 12 secondes)">
-        <Text style={styles.muted}>Lisez calmement, dans un endroit silencieux :</Text>
-        <Text style={[styles.text, { fontStyle: 'italic' }]}>
-          « Bonjour, c’est moi. C’est l’heure de ton médicament. Prends ton temps, et appuie sur le gros bouton quand c’est
-          fait. Je pense fort à toi. »
-        </Text>
+      <Card title={t.voice.recordTitle} icon="mic">
+        <Text style={styles.muted}>{t.voice.readCalmly}</Text>
+        <Text style={[styles.text, { fontStyle: 'italic' }]}>{t.voice.script}</Text>
         {recorderState.isRecording ? (
           <>
             <Text style={[styles.cardTitle, { textAlign: 'center' }]} accessibilityLiveRegion="polite">
-              Enregistrement… {seconds} s / {TARGET_MS / 1000} s
+              {t.voice.recording(seconds, TARGET_MS / 1000)}
             </Text>
-            <Button label="Arrêter" variant="danger" onPress={() => void stop()} />
+            <Button label={t.voice.stop} variant="danger" onPress={() => void stop()} />
           </>
         ) : (
           <Button label={startLabel} variant={recordingUri || profile ? 'secondary' : 'primary'} onPress={() => void start()} />
         )}
         {recordingUri && !recorderState.isRecording ? (
           <>
-            <Button label="Réécouter" variant="secondary" onPress={listen} />
-            <Button label="Envoyer" onPress={() => void upload()} loading={busy} />
+            <Button label={t.voice.listen} variant="secondary" onPress={listen} />
+            <Button label={t.voice.send} onPress={() => void upload()} loading={busy} />
           </>
         ) : null}
         <ErrorText message={error} />
-        {consentMissing ? <Notice>Le senior doit d’abord accorder le consentement « Voix d’un proche ».</Notice> : null}
+        {consentMissing ? <Notice>{t.voice.consentRequired}</Notice> : null}
       </Card>
-      <Notice>La voix est une donnée sensible : elle n’est utilisée que pour les rappels et supprimée si le senior retire son accord.</Notice>
+      <Notice>{t.voice.sensitive}</Notice>
     </Screen>
   );
 }

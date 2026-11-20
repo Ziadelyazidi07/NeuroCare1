@@ -15,7 +15,9 @@ import MentalScreen from '../mental/MentalScreen';
 import MetabolicScreen from '../metabolic/MetabolicScreen';
 import { PATIENT_NAME_KEY } from '../PatientName';
 import SaturationScreen from '../saturation/SaturationScreen';
-import { PROFILE_QUESTION } from '../saturation/spo2';
+import { ar } from '../../i18n/ar';
+import { fr } from '../../i18n/fr';
+import { LANGUAGE_KEY, LanguageProvider } from '../../i18n/LanguageContext';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- mock officiel du paquet
@@ -59,7 +61,7 @@ beforeEach(async () => {
 describe('accès direct depuis la grille, sans compte', () => {
   it('SpO2 : profil, alerte rouge avec appel des urgences, historique local et PDF', async () => {
     await render(<SaturationScreen />);
-    expect(await screen.findByText(PROFILE_QUESTION)).toBeTruthy();
+    expect(await screen.findByText(fr.spo2.profileQuestion)).toBeTruthy();
     expect(screen.queryByText(/Rappels & Suivi|code/i)).toBeNull();
 
     await press('Non');
@@ -158,7 +160,7 @@ describe('accès direct depuis la grille, sans compte', () => {
 
     expect(await screen.findByText('Horloge')).toBeTruthy();
     await press('J’ai retenu les 4 mots');
-    await press(weekdayOf(new Date()));
+    await press(fr.memory.weekdays[weekdayOf(new Date())]);
     await press('17');
     await press('Continuer');
     await type('Mots retrouvés', 'citron, clef, horloge');
@@ -176,5 +178,29 @@ describe('accès direct depuis la grille, sans compte', () => {
     expect(printed()).toContain('Patient : <strong>Patient</strong>');
     expect(printed()).toContain('3 / 4');
     expect(printed()).toContain('Historique enregistré sur le téléphone');
+  });
+
+  it('SpO2 en arabe : écran de droite à gauche, alerte et PDF en arabe (dir="rtl")', async () => {
+    await AsyncStorage.setItem(LANGUAGE_KEY, 'ar');
+    await render(
+      <LanguageProvider>
+        <SaturationScreen />
+      </LanguageProvider>,
+    );
+    expect(await screen.findByText(ar.spo2.profileQuestion)).toBeTruthy();
+    expect(screen.getByText(ar.common.home)).toBeTruthy();
+
+    await press(ar.common.no);
+    await type(ar.spo2.spo2Field, '88');
+    await type(ar.spo2.pulseField, '96');
+    await press(ar.spo2.save);
+
+    expect(await screen.findByText(ar.spo2.advice('ROUGE', false).title)).toBeTruthy();
+    expect(screen.getByText(ar.shared.call('15'))).toBeTruthy();
+
+    await press(ar.spo2.download);
+    expect(printed()).toContain('<html lang="ar" dir="rtl">');
+    expect(printed()).toContain('المريض');
+    expect(printed()).toContain('كشف تشبّع الدم بالأكسجين');
   });
 });

@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { MODULES } from '..';
+import { ar } from '../../i18n/ar';
+import { fr } from '../../i18n/fr';
 
 const modulesDir = path.join(__dirname, '..');
 const appDir = path.join(modulesDir, '..', 'app');
@@ -17,7 +19,7 @@ const filesOf = (dir: string): string[] =>
 
 describe('grille des modules', () => {
   it('présente les 6 modules dans l’ordre prévu', () => {
-    expect(MODULES.map((m) => m.title)).toEqual([
+    expect(MODULES.map((m) => fr.home.modules[m.id].title)).toEqual([
       'Rappels & Suivi',
       'Saturation SpO₂',
       'Santé Mentale',
@@ -25,6 +27,22 @@ describe('grille des modules', () => {
       'Tension (HTA)',
       'Alzheimer & Mémoire',
     ]);
+  });
+
+  it('traduit chaque tuile en arabe', () => {
+    expect(MODULES.map((m) => ar.home.modules[m.id].title)).toEqual([
+      'التذكيرات والمتابعة',
+      'تشبّع الأكسجين SpO₂',
+      'الصحة النفسية',
+      'السكري (FINDRISC)',
+      'ضغط الدم',
+      'الزهايمر والذاكرة',
+    ]);
+  });
+
+  it('donne à chaque tuile une icône et un fond pastel distincts', () => {
+    expect(new Set(MODULES.map((m) => m.colour)).size).toBe(MODULES.length);
+    expect(new Set(MODULES.map((m) => m.tint)).size).toBe(MODULES.length);
   });
 
   it('ouvre le choix Senior / Aidant pour « Rappels & Suivi »', () => {

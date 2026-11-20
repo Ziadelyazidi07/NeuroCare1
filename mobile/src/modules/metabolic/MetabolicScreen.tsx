@@ -4,26 +4,23 @@
  * Estimation de risque, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HomeButton } from '../../ui/HomeButton';
-import { Button, Card, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
-import { aidantColours as c } from '../../ui/theme';
-import { PatientNameField, displayName, usePatientName } from '../PatientName';
-import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
-import { OptionGroup, YES_NO, parseDecimal } from '../ui';
+import { useLanguage } from '../../i18n';
+import { Button, Card, ErrorText, Field, Loading, Row, Text, colours as c, radius, styles as ui } from '../../theme';
+import { ModuleScreen } from '../ModuleScreen';
+import { formatDateTime, sharePdf } from '../pdf';
+import { OptionGroup, parseDecimal, useYesNo } from '../ui';
 import {
   EMPTY_FORM,
-  FAMILY_LABELS,
-  LEVEL_TEXT,
+  FAMILY_OPTIONS,
   MAX_SCORE,
   computeImc,
+  decimal,
   levelSummary,
   parseForm,
   parseHeightCm,
-  type FamilyHistory,
   type FindriscForm,
   type FindriscLevel,
 } from './findrisc';
@@ -32,31 +29,21 @@ import { loadAssessments, saveAssessment, scoreAnswers, type FindriscAssessment 
 import { metabolicModule } from './module';
 
 const LEVEL_COLOUR: Record<FindriscLevel, string> = {
-  FAIBLE: '#1E7B34',
+  FAIBLE: '#14653A',
   LEGEREMENT_ACCRU: '#5C6B00',
   MODERE: '#8A4600',
-  ELEVE: '#B3261E',
+  ELEVE: '#C62828',
   TRES_ELEVE: '#8C1D18',
 };
 
 export default function MetabolicScreen() {
-  const [name, setName] = usePatientName();
-  return (
-    <SafeAreaView style={ui.screen}>
-      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
-        <HomeButton />
-        <Text style={styles.title} accessibilityRole="header">
-          {metabolicModule.title}
-        </Text>
-        <PatientNameField value={name} onChange={setName} />
-        <FindriscPanel patient={displayName(name)} />
-        <Notice>{NOT_A_DIAGNOSIS}</Notice>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <ModuleScreen module={metabolicModule}>{(patient) => <FindriscPanel patient={patient} />}</ModuleScreen>;
 }
 
 function FindriscPanel({ patient }: { patient: string }) {
+  const { t } = useLanguage();
+  const f = t.findrisc;
+  const yesNo = useYesNo();
   const [form, setForm] = useState<FindriscForm>(EMPTY_FORM);
   const [result, setResult] = useState<FindriscReport | null>(null);
   const [history, setHistory] = useState<FindriscAssessment[] | null>(null);
@@ -81,7 +68,7 @@ function FindriscPanel({ patient }: { patient: string }) {
   const submit = async () => {
     const answers = parseForm(form);
     if (typeof answers === 'string') {
-      setError(answers);
+      setError(f.errors[answers]);
       return;
     }
     // Résultat affiché immédiatement, puis mémorisé sur le téléphone.
@@ -92,16 +79,16 @@ function FindriscPanel({ patient }: { patient: string }) {
       await saveAssessment(assessment);
       setHistory((list) => [assessment, ...(list ?? [])]);
     } catch {
-      setError('Questionnaire non mémorisé sur ce téléphone (le résultat reste affiché).');
+      setError(f.notSaved);
     }
   };
 
   const downloadPdf = async (report: FindriscReport) => {
     setError(null);
     try {
-      await sharePdf(findriscReportHtml(patient, report, new Date()), 'Bilan FINDRISC NeuroCare');
+      await sharePdf(t, findriscReportHtml(t, patient, report, new Date()), f.pdf.dialog);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
+      setError(e instanceof Error ? e.message : t.shared.pdfFailed);
     }
   };
 
@@ -111,17 +98,15 @@ function FindriscPanel({ patient }: { patient: string }) {
     return (
       <>
         <View style={[styles.result, { borderColor: colour }]} accessibilityRole="alert">
-          <Text style={[styles.resultTitle, { color: colour }]}>{levelSummary(report.niveau)}</Text>
-          <Text style={styles.score}>
-            Score FINDRISC : {report.scoreTotal} / {MAX_SCORE}
-          </Text>
-          <Text style={ui.text}>IMC calculé : {report.imc.toFixed(1).replace('.', ',')} kg/m²</Text>
-          <Text style={ui.text}>{LEVEL_TEXT[report.niveau].orientation}</Text>
+          <Text style={[styles.resultTitle, { color: colour }]}>{levelSummary(t, report.niveau)}</Text>
+          <Text style={styles.score}>{f.score(report.scoreTotal, MAX_SCORE)}</Text>
+          <Text style={ui.text}>{f.imc(decimal(report.imc))}</Text>
+          <Text style={ui.text}>{f.level[report.niveau].orientation}</Text>
           <ErrorText message={error} />
         </View>
-        <Button label="Télécharger le bilan FINDRISC PDF" onPress={() => void downloadPdf(report)} />
+        <Button label={f.download} icon="document-text" onPress={() => void downloadPdf(report)} />
         <Button
-          label="Nouveau questionnaire"
+          label={f.newForm}
           variant="secondary"
           onPress={() => {
             setResult(null);
@@ -135,24 +120,22 @@ function FindriscPanel({ patient }: { patient: string }) {
 
   return (
     <>
-      <Card title="Questionnaire FINDRISC (8 questions)">
-        <Field label="1. Âge (ans)" value={form.age} onChangeText={(v) => set('age', v)} keyboardType="number-pad" maxLength={3} placeholder="68" />
+      <Card title={f.formTitle} icon="clipboard">
+        <Field label={f.age} value={form.age} onChangeText={(v) => set('age', v)} keyboardType="number-pad" maxLength={3} placeholder="68" />
         <OptionGroup
-          label="Sexe"
+          label={f.sex}
           options={[
-            { value: 'HOMME', label: 'Homme' },
-            { value: 'FEMME', label: 'Femme' },
+            { value: 'HOMME', label: f.male },
+            { value: 'FEMME', label: f.female },
           ]}
           value={form.sexe}
           onChange={(v) => set('sexe', v)}
         />
-        <Field label="2. Poids (kg)" value={form.poids} onChangeText={(v) => set('poids', v)} keyboardType="decimal-pad" maxLength={5} placeholder="72" />
-        <Field label="Taille (cm ou m)" value={form.taille} onChangeText={(v) => set('taille', v)} keyboardType="decimal-pad" maxLength={5} placeholder="168 ou 1,68" />
-        <Text style={ui.muted}>
-          IMC calculé : {liveImc === null ? '—' : `${liveImc.toFixed(1).replace('.', ',')} kg/m²`}
-        </Text>
+        <Field label={f.weight} value={form.poids} onChangeText={(v) => set('poids', v)} keyboardType="decimal-pad" maxLength={5} placeholder="72" />
+        <Field label={f.height} value={form.taille} onChangeText={(v) => set('taille', v)} keyboardType="decimal-pad" maxLength={5} placeholder={f.heightPlaceholder} />
+        <Text style={ui.muted}>{liveImc === null ? f.imcNone : f.imc(decimal(liveImc))}</Text>
         <Field
-          label="3. Tour de taille (cm, au niveau du nombril)"
+          label={f.waist}
           value={form.tourTaille}
           onChangeText={(v) => set('tourTaille', v)}
           keyboardType="number-pad"
@@ -160,54 +143,54 @@ function FindriscPanel({ patient }: { patient: string }) {
           placeholder="92"
         />
         <OptionGroup
-          label="4. Au moins 30 minutes d’activité physique par jour (travail ou loisirs) ?"
-          options={YES_NO}
+          label={f.activity}
+          options={yesNo}
           value={form.activitePhysique}
           onChange={(v) => set('activitePhysique', v)}
         />
         <OptionGroup
-          label="5. Mange des fruits ou des légumes tous les jours ?"
-          options={YES_NO}
+          label={f.fruits}
+          options={yesNo}
           value={form.fruitsLegumesQuotidiens}
           onChange={(v) => set('fruitsLegumesQuotidiens', v)}
         />
         <OptionGroup
-          label="6. Prend régulièrement des médicaments contre l’hypertension artérielle ?"
-          options={YES_NO}
+          label={f.bpDrugs}
+          options={yesNo}
           value={form.medicamentsHypertension}
           onChange={(v) => set('medicamentsHypertension', v)}
         />
         <OptionGroup
-          label="7. Un taux de sucre élevé dans le sang a-t-il déjà été constaté (bilan, maladie, grossesse) ?"
-          options={YES_NO}
+          label={f.glucose}
+          options={yesNo}
           value={form.glycemieEleveeAntecedent}
           onChange={(v) => set('glycemieEleveeAntecedent', v)}
         />
-        <OptionGroup<FamilyHistory>
-          label="8. Des membres de la famille ont-ils un diabète (type 1 ou 2) ?"
-          options={(Object.keys(FAMILY_LABELS) as FamilyHistory[]).map((value) => ({ value, label: FAMILY_LABELS[value] }))}
+        <OptionGroup
+          label={f.family}
+          options={FAMILY_OPTIONS.map((value) => ({ value, label: f.familyOptions[value] }))}
           value={form.antecedentsFamiliaux}
           onChange={(v) => set('antecedentsFamiliaux', v)}
         />
         <ErrorText message={error} />
-        <Button label="Calculer le score" onPress={() => void submit()} />
+        <Button label={f.submit} onPress={() => void submit()} />
       </Card>
 
-      <Card title="Questionnaires précédents">
+      <Card title={f.previous} icon="time">
         {history === null ? <Loading /> : null}
-        {history?.length === 0 ? <Text style={ui.muted}>Aucun questionnaire pour le moment.</Text> : null}
+        {history?.length === 0 ? <Text style={ui.muted}>{f.none}</Text> : null}
         {history?.map((h) => (
-          <View key={h.id} style={styles.historyRow}>
+          <Row key={h.id} style={styles.historyRow}>
             <View style={{ flex: 1 }}>
               <Text style={ui.text}>{formatDateTime(h.datePassation)}</Text>
               <Text style={[ui.muted, { color: LEVEL_COLOUR[h.niveau] }]}>
-                {h.scoreTotal}/{MAX_SCORE} · {LEVEL_TEXT[h.niveau].title}
+                {h.scoreTotal}/{MAX_SCORE} · {f.level[h.niveau].title}
               </Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Télécharger ce bilan en PDF" onPress={() => void downloadPdf(h)} hitSlop={8}>
-              <Text style={{ color: c.primary, fontWeight: '700' }}>PDF</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={f.downloadThis} onPress={() => void downloadPdf(h)} hitSlop={8}>
+              <Text style={styles.link}>{t.common.pdf}</Text>
             </Pressable>
-          </View>
+          </Row>
         ))}
       </Card>
     </>
@@ -215,9 +198,9 @@ function FindriscPanel({ patient }: { patient: string }) {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800', color: c.text },
-  result: { borderWidth: 2, borderRadius: 14, padding: 16, gap: 8, backgroundColor: c.card },
-  resultTitle: { fontSize: 20, fontWeight: '800' },
-  score: { fontSize: 24, fontWeight: '800', color: c.text },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border },
+  link: { color: c.primary, fontWeight: '700', fontSize: 17 },
+  result: { borderWidth: 2, borderRadius: radius.card, padding: 18, gap: 8, backgroundColor: c.card },
+  resultTitle: { fontSize: 22, fontWeight: '800' },
+  score: { fontSize: 24, fontWeight: '800', color: c.title },
+  historyRow: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border },
 });

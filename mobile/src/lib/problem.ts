@@ -1,5 +1,7 @@
 /** Erreurs de l'API au format RFC 7807 (ProblemDetail + code métier NeuroCare). */
 
+import type { Dictionary } from '../i18n';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -41,9 +43,16 @@ export function networkError(): ApiError {
   return new ApiError(0, 'NETWORK', 'Serveur injoignable. Vérifiez la connexion.');
 }
 
-/** Message lisible pour l'utilisateur, quelle que soit l'erreur. */
-export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+/**
+ * Message lisible pour l'utilisateur, dans la langue choisie pour les erreurs connues (réseau, statut HTTP
+ * sans détail). Le détail renvoyé par le serveur est affiché tel quel.
+ */
+export function errorMessage(error: unknown, t: Dictionary): string {
+  if (error instanceof ApiError) {
+    if (error.code === 'NETWORK') return t.errors.network;
+    if (error.message === `Erreur ${error.status}`) return t.errors.http(error.status);
+    return error.message;
+  }
   if (error instanceof Error) return error.message;
-  return 'Une erreur inattendue est survenue.';
+  return t.errors.unexpected;
 }

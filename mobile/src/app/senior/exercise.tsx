@@ -3,17 +3,19 @@
  * Le résultat brut est envoyé tel quel ; aucun score ni interprétation n'est affiché (§13.3).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { seniorApi } from '../../api/api';
 import type { ExerciseDto, WordDto } from '../../api/types';
+import { useLanguage } from '../../i18n';
 import { ApiError, errorMessage } from '../../lib/problem';
-import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
+import { MIN_TOUCH, SENIOR_MIN_FONT, Text, radius, seniorColours, shadow } from '../../theme';
 
 type Phase = 'chargement' | 'memoriser' | 'pause' | 'choisir' | 'fini' | 'erreur';
-const colours = seniorColours.high;
+// Thème senior « normal » (contraste ≥ 7:1) aux couleurs médicales de l'application.
+const colours = seniorColours.normal;
 
 /** Horloge lue uniquement dans les gestionnaires d'événements (jamais pendant le rendu). */
 function nowMs(): number {
@@ -25,6 +27,7 @@ function display(word: WordDto): string {
 }
 
 export default function WordRecallGame() {
+  const { t } = useLanguage();
   const [exercise, setExercise] = useState<ExerciseDto | null>(null);
   const [phase, setPhase] = useState<Phase>('chargement');
   const [remaining, setRemaining] = useState(0);
@@ -46,9 +49,11 @@ export default function WordRecallGame() {
         setPhase('memoriser');
       })
       .catch((e) => {
-        setError(e instanceof ApiError && e.isConsentRequired ? "Le jeu n'est pas activé. Votre proche peut l'activer." : errorMessage(e));
+        setError(e instanceof ApiError && e.isConsentRequired ? t.game.disabled : errorMessage(e, t));
         setPhase('erreur');
       });
+    // Chargement unique à l'ouverture ; les textes d'erreur sont lus à ce moment-là.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startRecall = useCallback(() => {
@@ -113,14 +118,14 @@ export default function WordRecallGame() {
         router.back();
         return;
       }
-      setResult(`Merci d'avoir joué ! Vous avez retrouvé ${saved.corrects} mot(s) sur ${saved.motsPresentes}.`);
+      setResult(t.game.result(saved.corrects, saved.motsPresentes));
       setPhase('fini');
     } catch (e) {
       if (interrompu) {
         router.back();
         return;
       }
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
       setPhase('erreur');
     }
   };
@@ -128,32 +133,32 @@ export default function WordRecallGame() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {phase === 'chargement' ? <Text style={styles.text}>Préparation du jeu…</Text> : null}
+        {phase === 'chargement' ? <Text style={styles.text}>{t.game.loading}</Text> : null}
 
         {phase === 'memoriser' && exercise ? (
           <>
-            <Text style={styles.title}>Retenez ces mots</Text>
+            <Text style={styles.title}>{t.game.remember}</Text>
             {exercise.motsPresentes.map((w) => (
               <Text key={w.mot} style={styles.word}>
                 {display(w)}
               </Text>
             ))}
-            <Big label="J'ai retenu" onPress={startPause} primary />
+            <Big label={t.game.remembered} onPress={startPause} primary />
           </>
         ) : null}
 
         {phase === 'pause' ? (
           <>
-            <Text style={styles.title}>Petite pause</Text>
-            <Text style={styles.text}>Pensez à autre chose un instant.</Text>
+            <Text style={styles.title}>{t.game.pause}</Text>
+            <Text style={styles.text}>{t.game.pauseText}</Text>
             <Text style={styles.countdown}>{remaining}</Text>
-            <Big label="Continuer" onPress={startRecall} primary />
+            <Big label={t.game.continue} onPress={startRecall} primary />
           </>
         ) : null}
 
         {phase === 'choisir' && exercise ? (
           <>
-            <Text style={styles.title}>Quels mots avez-vous vus ?</Text>
+            <Text style={styles.title}>{t.game.which}</Text>
             <View style={styles.grid}>
               {exercise.propositions.map((w) => {
                 const selected = chosen.includes(w.mot);
@@ -170,15 +175,15 @@ export default function WordRecallGame() {
                 );
               })}
             </View>
-            <Big label="Valider" onPress={() => void send(false)} primary />
+            <Big label={t.game.submit} onPress={() => void send(false)} primary />
           </>
         ) : null}
 
         {phase === 'fini' ? (
           <>
-            <Text style={styles.title}>Merci</Text>
+            <Text style={styles.title}>{t.game.thanks}</Text>
             <Text style={styles.text}>{result}</Text>
-            <Big label="Retour" onPress={() => router.back()} primary />
+            <Big label={t.common.back} onPress={() => router.back()} primary />
           </>
         ) : null}
 
@@ -187,12 +192,12 @@ export default function WordRecallGame() {
             <Text style={styles.text} accessibilityRole="alert">
               {error}
             </Text>
-            <Big label="Retour" onPress={() => router.back()} primary />
+            <Big label={t.common.back} onPress={() => router.back()} primary />
           </>
         ) : null}
 
         {phase === 'memoriser' || phase === 'pause' || phase === 'choisir' ? (
-          <Big label="Arrêter le jeu" onPress={() => void send(true)} />
+          <Big label={t.game.stop} onPress={() => void send(true)} />
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -222,17 +227,19 @@ const styles = StyleSheet.create({
   choice: {
     width: '30%',
     minHeight: MIN_TOUCH * 1.4,
-    borderRadius: 16,
-    borderWidth: 3,
-    borderColor: colours.text,
+    borderRadius: radius.card,
+    borderWidth: 2,
+    borderColor: '#C9D6E8',
+    backgroundColor: colours.card,
+    ...shadow,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 6,
   },
   choiceSelected: { backgroundColor: colours.action, borderColor: colours.action },
   choiceText: { fontSize: SENIOR_MIN_FONT, fontWeight: '700', color: colours.text, textAlign: 'center' },
-  big: { minHeight: MIN_TOUCH * 1.25, borderRadius: 20, alignItems: 'center', justifyContent: 'center', padding: 12 },
+  big: { minHeight: MIN_TOUCH * 1.25, borderRadius: radius.card, alignItems: 'center', justifyContent: 'center', padding: 12 },
   bigPrimary: { backgroundColor: colours.action },
-  bigSecondary: { borderWidth: 3, borderColor: colours.muted },
-  bigText: { fontSize: 28, fontWeight: '800', color: colours.text },
+  bigSecondary: { borderWidth: 2.5, borderColor: colours.muted, backgroundColor: colours.card },
+  bigText: { fontSize: 28, fontWeight: '800', color: colours.text, textAlign: 'center' },
 });

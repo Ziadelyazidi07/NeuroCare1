@@ -3,7 +3,9 @@ import { describe, expect, it } from '@jest/globals';
 import { addDays, formatDay, mondayOf, secondsUntil, toIsoDate } from '../dates';
 import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue, pillColour, statusLabel, type DoseLike } from '../doses';
 import { acknowledge, enqueue, withLocalConfirmations, type PendingConfirmation } from '../offlineQueue';
-import { ApiError, errorMessage, toApiError } from '../problem';
+import { ApiError, errorMessage, networkError, toApiError } from '../problem';
+import { ar } from '../../i18n/ar';
+import { fr } from '../../i18n/fr';
 import { cleanApiBase, seniorTopic, wsUrlFromApi } from '../urls';
 import { isE164, isSixDigitCode, normalizePhone, parseHHMM, registrationError } from '../validation';
 
@@ -24,9 +26,10 @@ describe('pastilles et libellés (EF-DA-01, §13.3)', () => {
   });
 
   it("ne présente jamais l'absence de réponse comme un oubli", () => {
-    const labels = (['EN_ATTENTE', 'CONFIRME', 'SANS_REPONSE', 'DESACTIVE'] as const).map(statusLabel);
+    const labels = (['EN_ATTENTE', 'CONFIRME', 'SANS_REPONSE', 'DESACTIVE'] as const).map((s) => statusLabel(s, fr));
     expect(labels.join(' ').toLowerCase()).not.toMatch(/oubli|non pris|non-prise/);
-    expect(statusLabel('SANS_REPONSE')).toBe('Sans réponse');
+    expect(statusLabel('SANS_REPONSE', fr)).toBe('Sans réponse');
+    expect(statusLabel('SANS_REPONSE', ar)).toBe('بدون رد');
   });
 });
 
@@ -121,10 +124,11 @@ describe('inscription', () => {
   });
 
   it('refuse un formulaire incomplet ou incohérent', () => {
-    expect(registrationError({ ...valid, nomComplet: ' ' })).toContain('nom');
-    expect(registrationError({ ...valid, telephone: '0600' })).toContain('Numéro');
-    expect(registrationError({ ...valid, motDePasse: 'court', confirmation: 'court' })).toContain('8 et 72');
-    expect(registrationError({ ...valid, confirmation: 'autre' })).toContain('identiques');
+    expect(registrationError({ ...valid, nomComplet: ' ' })).toBe('NOM');
+    expect(registrationError({ ...valid, telephone: '0600' })).toBe('TELEPHONE');
+    expect(registrationError({ ...valid, motDePasse: 'court', confirmation: 'court' })).toBe('MOT_DE_PASSE');
+    expect(registrationError({ ...valid, confirmation: 'autre' })).toBe('CONFIRMATION');
+    expect(fr.registration.MOT_DE_PASSE).toContain('8 et 72');
   });
 });
 
@@ -151,7 +155,9 @@ describe('erreurs RFC 7807', () => {
     const error = toApiError(403, { code: 'CONSENT_REQUIRED', detail: "Le consentement VOIX n'est pas accordé." });
     expect(error).toBeInstanceOf(ApiError);
     expect(error.isConsentRequired).toBe(true);
-    expect(errorMessage(error)).toBe("Le consentement VOIX n'est pas accordé.");
+    expect(errorMessage(error, fr)).toBe("Le consentement VOIX n'est pas accordé.");
+    expect(errorMessage(networkError(), ar)).toBe(ar.errors.network);
+    expect(errorMessage(toApiError(502, null), ar)).toBe('خطأ 502');
   });
 
   it('liste les erreurs de champ', () => {

@@ -4,7 +4,7 @@
  * prise, l'alerte s'affiche et la voix de l'aidant, déjà téléchargée, part automatiquement.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { seniorApi } from '../../api/api';
 import type { DoseDto, RealtimeEvent, SeniorDto } from '../../api/types';
 import { useSession } from '../../auth/SessionContext';
+import { useLanguage } from '../../i18n';
 import { formatTime } from '../../lib/dates';
 import { currentDose, doseToAnnounce, isConfirmable, isDue, msUntilNextDue } from '../../lib/doses';
 import { useSeniorEvents } from '../../realtime/useSeniorEvents';
@@ -30,14 +31,15 @@ import {
   scheduleReminders,
   type AlertPermissions,
 } from '../../senior/reminders';
+import { MIN_TOUCH, SENIOR_MIN_FONT, Text, seniorColours, shadow } from '../../theme';
 import { HomeButton } from '../../ui/HomeButton';
-import { MIN_TOUCH, SENIOR_MIN_FONT, seniorColours } from '../../ui/theme';
 
 const PROFILE_KEY = 'neurocare.senior.profile';
 const MAX_TIMER_MS = 60_000;
 
 export default function SeniorHome() {
   const { session, signOut } = useSession();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<SeniorDto | null>(null);
   const [doses, setDoses] = useState<DoseDto[]>([]);
   const [online, setOnline] = useState(true);
@@ -201,11 +203,7 @@ export default function SeniorHome() {
     applyDoses(dosesRef.current.map((d) => (d.id === dose.id ? { ...d, statut: 'CONFIRME' } : d)));
     const outcome = await confirmDose(dose);
     setMessage(
-      outcome === 'en_attente'
-        ? "C'est noté. Ce sera envoyé dès que le téléphone aura du réseau."
-        : outcome === 'refusee'
-          ? 'Ce rappel était déjà clôturé.'
-          : "C'est noté. Merci !",
+      outcome === 'en_attente' ? t.senior.savedOffline : outcome === 'refusee' ? t.senior.alreadyClosed : t.senior.saved,
     );
     setBusy(false);
     void refresh();
@@ -223,11 +221,11 @@ export default function SeniorHome() {
 
   const confirmSignOut = () =>
     Alert.alert(
-      'Se déconnecter de ce téléphone ?',
-      'Les rappels s’arrêteront sur ce téléphone. Pour revenir, il faudra un nouveau code de votre proche.',
+      t.senior.signOutTitle,
+      t.senior.signOutText,
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Se déconnecter', style: 'destructive', onPress: () => void signOut().then(() => router.replace('/')) },
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.senior.signOutConfirm, style: 'destructive', onPress: () => void signOut().then(() => router.replace('/')) },
       ],
     );
 
@@ -243,23 +241,23 @@ export default function SeniorHome() {
         <HomeButton variant="senior" colours={colours} font={SENIOR_MIN_FONT} />
         <Pressable onLongPress={confirmSignOut} delayLongPress={3000} accessibilityRole="header">
           <Text style={[styles.greeting, { color: colours.text, fontSize: font + 8 }]}>
-            Bonjour {profile?.lien?.surnomSenior ?? session.nomComplet}
+            {t.senior.hello(profile?.lien?.surnomSenior ?? session.nomComplet)}
           </Text>
         </Pressable>
 
         {!online ? (
           <Text style={[styles.offline, { fontSize: font - 4, color: colours.action }]} accessibilityRole="alert">
-            Pas de réseau : vos rappels continuent et vos réponses seront envoyées plus tard.
+            {t.senior.offline}
           </Text>
         ) : null}
 
         {alertsMissing ? (
           <View style={styles.permissions}>
             <Text style={[text, styles.center]} accessibilityRole="alert">
-              Sans cette autorisation, les rappels peuvent ne pas sonner quand le téléphone est verrouillé.
+              {t.senior.alertsMissing}
             </Text>
             <BigButton
-              label="Activer les alertes sur ce téléphone"
+              label={t.senior.enableAlerts}
               colours={colours}
               font={font}
               onPress={() => void activateAlerts()}
@@ -270,28 +268,28 @@ export default function SeniorHome() {
 
         {due && dose ? (
           <View style={[styles.alert, { backgroundColor: colours.action }]} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            <Text style={[styles.alertTitle, { color: colours.actionText, fontSize: font + 12 }]}>C’est l’heure !</Text>
+            <Text style={[styles.alertTitle, { color: colours.actionText, fontSize: font + 12 }]}>{t.senior.timeNow}</Text>
             <Text style={[styles.bold, { color: colours.actionText, fontSize: font }]}>{dose.nomMedicament}</Text>
           </View>
         ) : null}
 
-        <View style={[styles.card, { backgroundColor: colours.card }]} accessibilityLiveRegion="polite">
+        <View style={[styles.card, { backgroundColor: colours.card }, colours === seniorColours.normal && styles.cardNormal]} accessibilityLiveRegion="polite">
           {dose ? (
             <>
               <Text style={[styles.time, { color: colours.action, fontSize: font + 24 }]}>{formatTime(dose.datePrevue)}</Text>
-              <Text style={[text, styles.bold]}>{due ? "C'est l'heure de ton médicament" : 'Prochain rappel'}</Text>
+              <Text style={[text, styles.bold]}>{due ? t.senior.dueTitle : t.senior.next}</Text>
               <Text style={[text, styles.medication]}>{dose.nomMedicament}</Text>
               {dose.consigne ? <Text style={[text, { color: colours.muted }]}>{dose.consigne}</Text> : null}
             </>
           ) : (
-            <Text style={text}>Aucun rappel pour le moment.</Text>
+            <Text style={[text, styles.center]}>{t.senior.none}</Text>
           )}
         </View>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="C'est fait"
-          accessibilityHint="Confirme le rappel de médicament"
+          accessibilityLabel={t.senior.done}
+          accessibilityHint={t.senior.doneHint}
           accessibilityState={{ disabled: !canConfirm }}
           disabled={!canConfirm}
           onPress={onDone}
@@ -300,7 +298,7 @@ export default function SeniorHome() {
             { backgroundColor: colours.action, opacity: canConfirm ? (pressed ? 0.8 : 1) : 0.35 },
           ]}
         >
-          <Text style={[styles.doneText, { color: colours.actionText, fontSize: font + 16 }]}>C’est fait</Text>
+          <Text style={[styles.doneText, { color: colours.actionText, fontSize: font + 16 }]}>{t.senior.done}</Text>
         </Pressable>
 
         {message ? (
@@ -310,20 +308,20 @@ export default function SeniorHome() {
         ) : null}
 
         {dose && hasVoice ? (
-          <BigButton label={due ? 'Réécouter' : 'Écouter le message'} colours={colours} font={font} onPress={() => void playReminder(dose)} />
+          <BigButton label={due ? t.senior.replay : t.senior.listen} colours={colours} font={font} onPress={() => void playReminder(dose)} />
         ) : null}
-        {due && !hasVoice ? <Text style={[text, styles.center]}>Votre proche n’a pas encore enregistré sa voix.</Text> : null}
-        <BigButton label="Jeu de mémoire" colours={colours} font={font} onPress={() => router.push('/senior/exercise')} />
+        {due && !hasVoice ? <Text style={[text, styles.center]}>{t.senior.noVoice}</Text> : null}
+        <BigButton label={t.senior.memoryGame} colours={colours} font={font} onPress={() => router.push('/senior/exercise')} />
         {profile?.contactUrgenceTel ? (
           <BigButton
-            label={`Appeler ${profile.contactUrgenceNom ?? 'mon proche'}`}
+            label={t.senior.call(profile.contactUrgenceNom ?? t.senior.defaultContact)}
             colours={colours}
             font={font}
             onPress={callContact}
             emphasis
           />
         ) : null}
-        <BigButton label="Se déconnecter / Changer de profil" colours={colours} font={font} onPress={confirmSignOut} />
+        <BigButton label={t.senior.signOut} colours={colours} font={font} onPress={confirmSignOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -351,7 +349,7 @@ function BigButton({
         { borderColor: emphasis ? colours.action : colours.text, opacity: pressed ? 0.7 : 1 },
       ]}
     >
-      <Text style={{ color: emphasis ? colours.action : colours.text, fontSize: font, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: emphasis ? colours.action : colours.text, fontSize: font, fontWeight: '700', textAlign: 'center' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -362,14 +360,15 @@ const styles = StyleSheet.create({
   greeting: { fontWeight: '800' },
   offline: { fontWeight: '700' },
   permissions: { gap: 10 },
-  alert: { borderRadius: 20, padding: 20, gap: 4, alignItems: 'center' },
+  alert: { borderRadius: 24, padding: 20, gap: 4, alignItems: 'center' },
   alertTitle: { fontWeight: '900', textAlign: 'center' },
-  card: { borderRadius: 20, padding: 20, gap: 6, alignItems: 'center' },
+  card: { borderRadius: 24, padding: 22, gap: 6, alignItems: 'center' },
+  cardNormal: { borderWidth: 1, borderColor: '#E6EEF8', ...shadow },
   time: { fontWeight: '900' },
   bold: { fontWeight: '700', textAlign: 'center' },
   medication: { fontWeight: '800', textAlign: 'center' },
   center: { textAlign: 'center' },
   doneButton: { minHeight: MIN_TOUCH * 2, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   doneText: { fontWeight: '900' },
-  bigButton: { minHeight: MIN_TOUCH * 1.25, borderRadius: 20, borderWidth: 3, alignItems: 'center', justifyContent: 'center', padding: 12 },
+  bigButton: { minHeight: MIN_TOUCH * 1.25, borderRadius: 20, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center', padding: 12 },
 });

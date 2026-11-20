@@ -94,6 +94,21 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 
 ## Fonctionnement détaillé
 
+**Langue et thème**
+- En haut de l'accueil, deux pilules « FR | Français » et « AR | العربية ». Le choix est mémorisé
+  (`@neurocare/language`) et s'applique tout de suite à toute l'application : grille, Module 1 (senior et
+  aidant), modules 2 à 6, alertes, notifications programmées ensuite et PDF.
+- Arabe : texte aligné à droite (`writingDirection: 'rtl'`) et rangées inversées (`row-reverse`) par le hook
+  `useLanguage()`, sans `I18nManager.forceRTL` (donc sans redémarrage). Les PDF arabes sont en `dir="rtl"`.
+- Textes : dictionnaires `src/i18n/fr.ts` et `src/i18n/ar.ts` (une section par module dans `fr/` et `ar/`) ;
+  TypeScript refuse un dictionnaire arabe incomplet. La logique clinique ne renvoie que des codes.
+- Limites : les messages d'erreur détaillés du serveur, l'avertissement du tableau de bord et le rapport
+  hebdomadaire PDF du Module 1 (générés par le backend) restent en français.
+- Thème médical « clean » (`src/theme/`) : fond `#F5F8FC`, cartes blanches arrondies (20) avec ombre légère,
+  bleu `#246BFD`, titres `#112950`, badges pastel par module ; composants `Card`, `PrimaryButton`, `Badge`,
+  `ModuleHeader`, `Text` orienté. Texte courant ≥ 16, titres et boutons 20-24. L'espace senior garde son
+  thème « contraste élevé » noir / jaune quand l'aidant l'a choisi.
+
 **Grille des modules** (`src/app/index.tsx`)
 - Au démarrage, une grille de 6 tuiles : « Rappels & Suivi », « Saturation SpO₂ », « Santé Mentale »,
   « Diabète (FINDRISC) », « Tension (HTA) » et « Alzheimer & Mémoire », avec l'adresse du serveur et un rappel éthique (pré-dépistage
@@ -183,7 +198,9 @@ src/
   senior/       file hors ligne, rappels locaux, audio du rappel
   realtime/     abonnement STOMP
   lib/          logique pure testée (pastilles, file hors ligne, dates, validation, URL)
-  ui/           thème accessible et composants
+  i18n/         langue (contexte, hook useLanguage), dictionnaires fr / ar
+  theme/        thème médical, composants Card, PrimaryButton, Badge, ModuleHeader, Text orienté
+  ui/           bouton « Accueil Modules »
 assets/audio/   tonalité du rappel et sonnerie d'alarme embarquées
 ```
 

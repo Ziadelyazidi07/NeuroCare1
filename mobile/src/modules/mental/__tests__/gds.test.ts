@@ -12,6 +12,8 @@ import {
   type GdsCode,
 } from '../gds';
 import { gdsReportHtml } from '../gdsPdf';
+import { ar } from '../../../i18n/ar';
+import { fr } from '../../../i18n/fr';
 
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
@@ -63,6 +65,7 @@ describe('rapport PDF', () => {
   it('contient le patient, toutes les questions/réponses, les scores et l’orientation', () => {
     const reponses: GdsAnswers = { ...answer(MINI_GDS, true), ...answer(COMPLEMENTARY, false) };
     const html = gdsReportHtml(
+      fr,
       'Hajj Ahmed',
       { datePassation: '2026-11-19T08:00:00Z', reponses, scoreMiniGds: 4, scoreGds15: 3, niveau: 'INDICE_NORMAL' },
       new Date('2026-11-19T09:00:00Z'),
@@ -73,5 +76,13 @@ describe('rapport PDF', () => {
     expect(html).toContain('3 / 15');
     expect(html).toContain('Indice normal');
     expect(html).toContain('ne constitue pas un diagnostic médical officiel');
+  });
+
+  it('s’édite en arabe avec les 16 questions traduites', () => {
+    const reponses: GdsAnswers = { ...answer(MINI_GDS, true), ...answer(COMPLEMENTARY, false) };
+    const html = gdsReportHtml(ar, 'المريض', { datePassation: '2026-11-19T08:00:00Z', reponses, scoreMiniGds: 4, scoreGds15: 3, niveau: 'INDICE_NORMAL' }, new Date());
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('هل تشعر أن حياتك فارغة؟');
+    expect(html).toContain('مؤشر طبيعي');
   });
 });
