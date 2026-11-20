@@ -19,7 +19,7 @@
     "android": {
       "package": "ma.neurocare.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/neurocare-logo.png",
+        "foregroundImage": "./assets/images/neurocare-adaptive-icon.png",
         "backgroundColor": "#F5F8FC"
       },
       "predictiveBackGestureEnabled": false,

@@ -105,8 +105,9 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 - Limites : les messages d'erreur détaillés du serveur, l'avertissement du tableau de bord et le rapport
   hebdomadaire PDF du Module 1 (générés par le backend) restent en français.
 - Logo officiel `assets/images/neurocare-logo.png` : en haut de la carte de bienvenue, en-tête des PDF
-  (data URI `src/modules/pdfLogo.ts`), icône, icône adaptative Android (fond `#F5F8FC`) et écran de démarrage
-  (`app.json` ; un changement d'icône demande un nouveau build EAS).
+  (data URI `src/modules/pdfLogo.ts`), icône et écran de démarrage (`app.json` ; un changement d'icône demande
+  un nouveau build EAS). L'icône adaptative Android utilise `assets/images/neurocare-adaptive-icon.png` : le logo
+  réduit à 56 % (22 % de marge par côté, fond `#F5F8FC`) pour tenir en entier dans la zone sûre centrale de 66 %.
 - Thème médical « clean » (`src/theme/`) : fond `#F5F8FC`, cartes blanches arrondies (20) avec ombre légère,
   bleu `#246BFD`, titres `#112950`, badges pastel par module ; composants `Card`, `PrimaryButton`, `Badge`,
   `ModuleHeader`, `Text` orienté. Texte courant ≥ 16, titres et boutons 20-24. L'espace senior garde son
