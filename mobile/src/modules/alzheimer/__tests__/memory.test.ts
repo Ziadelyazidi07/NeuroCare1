@@ -6,7 +6,10 @@ import { fr } from '../../../i18n/fr';
 import {
   DOMAINS,
   QUESTIONS,
-  personalisedTips,
+  areasOfConcern,
+  findings,
+  personalisedAdvice,
+  preventionPlan,
   reasonText,
   recalledWords,
   scoreRecognition,
@@ -42,13 +45,19 @@ beforeEach(async () => {
 });
 
 describe('questionnaire des 4 A', () => {
-  it('pose 8 questions, 2 par domaine, traduites dans les deux langues', () => {
+  it('pose 8 questions, 2 par domaine, adressées directement au patient dans les deux langues', () => {
     expect(QUESTIONS).toHaveLength(8);
     for (const d of DOMAINS) expect(QUESTIONS.filter((q) => q.domain === d)).toHaveLength(2);
     for (const q of QUESTIONS) {
-      expect(fr.memory.questions[q.code]).toMatch(/^La personne/);
-      expect(ar.memory.questions[q.code]).toMatch(/[؀-ۿ]/);
+      expect(fr.memory.questions[q.code]).toMatch(/vous/i);
+      expect(fr.memory.questions[q.code]).not.toMatch(/la personne/i);
+      expect(ar.memory.questions[q.code]).toMatch(/^هل ت/);
+      expect(ar.memory.questions[q.code]).not.toContain('الشخص');
     }
+    expect(fr.memory.questions.OUBLIS_RECENTS).toMatch(/^Oubliez-vous/);
+    expect(fr.memory.questions.OBJETS_USUELS).toMatch(/^Avez-vous du mal à/);
+    expect(ar.memory.questions.OUBLIS_RECENTS).toMatch(/^هل تنسى/);
+    expect(ar.memory.questions.OBJETS_USUELS).toMatch(/^هل تجد صعوبة في/);
   });
 
   it('compte les signes par domaine', () => {
@@ -107,15 +116,61 @@ describe('indice de vigilance cognitive (deux issues, jamais un score)', () => {
       '2 images choisies qui ne faisaient pas partie des mots.',
       'Jour de la semaine non retrouvé.',
     ]);
-    expect(reasonText(ar, r.raisons[3]!)).toBe('لم يتذكّر يوم الأسبوع.');
+    expect(reasonText(ar, r.raisons[3]!)).toBe('لم تتذكّر يوم الأسبوع.');
   });
 
-  it('personnalise les conseils selon les domaines touchés, puis la prévention MIND', () => {
-    const tips = personalisedTips(fr, { ...allNo, LIEUX_VISAGES: true });
-    expect(tips[0]).toMatch(/^Repères/);
-    expect(tips.join(' ')).toMatch(/30 minutes.*7 heures.*huile d’olive/s);
-    expect(personalisedTips(fr, allNo)[0]).toMatch(/^Marcher 30 minutes/);
-    expect(personalisedTips(ar, allNo)[0]).toMatch(/^المشي 30 دقيقة/);
+});
+
+describe('restitution personnalisée (constats, orientation HAS / OMS, prévention Lancet)', () => {
+  const aphasiaAgnosia: Answers = { ...allNo, MANQUE_DU_MOT: true, LIEUX_VISAGES: true };
+  const weakRecall: ExerciseResult = { ...goodExercise, rappelLibre: ['CLE'], reconnus: ['CITRON'], jourRepondu: 1 };
+
+  it('décrit les domaines touchés avec les signes exacts, le rappel et l’orientation', () => {
+    expect(findings(aphasiaAgnosia, weakRecall)).toEqual([
+      { code: 'DOMAINE', domain: 'APHASIE', questions: ['MANQUE_DU_MOT'] },
+      { code: 'DOMAINE', domain: 'AGNOSIE', questions: ['LIEUX_VISAGES'] },
+      { code: 'RAPPEL_INCOMPLET', libre: 1, manquants: 2 },
+      { code: 'ORIENTATION_ERREUR' },
+    ]);
+    expect(findings(allNo, goodExercise)).toEqual([{ code: 'AUCUN_SIGNE' }, { code: 'RAPPEL_AIDE', libre: 3, reconnus: 1 }, { code: 'ORIENTATION_OK' }]);
+    expect(findings(allNo, null)).toEqual([{ code: 'AUCUN_SIGNE' }, { code: 'SANS_EXERCICE' }]);
+    const advice = personalisedAdvice(fr, aphasiaAgnosia, weakRecall);
+    expect(advice.findings[0]).toBe('Aphasie, le langage (accès aux mots) : mots difficiles à trouver.');
+    expect(advice.findings).toContain('Rappel des 4 mots : 1 retrouvé(s) spontanément, 2 non retrouvé(s) même avec les images.');
+    expect(advice.findings).toContain('Orientation dans le temps : jour de la semaine non retrouvé.');
+  });
+
+  it('liste les fonctions à évaluer : domaines touchés, mémoire si rappel faible, orientation si jour faux', () => {
+    expect(areasOfConcern(aphasiaAgnosia, weakRecall)).toEqual(['AMNESIE', 'APHASIE', 'AGNOSIE', 'ORIENTATION']);
+    expect(areasOfConcern(allNo, goodExercise)).toEqual([]);
+  });
+
+  it('oriente vers le médecin : MMSE / MoCA, consultation mémoire et causes réversibles', () => {
+    const { medical } = personalisedAdvice(fr, aphasiaAgnosia, weakRecall);
+    expect(medical[0]).toBe(
+      'Points qui méritent l’attention d’un médecin : la mémoire épisodique (souvenirs récents), le langage (accès aux mots), la reconnaissance et les repères visuo-spatiaux (objets, visages, lieux), l’orientation dans le temps.',
+    );
+    expect(medical.join(' ')).toMatch(/MMSE ou MoCA.*consultation mémoire.*vitamine B12.*hypothyroïdie.*sommeil.*médicaments/s);
+    expect(personalisedAdvice(ar, aphasiaAgnosia, weakRecall).medical.join(' ')).toMatch(/MMSE.*B12/s);
+  });
+
+  it('rassure sans signe, et signale un signe isolé sans alarmer', () => {
+    expect(personalisedAdvice(fr, allNo, goodExercise).medical).toEqual([fr.memory.analysis.reassure]);
+    const single = personalisedAdvice(fr, { ...allNo, GESTES_SIMPLES: true }, goodExercise);
+    expect(single.medical[1]).toBe('Un signe isolé concerne les praxies (gestes du quotidien) : surveillez-le et parlez-en lors de votre prochaine consultation.');
+    expect(single.practical[0]).toMatch(/^Gestes/);
+  });
+
+  it('adapte la prévention au profil (OMS, Commission Lancet) en gardant les 7 axes', () => {
+    const plan = preventionPlan(aphasiaAgnosia, weakRecall);
+    expect(plan).toHaveLength(7);
+    expect(plan.filter((p) => p.priority).map((p) => p.code)).toEqual(['TENSION_GLYCEMIE', 'SOMMEIL', 'STIMULATION', 'SOCIAL', 'AUDITION_VISION']);
+    expect(preventionPlan({ ...allNo, GESTES_SIMPLES: true }, goodExercise)[0]).toEqual({ code: 'ACTIVITE', priority: true });
+    expect(preventionPlan(allNo, goodExercise).every((p) => !p.priority)).toBe(true);
+    const text = personalisedAdvice(fr, allNo, goodExercise).prevention.join(' ');
+    expect(text).toMatch(/135\/85.*150 minutes.*30 minutes par jour.*7 à 8 heures.*MIND.*huile d’olive.*oméga-3.*noix.*Stimulation cognitive.*Vie sociale/s);
+    expect(personalisedAdvice(fr, aphasiaAgnosia, weakRecall).prevention[0]).toMatch(/^Priorité pour vous · Tension et glycémie/);
+    expect(personalisedAdvice(ar, aphasiaAgnosia, weakRecall).prevention[0]).toMatch(/^أولوية بالنسبة لك/);
   });
 });
 
@@ -148,6 +203,11 @@ describe('bilan PDF', () => {
     expect(html).toContain('1 / 2');
     expect(html).toContain('3 / 4');
     expect(html).toContain('aide à la consultation médicale');
+    expect(html).toContain('Oubliez-vous de façon répétée');
+    expect(html).toContain('Ce que montrent vos réponses');
+    expect(html).toContain('Amnésie, la mémoire épisodique (souvenirs récents) : oublis d’événements récents.');
+    expect(html).toContain('Prévention personnalisée (OMS, Commission Lancet)');
+    expect(html).toContain('Commission Lancet sur la prévention de la démence (2024');
     expect(html).toContain('ne constitue pas un diagnostic médical officiel');
     expect(html).not.toMatch(/probabilit|risque d.Alzheimer|vous avez/i);
   });

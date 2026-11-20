@@ -202,8 +202,125 @@ export function reasonText(t: Dictionary, reason: Reason): string {
   }
 }
 
-/** Conseils personnalisés : un conseil par domaine où un signe a été observé, puis la prévention générale. */
-export function personalisedTips(t: Dictionary, answers: Answers): string[] {
+// ── Restitution personnalisée ────────────────────────────────────────────────
+// Construite à partir des réponses exactes : domaines touchés (et questions concernées), rappel des 4 mots,
+// orientation temporelle. Orientation médicale (HAS, OMS, consultation mémoire) et prévention fondée sur
+// les facteurs modifiables (OMS 2019, Commission Lancet 2024). Faits observés seulement, jamais de diagnostic.
+
+/** Point à faire évaluer : un des 4 A, ou l'orientation dans le temps. */
+export type Area = Domain | 'ORIENTATION';
+
+export type Finding =
+  | { code: 'AUCUN_SIGNE' }
+  | { code: 'DOMAINE'; domain: Domain; questions: QuestionCode[] }
+  | { code: 'SANS_EXERCICE' }
+  | { code: 'RAPPEL_COMPLET' }
+  | { code: 'RAPPEL_AIDE'; libre: number; reconnus: number }
+  | { code: 'RAPPEL_INCOMPLET'; libre: number; manquants: number }
+  | { code: 'INTRUS'; n: number }
+  | { code: 'ORIENTATION_OK' }
+  | { code: 'ORIENTATION_ERREUR' };
+
+export type PreventionCode = 'TENSION_GLYCEMIE' | 'ACTIVITE' | 'SOMMEIL' | 'MIND' | 'STIMULATION' | 'SOCIAL' | 'AUDITION_VISION';
+
+/** Ordre par défaut des 7 axes de prévention. */
+export const PREVENTION: readonly PreventionCode[] = ['TENSION_GLYCEMIE', 'ACTIVITE', 'SOMMEIL', 'MIND', 'STIMULATION', 'SOCIAL', 'AUDITION_VISION'];
+
+/** Constats factuels, dans l'ordre : 4 A, rappel des mots, reconnaissance, orientation. */
+export function findings(answers: Answers, exercise: ExerciseResult | null): Finding[] {
+  const list: Finding[] = [];
+  for (const d of DOMAINS) {
+    const questions = QUESTIONS.filter((q) => q.domain === d && answers[q.code] === true).map((q) => q.code);
+    if (questions.length) list.push({ code: 'DOMAINE', domain: d, questions });
+  }
+  if (!list.length) list.push({ code: 'AUCUN_SIGNE' });
+  if (!exercise) return [...list, { code: 'SANS_EXERCICE' }];
+  const libre = exercise.rappelLibre.length;
+  const manquants = WORDS.length - libre - exercise.reconnus.length;
+  if (manquants > 0) list.push({ code: 'RAPPEL_INCOMPLET', libre, manquants });
+  else if (libre < WORDS.length) list.push({ code: 'RAPPEL_AIDE', libre, reconnus: exercise.reconnus.length });
+  else list.push({ code: 'RAPPEL_COMPLET' });
+  if (exercise.intrusChoisis.length) list.push({ code: 'INTRUS', n: exercise.intrusChoisis.length });
+  list.push({ code: exercise.jourRepondu === exercise.jourDemande ? 'ORIENTATION_OK' : 'ORIENTATION_ERREUR' });
+  return list;
+}
+
+/** Domaines où au moins un signe est observé, plus la mémoire si le rappel est faible et l'orientation si le jour est faux. */
+export function areasOfConcern(answers: Answers, exercise: ExerciseResult | null): Area[] {
   const signs = signsByDomain(answers);
-  return [...DOMAINS.filter((d) => signs[d] > 0).map((d) => t.memory.domainTips[d]), ...t.memory.prevention];
+  const codes = vigilance(answers, exercise).raisons.map((r) => r.code);
+  const memoryWeak = codes.some((c) => c === 'RAPPEL' || c === 'OUBLIES' || c === 'INTRUS');
+  const areas: Area[] = DOMAINS.filter((d) => signs[d] > 0 || (d === 'AMNESIE' && memoryWeak));
+  return codes.includes('JOUR') ? [...areas, 'ORIENTATION'] : areas;
+}
+
+/** Axes de prévention, ceux qui répondent au profil d'abord (marqués prioritaires). */
+export function preventionPlan(answers: Answers, exercise: ExerciseResult | null): { code: PreventionCode; priority: boolean }[] {
+  const areas = areasOfConcern(answers, exercise);
+  const priority = new Set<PreventionCode>();
+  const add = (...codes: PreventionCode[]) => codes.forEach((c) => priority.add(c));
+  if (areas.includes('AMNESIE')) add('STIMULATION', 'SOMMEIL');
+  if (areas.includes('APHASIE')) add('SOCIAL', 'STIMULATION');
+  if (areas.includes('APRAXIE')) add('ACTIVITE');
+  if (areas.includes('AGNOSIE') || areas.includes('ORIENTATION')) add('AUDITION_VISION', 'SOCIAL');
+  if (vigilance(answers, exercise).indice === 'SIGNES_A_SIGNALER') add('TENSION_GLYCEMIE');
+  const plan = PREVENTION.map((code) => ({ code, priority: priority.has(code) }));
+  return [...plan.filter((p) => p.priority), ...plan.filter((p) => !p.priority)];
+}
+
+/** Constat lisible dans la langue choisie. */
+export function findingText(t: Dictionary, f: Finding): string {
+  const a = t.memory.analysis;
+  switch (f.code) {
+    case 'AUCUN_SIGNE':
+      return a.noSign;
+    case 'DOMAINE':
+      return a.domain(t.memory.domains[f.domain].title, t.memory.areas[f.domain], f.questions.map((q) => t.memory.questionShort[q]).join(t.meta.listSeparator));
+    case 'SANS_EXERCICE':
+      return t.memory.noExercise;
+    case 'RAPPEL_COMPLET':
+      return a.recallFull;
+    case 'RAPPEL_AIDE':
+      return a.recallAided(f.libre, f.reconnus);
+    case 'RAPPEL_INCOMPLET':
+      return a.recallMissed(f.libre, f.manquants);
+    case 'INTRUS':
+      return a.intruders(f.n);
+    case 'ORIENTATION_OK':
+      return a.orientationOk;
+    case 'ORIENTATION_ERREUR':
+      return a.orientationWrong;
+  }
+}
+
+export interface Advice {
+  /** Ce que montrent les réponses. */
+  findings: string[];
+  /** Orientation médicale (consultation, bilan neuropsychologique et biologique) ou réassurance. */
+  medical: string[];
+  /** Aménagements du quotidien, un par domaine touché. */
+  practical: string[];
+  /** Prévention des facteurs modifiables, axes prioritaires en tête. */
+  prevention: string[];
+}
+
+/** Restitution complète, adaptée aux réponses exactes (écran et PDF). */
+export function personalisedAdvice(t: Dictionary, answers: Answers, exercise: ExerciseResult | null): Advice {
+  const m = t.memory;
+  const a = m.analysis;
+  const areas = areasOfConcern(answers, exercise);
+  const names = areas.map((area) => m.areas[area]).join(t.meta.listSeparator);
+  const medical =
+    vigilance(answers, exercise).indice === 'SIGNES_A_SIGNALER'
+      ? [a.medicalAreas(names), a.medicalConsult, a.medicalBiology, a.medicalBring]
+      : areas.length
+        ? [a.reassure, a.isolated(names)]
+        : [a.reassure];
+  const signs = signsByDomain(answers);
+  return {
+    findings: findings(answers, exercise).map((f) => findingText(t, f)),
+    medical,
+    practical: DOMAINS.filter((d) => signs[d] > 0).map((d) => m.domainTips[d]),
+    prevention: preventionPlan(answers, exercise).map((p) => (p.priority ? a.priority(m.prevention[p.code]) : m.prevention[p.code])),
+  };
 }

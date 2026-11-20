@@ -1,6 +1,7 @@
 /**
- * Module 6 — Alzheimer & Mémoire : observation des 4 A (8 questions), exercice bienveillant des 4 mots,
- * indice de vigilance cognitive, conseils et bilan PDF nominatif. Accès direct, sans compte : tout reste sur
+ * Module 6 — Alzheimer & Mémoire : observation des 4 A (8 questions posées directement au patient), exercice
+ * bienveillant des 4 mots, indice de vigilance cognitive, restitution personnalisée (constats, orientation
+ * médicale, conseils pratiques, prévention OMS / Lancet) et bilan PDF nominatif. Accès direct, sans compte : tout reste sur
  * le téléphone. Pré-dépistage et aide à la consultation, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
@@ -20,7 +21,7 @@ import {
   RECOGNITION_CHOICES,
   WORDS,
   nextQuestion,
-  personalisedTips,
+  personalisedAdvice,
   reasonText,
   recalledWords,
   scoreRecognition,
@@ -296,6 +297,7 @@ function ResultCard({ assessment: a }: { assessment: MemoryAssessment }) {
   const m = t.memory;
   const text = m.vigilance[a.indice];
   const colour = COLOUR[a.indice];
+  const advice = personalisedAdvice(t, a.reponses, a.exercice);
   return (
     <>
       <View style={[styles.result, { borderColor: colour }]} accessibilityRole="alert">
@@ -318,15 +320,25 @@ function ResultCard({ assessment: a }: { assessment: MemoryAssessment }) {
         ))}
         <Text style={ui.text}>{a.exercice ? m.recallLine(a.exercice.rappelLibre.length, a.exercice.reconnus.length) : m.noExercise}</Text>
       </Card>
-      <Card title={m.tipsTitle} icon="leaf">
-        {personalisedTips(t, a.reponses).map((tip) => (
-          <Text key={tip} style={ui.text}>
-            • {tip}
-          </Text>
-        ))}
-      </Card>
+      <Bullets title={m.findingsTitle} icon="search" lines={advice.findings} />
+      <Bullets title={m.medicalTitle} icon="medkit" lines={advice.medical} />
+      {advice.practical.length ? <Bullets title={m.practicalTitle} icon="home" lines={advice.practical} /> : null}
+      <Bullets title={m.preventionTitle} icon="leaf" lines={advice.prevention} />
+      <Text style={ui.muted}>{m.sources}</Text>
       <Text style={ui.muted}>{m.screeningNotice}</Text>
     </>
+  );
+}
+
+function Bullets({ title, icon, lines }: { title: string; icon: 'search' | 'medkit' | 'home' | 'leaf'; lines: string[] }) {
+  return (
+    <Card title={title} icon={icon}>
+      {lines.map((line) => (
+        <Text key={line} style={ui.text}>
+          • {line}
+        </Text>
+      ))}
+    </Card>
   );
 }
 

@@ -1,6 +1,6 @@
 import type { Dictionary } from '../../i18n';
 import { escapeHtml, formatDateTime, pdfDocument } from '../pdf';
-import { DOMAINS, QUESTIONS, WORDS, personalisedTips, reasonText } from './memory';
+import { DOMAINS, QUESTIONS, WORDS, personalisedAdvice, reasonText } from './memory';
 import type { MemoryAssessment } from './memoryStore';
 
 const CLASS = { RASSURANT: 'VERT', SIGNES_A_SIGNALER: 'ORANGE' } as const;
@@ -23,7 +23,7 @@ function exerciseHtml(t: Dictionary, a: MemoryAssessment): string {
   </table>`;
 }
 
-/** Bilan nominatif (français ou arabe) : 4 A par domaine, exercice de rappel, orientation, conseils et historique local. */
+/** Bilan nominatif (français ou arabe) : 4 A par domaine (questions à la 2e personne), exercice de rappel, restitution personnalisée et historique local. */
 export function memoryReportHtml(t: Dictionary, patient: string, a: MemoryAssessment, history: readonly MemoryAssessment[], generatedAt: Date): string {
   const m = t.memory;
   const text = m.vigilance[a.indice];
@@ -36,7 +36,9 @@ export function memoryReportHtml(t: Dictionary, patient: string, a: MemoryAssess
       <td class="${n ? 'ORANGE' : 'VERT'}">${n} / 2</td><td>${items}</td></tr>`;
   }).join('');
   const reasons = a.raisons.length ? `<ul>${a.raisons.map((r) => `<li>${escapeHtml(reasonText(t, r))}</li>`).join('')}</ul>` : '';
-  const tips = `<ul>${personalisedTips(t, a.reponses).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}</ul>`;
+  const advice = personalisedAdvice(t, a.reponses, a.exercice);
+  const list = (lines: string[]) => `<ul>${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`;
+  const practical = advice.practical.length ? `<h2>${escapeHtml(m.practicalTitle)}</h2>${list(advice.practical)}` : '';
   const signs = (h: MemoryAssessment) => DOMAINS.reduce((sum, d) => sum + h.signes[d], 0);
   const rows = history
     .map(
@@ -56,8 +58,14 @@ export function memoryReportHtml(t: Dictionary, patient: string, a: MemoryAssess
     <table><tr>${head(m.pdf.fourAColumns)}</tr>${domains}</table>
     <h2>${escapeHtml(m.pdf.exerciseTitle)}</h2>
     ${exerciseHtml(t, a)}
-    <h2>${escapeHtml(m.pdf.tipsTitle)}</h2>
-    ${tips}
+    <h2>${escapeHtml(m.findingsTitle)}</h2>
+    ${list(advice.findings)}
+    <h2>${escapeHtml(m.medicalTitle)}</h2>
+    ${list(advice.medical)}
+    ${practical}
+    <h2>${escapeHtml(m.preventionTitle)}</h2>
+    ${list(advice.prevention)}
+    <p>${escapeHtml(m.sources)}</p>
     <h2>${escapeHtml(m.pdf.historyTitle)}</h2>
     ${rows ? `<table><tr>${head(m.pdf.historyColumns)}</tr>${rows}</table>` : `<p>${escapeHtml(m.pdf.noHistory)}</p>`}
     <div class="box">${escapeHtml(m.screeningNotice)}</div>`;

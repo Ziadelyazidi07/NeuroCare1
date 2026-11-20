@@ -120,7 +120,7 @@ describe('accès direct depuis la grille, sans compte', () => {
     expect(shared()).toMatch(sharedAs('Sante-Mentale-GDS', 'Fatima-Z'));
   });
 
-  it('Diabète : 8 réponses, IMC, score sur 26, bilan local et PDF', async () => {
+  it('Diabète : 8 réponses, IMC, score sur 26, 7 signes d’alerte, bilan local et PDF', async () => {
     await render(<MetabolicScreen />);
     await screen.findByText('Questionnaire FINDRISC (8 questions)');
     expect(screen.getByLabelText(fr.shared.devices.metabolic)).toBeTruthy();
@@ -140,14 +140,27 @@ describe('accès direct depuis la grille, sans compte', () => {
     await fireEvent.press(yesNo[9]); // glycémie : Non
     await press('Grand-parent, tante, oncle, cousin germain');
     await press('Calculer le score');
+    expect(await screen.findByText(fr.findrisc.errors.SIGNES)).toBeTruthy();
+
+    // Partie 2 : 7 groupes Oui / Non après les 3 choix « antécédents familiaux » (index 10 à 12).
+    expect(screen.getByText(fr.findrisc.symptomsTitle)).toBeTruthy();
+    const signs = screen.getAllByRole('radio').slice(13);
+    expect(signs).toHaveLength(14);
+    await fireEvent.press(signs[0]); // urines fréquentes : Oui
+    await fireEvent.press(signs[2]); // soif intense : Oui
+    for (const i of [5, 7, 9, 11, 13]) await fireEvent.press(signs[i]); // les 5 autres : Non
+    await press('Calculer le score');
 
     expect(await screen.findByText('Score FINDRISC : 14 / 26')).toBeTruthy();
+    expect(screen.getByText(fr.findrisc.alert.PLUSIEURS.title)).toBeTruthy();
+    expect(screen.getByText('Signes présents : Urines fréquentes, Soif intense.')).toBeTruthy();
     expect(screen.getByText(/Risque modéré \(environ 17 %/)).toBeTruthy();
     expect(await stored('neurocare.findrisc.assessments')).toHaveLength(1);
 
     await press('Télécharger le bilan FINDRISC PDF');
     expect(printed()).toContain('14 / 26');
     expect(printed()).toContain('28,7 kg/m²');
+    expect(printed()).toContain('2 signe(s) présent(s) sur 7');
     expect(shared()).toMatch(sharedAs('Diabete-FINDRISC', 'Patient'));
   });
 
@@ -191,6 +204,7 @@ describe('accès direct depuis la grille, sans compte', () => {
     expect(await screen.findByDisplayValue('Ahmed Benali')).toBeTruthy();
     expect(screen.getByText(/lunettes et les appareils auditifs/)).toBeTruthy();
     await press('Commencer');
+    expect(screen.getByText(/^Ces dernières semaines : Oubliez-vous de façon répétée/)).toBeTruthy();
     // Un seul signe (amnésie) sur les 8 questions.
     for (const answer of ['Oui', 'Non', 'Non', 'Non', 'Non', 'Non', 'Non', 'Non']) await press(answer);
 
@@ -208,6 +222,9 @@ describe('accès direct depuis la grille, sans compte', () => {
     expect(screen.getByText('Amnésie (Mémoire récente) : 1 signe sur 2')).toBeTruthy();
     expect(screen.getByText(/Rappel des mots : 3 \/ 4 retrouvés, 1 reconnu/)).toBeTruthy();
     expect(screen.getByText(/^• Mémoire : un agenda/)).toBeTruthy();
+    expect(screen.getByText('• Amnésie, la mémoire épisodique (souvenirs récents) : oublis d’événements récents.')).toBeTruthy();
+    expect(screen.getByText(/^• Un signe isolé concerne la mémoire épisodique/)).toBeTruthy();
+    expect(screen.getByText(/^• Priorité pour vous · Sommeil réparateur de 7 à 8 heures/)).toBeTruthy();
     expect(await stored('neurocare.memory.assessments')).toHaveLength(1);
 
     await press('Télécharger le bilan Mémoire & 4 A PDF');

@@ -1,6 +1,6 @@
 /**
- * Module 4 — Métabolique : questionnaire FINDRISC (8 questions, IMC calculé), résultat immédiat même hors
- * ligne, historique et bilan PDF nominatif. Accès direct, sans compte : tout reste sur le téléphone.
+ * Module 4 — Métabolique : questionnaire FINDRISC (8 questions, IMC calculé) suivi des 7 signes cliniques
+ * d'alerte d'hyperglycémie (hors score), résultat immédiat même hors ligne, historique et bilan PDF nominatif. Accès direct, sans compte : tout reste sur le téléphone.
  * Estimation de risque, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
@@ -12,18 +12,23 @@ import { Button, Card, ErrorText, Field, Loading, Row, Text, colours as c, radiu
 import { MeasurementGuideCard } from '../MeasurementGuideCard';
 import { ModuleScreen } from '../ModuleScreen';
 import { formatDateTime, sharePdf } from '../pdf';
-import { OptionGroup, parseDecimal, useYesNo } from '../ui';
+import { EmergencyButtons, OptionGroup, parseDecimal, useYesNo } from '../ui';
 import {
   EMPTY_FORM,
   FAMILY_OPTIONS,
   MAX_SCORE,
+  SYMPTOM_KEYS,
   computeImc,
   decimal,
   levelSummary,
   parseForm,
   parseHeightCm,
+  presentSymptoms,
+  symptomAlert,
   type FindriscForm,
   type FindriscLevel,
+  type SymptomAlert,
+  type SymptomKey,
 } from './findrisc';
 import { findriscReportHtml, type FindriscReport } from './findriscPdf';
 import { loadAssessments, saveAssessment, scoreAnswers, type FindriscAssessment } from './findriscStore';
@@ -36,6 +41,8 @@ const LEVEL_COLOUR: Record<FindriscLevel, string> = {
   ELEVE: '#C62828',
   TRES_ELEVE: '#8C1D18',
 };
+
+const ALERT_COLOUR: Record<Exclude<SymptomAlert, 'AUCUN'>, string> = { UN_SIGNE: '#8A4600', PLUSIEURS: '#C62828', TRIADE: '#8C1D18' };
 
 export default function MetabolicScreen() {
   return (
@@ -65,6 +72,7 @@ function FindriscPanel({ patient }: { patient: string }) {
   );
 
   const set = <K extends keyof FindriscForm>(key: K, value: FindriscForm[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const setSign = (key: SymptomKey, value: boolean) => setForm((f) => ({ ...f, signes: { ...f.signes, [key]: value } }));
 
   const poids = parseDecimal(form.poids);
   const taille = parseHeightCm(form.taille);
@@ -101,8 +109,18 @@ function FindriscPanel({ patient }: { patient: string }) {
   if (result) {
     const report = result;
     const colour = LEVEL_COLOUR[report.niveau];
+    const alert = symptomAlert(report.signes);
+    const present = presentSymptoms(report.signes);
     return (
       <>
+        {alert === 'AUCUN' ? null : (
+          <View style={[styles.result, { borderColor: ALERT_COLOUR[alert], backgroundColor: c.warningSoft }]} accessibilityRole="alert">
+            <Text style={[styles.resultTitle, { color: ALERT_COLOUR[alert] }]}>{f.alert[alert].title}</Text>
+            <Text style={ui.text}>{f.alert[alert].message}</Text>
+            <Text style={ui.text}>{f.symptomsPresent(present.map((k) => f.symptoms[k].title).join(t.meta.listSeparator))}</Text>
+            {alert === 'TRIADE' ? <EmergencyButtons /> : null}
+          </View>
+        )}
         <View style={[styles.result, { borderColor: colour }]} accessibilityRole="alert">
           <Text style={[styles.resultTitle, { color: colour }]}>{levelSummary(t, report.niveau)}</Text>
           <Text style={styles.score}>{f.score(report.scoreTotal, MAX_SCORE)}</Text>
@@ -178,6 +196,19 @@ function FindriscPanel({ patient }: { patient: string }) {
           value={form.antecedentsFamiliaux}
           onChange={(v) => set('antecedentsFamiliaux', v)}
         />
+      </Card>
+
+      <Card title={f.symptomsTitle} icon="warning">
+        <Text style={ui.muted}>{f.symptomsIntro}</Text>
+        {SYMPTOM_KEYS.map((key, i) => (
+          <OptionGroup
+            key={key}
+            label={f.symptomQuestion(i + 1, f.symptoms[key].title, f.symptoms[key].question)}
+            options={yesNo}
+            value={form.signes[key]}
+            onChange={(v) => setSign(key, v)}
+          />
+        ))}
         <ErrorText message={error} />
         <Button label={f.submit} onPress={() => void submit()} />
       </Card>
@@ -191,6 +222,7 @@ function FindriscPanel({ patient }: { patient: string }) {
               <Text style={ui.text}>{formatDateTime(h.datePassation)}</Text>
               <Text style={[ui.muted, { color: LEVEL_COLOUR[h.niveau] }]}>
                 {h.scoreTotal}/{MAX_SCORE} · {f.level[h.niveau].title}
+                {presentSymptoms(h.signes).length ? f.historySigns(presentSymptoms(h.signes).length) : ''}
               </Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={f.downloadThis} onPress={() => void downloadPdf(h)} hitSlop={8}>

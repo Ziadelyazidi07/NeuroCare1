@@ -20,6 +20,8 @@ export interface FindriscAnswers {
   medicamentsHypertension: boolean;
   glycemieEleveeAntecedent: boolean;
   antecedentsFamiliaux: FamilyHistory;
+  /** Partie 2 : signes cliniques d'alerte (absent des premiers questionnaires). Hors barème FINDRISC. */
+  signes?: HyperglycemiaSigns;
 }
 
 export interface FindriscPoints {
@@ -115,10 +117,37 @@ export const QUESTION_KEYS: (keyof FindriscPoints)[] = [
   'antecedentsFamiliaux',
 ];
 
+// ── Partie 2 : signes cliniques d'alerte (symptômes d'hyperglycémie) ─────────────────────────────────
+// Ils ne modifient jamais le score FINDRISC sur 26 : ils déclenchent seulement un encart d'orientation.
+
+export type SymptomKey = 'URINES' | 'SOIF' | 'FATIGUE' | 'BOUCHE_SECHE' | 'VISION' | 'FAIM' | 'AMAIGRISSEMENT';
+
+/** Ordre des 7 signes cardinaux (formulaire et PDF ; libellés : `t.findrisc.symptoms`). */
+export const SYMPTOM_KEYS: readonly SymptomKey[] = ['URINES', 'SOIF', 'FATIGUE', 'BOUCHE_SECHE', 'VISION', 'FAIM', 'AMAIGRISSEMENT'];
+
+export type HyperglycemiaSigns = Record<SymptomKey, boolean>;
+
+/** Triade évocatrice : urines fréquentes + soif intense + amaigrissement inexpliqué. */
+export const TRIAD: readonly SymptomKey[] = ['URINES', 'SOIF', 'AMAIGRISSEMENT'];
+
+/** AUCUN : pas d'encart ; UN_SIGNE : alerte ; PLUSIEURS (≥ 2) et TRIADE : alerte prioritaire. */
+export type SymptomAlert = 'AUCUN' | 'UN_SIGNE' | 'PLUSIEURS' | 'TRIADE';
+
+export function presentSymptoms(signes: HyperglycemiaSigns | undefined): SymptomKey[] {
+  return signes ? SYMPTOM_KEYS.filter((k) => signes[k]) : [];
+}
+
+export function symptomAlert(signes: HyperglycemiaSigns | undefined): SymptomAlert {
+  const present = presentSymptoms(signes);
+  if (TRIAD.every((k) => present.includes(k))) return 'TRIADE';
+  if (present.length >= 2) return 'PLUSIEURS';
+  return present.length === 1 ? 'UN_SIGNE' : 'AUCUN';
+}
+
 export const FAMILY_OPTIONS: FamilyHistory[] = ['AUCUN', 'ELOIGNES', 'PROCHES'];
 
 /** Code d'erreur du formulaire (message : `t.findrisc.errors`). */
-export type FormError = 'AGE' | 'SEXE' | 'POIDS' | 'TAILLE' | 'TOUR' | 'INCOMPLET';
+export type FormError = 'AGE' | 'SEXE' | 'POIDS' | 'TAILLE' | 'TOUR' | 'INCOMPLET' | 'SIGNES';
 
 export interface FindriscForm {
   age: string;
@@ -131,7 +160,10 @@ export interface FindriscForm {
   medicamentsHypertension: boolean | null;
   glycemieEleveeAntecedent: boolean | null;
   antecedentsFamiliaux: FamilyHistory | null;
+  signes: Record<SymptomKey, boolean | null>;
 }
+
+export const EMPTY_SIGNS = Object.fromEntries(SYMPTOM_KEYS.map((k) => [k, null])) as Record<SymptomKey, boolean | null>;
 
 export const EMPTY_FORM: FindriscForm = {
   age: '',
@@ -144,6 +176,7 @@ export const EMPTY_FORM: FindriscForm = {
   medicamentsHypertension: null,
   glycemieEleveeAntecedent: null,
   antecedentsFamiliaux: null,
+  signes: EMPTY_SIGNS,
 };
 
 /** Formulaire → réponses validées, ou code d'erreur. */
@@ -168,6 +201,7 @@ export function parseForm(f: FindriscForm): FindriscAnswers | FormError {
   ) {
     return 'INCOMPLET';
   }
+  if (SYMPTOM_KEYS.some((k) => f.signes[k] === null)) return 'SIGNES';
   return {
     age,
     sexe: f.sexe,
@@ -179,5 +213,6 @@ export function parseForm(f: FindriscForm): FindriscAnswers | FormError {
     medicamentsHypertension: f.medicamentsHypertension,
     glycemieEleveeAntecedent: f.glycemieEleveeAntecedent,
     antecedentsFamiliaux: f.antecedentsFamiliaux,
+    signes: Object.fromEntries(SYMPTOM_KEYS.map((k) => [k, f.signes[k] === true])) as HyperglycemiaSigns,
   };
 }

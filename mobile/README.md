@@ -144,8 +144,12 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   « Télécharger le rapport GDS PDF » (questions, réponses, scores).
 - **Diabète (FINDRISC)** (`src/modules/metabolic/`) : les 8 questions officielles, IMC calculé depuis le poids et
   la taille (en cm ou en m), score sur 26 et restitution (< 7 faible 1 % ; 7-11 légèrement accru 4 % ; 12-14 modéré
-  17 % ; 15-20 élevé 33 % ; > 20 très élevé 50 %, risque à 10 ans) avec l'orientation médicale. Résultat immédiat
-  même hors ligne, historique et « Télécharger le bilan FINDRISC PDF ».
+  17 % ; 15-20 élevé 33 % ; > 20 très élevé 50 %, risque à 10 ans) avec l'orientation médicale. Partie 2, hors
+  score : 7 signes cliniques d'alerte d'hyperglycémie en Oui / Non (urines fréquentes, soif intense, fatigue,
+  bouche sèche, vision floue, faim excessive, amaigrissement). Dès 1 signe, encart d'alerte au-dessus du score
+  (glycémie à jeun / HbA1c chez le médecin) ; prioritaire si ≥ 2 signes ; triade urines + soif + amaigrissement :
+  consultation sous 24-48 h et boutons 15 / 141. Résultat immédiat même hors ligne, historique et « Télécharger le
+  bilan FINDRISC PDF » (avec le détail des 7 signes).
 - **Tension (HTA)** (`src/modules/cardio/`) : alerte à chaque mesure, même hors ligne. ≥ 180/110 : alerte rouge,
   check-list de symptômes et boutons 15 / 141. 135-179 / 85-109 : vigilance (protocole 3 jours, moins de sel).
   < 135/85 : vert (note sur la tolérance après 80 ans). TAS < 100 : risque de malaise et de chute. Protocole
@@ -153,14 +157,18 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   (alerte « à montrer au médecin » si ≥ 135/85) et « Télécharger le relevé d'automesure HTA PDF ». Ressaisir un
   créneau remplace la mesure.
 - **Alzheimer & Mémoire** (`src/modules/alzheimer/`) : section A, 8 questions d'observation Oui / Non sur les
-  dernières semaines, 2 par domaine des « 4 A » (amnésie, aphasie, apraxie, agnosie). Section B, jeu de mémoire
+  dernières semaines, posées directement au patient (« Oubliez-vous… ? », « هل تنسى… ؟ »), 2 par domaine des « 4 A » (amnésie, aphasie, apraxie, agnosie). Section B, jeu de mémoire
   sans chronomètre : 4 mots illustrés (Clé, Citron, Horloge, Olivier), distraction (jour de la semaine, petit
   calcul), rappel libre écrit (accents, majuscules et pluriels indifférents), puis reconnaissance parmi 12 images.
   Le jeu peut être passé. « Indice de vigilance cognitive » à deux issues seulement, sans score chiffré : rassurant,
   ou signes à signaler (≥ 2 signes sur les 4 A ou les 2 d'un domaine, ≤ 1 mot retrouvé spontanément, un mot ni
   retrouvé ni reconnu, ≥ 2 intrus, jour faux) avec orientation vers le médecin traitant, un neurologue ou une
-  consultation mémoire. Conseils personnalisés par domaine et prévention (marche 30 min, sommeil 7 h, lien
-  social, assiette MIND). « Télécharger le bilan Mémoire & 4 A PDF » : domaines, rappel, conseils, historique.
+  consultation mémoire. Restitution calculée à partir des réponses exactes (`personalisedAdvice`) : constats par
+  domaine et signe, rappel et orientation ; orientation médicale (MMSE / MoCA, consultation mémoire, bilan des
+  causes réversibles : B12, thyroïde, sommeil, médicaments) ; conseils pratiques par domaine ; prévention OMS /
+  Commission Lancet (tension et glycémie, 150 min d'activité / semaine, sommeil 7-8 h, MIND, stimulation, vie
+  sociale, audition et vue), axes prioritaires selon le profil. « Télécharger le bilan Mémoire & 4 A PDF » :
+  domaines, rappel, restitution complète, sources, historique.
   Questionnaire et jeu non validés comme test : outil de pré-dépistage et d'aide à la consultation.
 - Chaque écran, réponse d'API et PDF de ces modules rappelle qu'ils ne constituent pas un diagnostic médical
   officiel et ne remplacent pas un médecin.

@@ -17,9 +17,9 @@
 | 1 | Rappels & Suivi (senior ↔ aidant : voix du proche, « C'est fait », appairage 6 chiffres, tableau de bord temps réel, consentements, jeu de mots) | `modules/observance/` + `app/senior/*`, `app/aidant/*` | backend |
 | 2 | Saturation SpO₂ (profil standard 95-100 / BPCO 88-92, alertes orange / rouge + appel 15 / 141) | `modules/saturation/` | téléphone |
 | 3 | Santé mentale (Mini-GDS 4 q. → arrêt à 0, sinon GDS-15 : 16 questions au total, score /15) | `modules/mental/` | téléphone |
-| 4 | Diabète FINDRISC (8 critères /26, IMC auto, risque à 10 ans) | `modules/metabolic/` | téléphone |
+| 4 | Diabète FINDRISC (8 critères /26, IMC auto, risque à 10 ans) + partie 2 hors score : 7 signes d'hyperglycémie → encart d'alerte (prioritaire si ≥ 2 ou triade) | `modules/metabolic/` | téléphone |
 | 5 | Tension HTA (urgence ≥ 180/110 + check-list, vigilance 135-179/85-109, normal < 135/85, hypotension TAS < 100, protocole 3 j × 18 mesures, moyenne) | `modules/cardio/` | téléphone |
-| 6 | Alzheimer & Mémoire (4 A, jeu des 4 mots FR/AR/darija, indice de vigilance à 2 issues, conseils MIND) | `modules/alzheimer/` | téléphone |
+| 6 | Alzheimer & Mémoire (4 A à la 2ᵉ personne, jeu des 4 mots FR/AR/darija, indice de vigilance à 2 issues, restitution personnalisée HAS / OMS / Lancet) | `modules/alzheimer/` | téléphone |
 
 Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` (AsyncStorage via `modules/storage.ts`), `<x>Pdf.ts` (HTML → PDF, prend `t`), `<X>Screen.tsx` (encapsulé dans `ModuleScreen` : bouton Accueil, `ModuleHeader`, nom du patient, mention de non-diagnostic), `module.ts` (icône, `colour`, `tint`, route). Les endpoints backend des modules 2-5 existent encore mais l'app ne les appelle plus.
 
@@ -66,7 +66,7 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.
 - Après chaque étape backend, lance `backend/mvnw compile` ou `test` et corrige les erreurs avant de continuer.
-- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (162 tests au dernier passage),
+- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (171 tests au dernier passage),
   et `npx expo export --platform android --output-dir <tmp>` pour valider le bundle.
 - Lint : `react-hooks/set-state-in-effect` → charger les données avec `useFocusEffect(useCallback(…))` ;
   `react-hooks/refs` interdit d'écrire un ref pendant le rendu.

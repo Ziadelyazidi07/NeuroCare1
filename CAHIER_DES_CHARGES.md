@@ -208,9 +208,29 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 
 - **Risque estimé à 10 ans** : < 7 faible (1 %) ; 7-11 légèrement accru (4 %) ; 12-14 modéré (17 %) ;
   15-20 élevé (33 %) ; > 20 très élevé (50 %), avec conseils et orientation (glycémie à jeun, médecin traitant,
-  endocrinologue).
-- Résultat immédiat hors ligne, historique local et **bilan PDF** nominatif (8 réponses, poids, taille, IMC,
-  points, total, orientation, barème).
+  endocrinologue). Barème officiel FINDRISC (repris par la HAS et la Fédération Française des Diabétiques),
+  inchangé.
+- **Partie 2 — Signes cliniques d'alerte (symptômes d'hyperglycémie)**, juste après les 8 questions : 7 questions
+  Oui / Non, **hors score** (le total sur 26 n'est jamais modifié) :
+
+| # | Signe | Question |
+|---|---|---|
+| 1 | Urines fréquentes | Beaucoup plus souvent que d'habitude, notamment ≥ 2 fois par nuit, inhabituel |
+| 2 | Soif intense | Besoin de boire constamment, nettement plus qu'à l'habitude (ex. > 3 L / jour) |
+| 3 | Fatigue inhabituelle | Persistante, gênant les activités quotidiennes |
+| 4 | Bouche sèche | Sécheresse permanente malgré la prise d'eau |
+| 5 | Vision floue | Apparition récente d'une vision trouble |
+| 6 | Faim excessive | Faim répétée malgré des repas habituels |
+| 7 | Amaigrissement inexpliqué | Vêtements plus larges ou perte de poids sans régime |
+
+- **Alerte clinique combinée** : le score FINDRISC sur 26 et son risque à 10 ans restent toujours affichés. Dès
+  1 signe, un encart d'alerte (au-dessus du score) signale des symptômes évocateurs d'hyperglycémie et recommande
+  un dosage de la **glycémie à jeun / HbA1c** auprès d'un médecin. Encart **prioritaire** si ≥ 2 signes ; message
+  renforcé (consultation sous 24-48 h, boutons 15 / 141 en cas de vomissements, douleurs abdominales, respiration
+  rapide ou somnolence) pour la triade **urines fréquentes + soif intense + amaigrissement inexpliqué**.
+- Résultat immédiat hors ligne, historique local (avec le nombre de signes d'alerte) et **bilan PDF** nominatif
+  (8 réponses, poids, taille, IMC, points, total, orientation, barème, encart d'alerte et détail des 7 signes ;
+  les questionnaires antérieurs sont marqués « partie 2 non renseignée »).
 
 ## 10. Module 5 — Cardio-vasculaire (hypertension artérielle)
 
@@ -234,8 +254,9 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 
 ## 11. Module 6 — Alzheimer & Mémoire (pré-dépistage des 4 A et prévention cognitive)
 
-- **Section A — Observation des 4 A** (dernières semaines, Oui / Non, 2 questions par domaine, remplissable par
-  la personne ou un proche) : **Amnésie** (mémoire récente), **Aphasie** (langage), **Apraxie** (gestes et
+- **Section A — Observation des 4 A** (dernières semaines, Oui / Non, 2 questions par domaine, **posées
+  directement au patient à la 2ᵉ personne** : « Oubliez-vous… ? », « Avez-vous du mal à… ? » / « هل تنسى… ؟ »,
+  « هل تجد صعوبة في… ؟ » ; un proche peut aider à répondre) : **Amnésie** (mémoire récente), **Aphasie** (langage), **Apraxie** (gestes et
   autonomie), **Agnosie** (reconnaissance et repères).
 - **Section B — Jeu de mémoire bienveillant** (sans chronomètre, peut être passé) : mémorisation de 4 mots
   illustrés (Clé, Citron, Horloge, Olivier) ; distraction (jour de la semaine, petit calcul) ; **rappel libre
@@ -244,13 +265,26 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 - **Indice de vigilance cognitive** à deux issues, sans score : *rassurant*, ou *signes à signaler* (≥ 2 signes
   sur les 4 A ou les 2 signes d'un domaine, ≤ 1 mot retrouvé spontanément, un mot ni retrouvé ni reconnu,
   ≥ 2 intrus choisis, jour de la semaine erroné). Les raisons sont listées.
-- **Orientation** : message encourageant si rassurant ; sinon recommandation bienveillante de consulter le
-  médecin traitant, un neurologue ou une consultation mémoire pour un bilan neuropsychologique.
-- **Conseils de prévention personnalisés** : un conseil pratique par domaine touché, puis marche 30 min/jour,
-  sommeil ~7 h, lien social, alimentation de type **MIND** (huile d'olive, poisson, noix, fruits et légumes),
-  stimulation intellectuelle, contrôle tension / glycémie / audition / vue.
-- Historique local et **rapport PDF** « Bilan Mémoire & 4 A » (domaines, rappel, conseils, historique,
-  mention « outil de pré-dépistage et d'aide à la consultation »).
+- **Restitution personnalisée**, construite à partir des réponses exactes :
+  - *Ce que montrent vos réponses* : chaque domaine touché avec les signes précis cochés (ex. « Aphasie, le
+    langage : mots difficiles à trouver »), performance au rappel des 4 mots (complet, aidé par les images ou
+    incomplet), intrus, orientation temporelle.
+  - *Orientation médicale* (critères HAS / OMS / consultation mémoire) : si signes à signaler, liste des fonctions
+    à faire évaluer (mémoire épisodique, langage, praxies, repères visuo-spatiaux, orientation dans le temps),
+    test cognitif standardisé (**MMSE / MoCA**) et bilan neuropsychologique en consultation mémoire, **bilan
+    biologique** des causes réversibles (vitamine B12, hypothyroïdie, sommeil, dépression, médicaments), venir
+    accompagné avec la liste des médicaments. Si rassurant : refaire le bilan dans 6 à 12 mois ; un signe isolé
+    est nommé, à surveiller.
+  - *Conseils pratiques* : un aménagement du quotidien par domaine touché.
+  - *Prévention personnalisée* (OMS 2019, **Commission Lancet 2024**, facteurs modifiables) : 7 axes — tension et
+    glycémie (lien vers les modules HTA et Diabète), 150 min d'activité modérée / semaine (30 min / jour), sommeil
+    de 7 à 8 h, alimentation **MIND / méditerranéenne** (oméga-3, huile d'olive, légumes verts, noix), stimulation
+    cognitive, vie sociale, audition et vue. Les axes liés au profil passent en tête, marqués « Priorité pour
+    vous » (mémoire → stimulation et sommeil ; langage → vie sociale ; gestes → activité ; repères ou orientation →
+    audition / vue ; signes à signaler → tension et glycémie). Sources citées.
+- Historique local et **rapport PDF** « Bilan Mémoire & 4 A » (questions à la 2ᵉ personne, domaines, rappel,
+  restitution personnalisée complète, sources, historique, mention « outil de pré-dépistage et d'aide à la
+  consultation »).
 
 ## 12. Exigences transverses
 
@@ -372,7 +406,7 @@ backend, pour le traitement des voix.
 | Contrôle | Portée |
 |---|---|
 | Tests backend | Tests unitaires (barèmes, sécurité, services) et tests d'intégration sur PostgreSQL (Testcontainers), dont `EthicsTest` (mentions de non-diagnostic) — 164 tests unitaires et 81 tests d'intégration au dernier passage |
-| Tests mobile | **162 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module, stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, bascule de langue et RTL, indépendance des modules |
+| Tests mobile | **171 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, bascule de langue et RTL, indépendance des modules |
 | Typage et style | `tsc --noEmit`, `expo lint` |
 | Bundle | `expo export` (Android) |
 | Livraison | EAS Build (APK `preview`) et EAS Update (OTA, sans réinstallation tant qu'aucun module natif n'est ajouté) |

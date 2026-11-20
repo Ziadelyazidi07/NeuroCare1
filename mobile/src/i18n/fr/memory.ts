@@ -11,6 +11,8 @@ type Question =
 type Word = 'CLE' | 'CITRON' | 'HORLOGE' | 'OLIVIER';
 type Thing = Word | 'POMME' | 'CISEAUX' | 'VELO' | 'PARAPLUIE' | 'LUNETTES' | 'POISSON' | 'ROSE' | 'TELEPHONE';
 type Vigilance = 'RASSURANT' | 'SIGNES_A_SIGNALER';
+type Area = Domain | 'ORIENTATION';
+type Prevention = 'TENSION_GLYCEMIE' | 'ACTIVITE' | 'SOMMEIL' | 'MIND' | 'STIMULATION' | 'SOCIAL' | 'AUDITION_VISION';
 
 /** Module 6 — Alzheimer & Mémoire (observation des 4 A, jeu des 4 mots). */
 const memory = {
@@ -21,18 +23,36 @@ const memory = {
     AGNOSIE: { title: 'Agnosie', area: 'Reconnaissance et repères' },
   } as Record<Domain, { title: string; area: string }>,
   questions: {
-    OUBLIS_RECENTS: 'La personne oublie-t-elle de façon répétée des événements récents (une visite, une conversation, le repas de la veille) ?',
-    QUESTIONS_REPETEES: 'La personne pose-t-elle plusieurs fois la même question dans la même heure ?',
-    MANQUE_DU_MOT: 'La personne cherche-t-elle souvent ses mots pour parler de choses courantes ?',
-    PERIPHRASES: 'La personne remplace-t-elle le nom d’un objet simple par une périphrase (« le truc pour écrire » au lieu de « stylo ») ?',
-    GESTES_SIMPLES: 'La personne a-t-elle une difficulté inhabituelle pour des gestes simples : lacer ses chaussures, fermer des boutons ?',
-    OBJETS_USUELS:
-      'La personne a-t-elle du mal à se servir d’objets du quotidien qu’elle utilisait sans peine (couverts, téléphone, télécommande) ?',
-    OBJETS_FAMILIERS: 'La personne a-t-elle du mal à reconnaître des objets familiers de la maison ?',
-    LIEUX_VISAGES: 'La personne s’est-elle perdue dans un lieu habituel, ou a-t-elle eu du mal à reconnaître le visage d’un proche ?',
+    OUBLIS_RECENTS: 'Oubliez-vous de façon répétée des événements récents (une visite, une conversation, le repas de la veille) ?',
+    QUESTIONS_REPETEES: 'Vous arrive-t-il de poser plusieurs fois la même question dans la même heure ?',
+    MANQUE_DU_MOT: 'Cherchez-vous souvent vos mots pour parler de choses courantes ?',
+    PERIPHRASES: 'Remplacez-vous le nom d’un objet simple par une périphrase (« le truc pour écrire » au lieu de « stylo ») ?',
+    GESTES_SIMPLES: 'Avez-vous une difficulté inhabituelle pour des gestes simples : lacer vos chaussures, fermer des boutons ?',
+    OBJETS_USUELS: 'Avez-vous du mal à vous servir d’objets du quotidien que vous utilisiez sans peine (couverts, téléphone, télécommande) ?',
+    OBJETS_FAMILIERS: 'Avez-vous du mal à reconnaître des objets familiers de votre maison ?',
+    LIEUX_VISAGES: 'Vous êtes-vous perdu(e) dans un lieu habituel, ou avez-vous eu du mal à reconnaître le visage d’un proche ?',
   } as Record<Question, string>,
+  /** Rappel court de chaque signe, pour la restitution. */
+  questionShort: {
+    OUBLIS_RECENTS: 'oublis d’événements récents',
+    QUESTIONS_REPETEES: 'questions répétées',
+    MANQUE_DU_MOT: 'mots difficiles à trouver',
+    PERIPHRASES: 'périphrases à la place des noms d’objets',
+    GESTES_SIMPLES: 'gestes simples devenus difficiles',
+    OBJETS_USUELS: 'difficulté à utiliser les objets du quotidien',
+    OBJETS_FAMILIERS: 'objets familiers mal reconnus',
+    LIEUX_VISAGES: 'perte de repères dans un lieu connu ou visage d’un proche mal reconnu',
+  } as Record<Question, string>,
+  /** Fonction cognitive concernée (restitution et orientation médicale). */
+  areas: {
+    AMNESIE: 'la mémoire épisodique (souvenirs récents)',
+    APHASIE: 'le langage (accès aux mots)',
+    APRAXIE: 'les praxies (gestes du quotidien)',
+    AGNOSIE: 'la reconnaissance et les repères visuo-spatiaux (objets, visages, lieux)',
+    ORIENTATION: 'l’orientation dans le temps',
+  } as Record<Area, string>,
   instructions:
-    'Pensez aux dernières semaines et comparez à ses habitudes. Les questions parlent de « la personne » : elles peuvent être remplies par elle-même ou par un proche.',
+    'Pensez aux dernières semaines et comparez à vos habitudes. Répondez vous-même ; un proche peut vous aider à répondre.',
   lastWeeks: (question: string) => `Ces dernières semaines : ${question}`,
   sectionA: (domain: string, area: string) => `Section A : les 4 A · ${domain} (${area})`,
   things: {
@@ -80,14 +100,37 @@ const memory = {
     intruders: (n: number) => `${n} images choisies qui ne faisaient pas partie des mots.`,
     day: 'Jour de la semaine non retrouvé.',
   },
-  prevention: [
-    'Marcher 30 minutes par jour, en une ou plusieurs fois.',
-    'Dormir environ 7 heures par nuit, à heures régulières.',
-    'Garder des liens : appels, visites, repas en famille, activités de groupe ou associatives.',
-    'Assiette de type MIND : huile d’olive, poisson 1 à 2 fois par semaine, une poignée de noix, fruits et légumes verts chaque jour ; limiter sucreries, fritures et charcuterie.',
-    'Stimuler l’esprit : lecture, jeux de mots, cartes, apprentissage d’une activité nouvelle.',
-    'Faire contrôler tension, glycémie, audition et vue, qui comptent aussi pour la mémoire.',
-  ],
+  /** 7 axes de prévention des facteurs modifiables (OMS 2019, Commission Lancet 2024). */
+  prevention: {
+    TENSION_GLYCEMIE:
+      'Tension et glycémie : visez une tension inférieure à 135/85 en automesure et une glycémie équilibrée ; faites le point avec les modules Tension HTA et Diabète de NeuroCare.',
+    ACTIVITE: 'Activité physique : 150 minutes d’activité modérée par semaine, soit environ 30 minutes par jour (marche rapide, jardinage, vélo), adaptées à vos capacités.',
+    SOMMEIL: 'Sommeil réparateur de 7 à 8 heures, à heures régulières ; signalez au médecin des ronflements avec pauses respiratoires.',
+    MIND: 'Alimentation neuroprotectrice de type MIND / méditerranéen : huile d’olive, légumes verts à feuilles, poisson gras riche en oméga-3 1 à 2 fois par semaine, une poignée de noix, légumineuses ; limiter sucreries, fritures et charcuterie.',
+    STIMULATION: 'Stimulation cognitive régulière : lecture, jeux de mots ou de cartes, apprendre quelque chose de nouveau (langue, recette, instrument).',
+    SOCIAL: 'Vie sociale active : visites, repas en famille, appels, activités de groupe ou associatives.',
+    AUDITION_VISION:
+      'Audition et vue : faites-les contrôler et portez vos lunettes ou appareils auditifs ; une perte auditive non corrigée est l’un des principaux facteurs de risque modifiables.',
+  } as Record<Prevention, string>,
+  analysis: {
+    noSign: 'Aucun des 8 signes des 4 A n’a été observé.',
+    domain: (title: string, area: string, signs: string) => `${title}, ${area} : ${signs}.`,
+    recallFull: 'Rappel des 4 mots : les 4 mots retrouvés spontanément.',
+    recallAided: (free: number, recognised: number) => `Rappel des 4 mots : ${free} retrouvé(s) spontanément, ${recognised} retrouvé(s) avec l’aide des images.`,
+    recallMissed: (free: number, missed: number) => `Rappel des 4 mots : ${free} retrouvé(s) spontanément, ${missed} non retrouvé(s) même avec les images.`,
+    intruders: (n: number) => `${n} image(s) choisie(s) à tort lors de la reconnaissance.`,
+    orientationOk: 'Orientation dans le temps : jour de la semaine retrouvé.',
+    orientationWrong: 'Orientation dans le temps : jour de la semaine non retrouvé.',
+    medicalAreas: (areas: string) => `Points qui méritent l’attention d’un médecin : ${areas}.`,
+    medicalConsult:
+      'Consultez votre médecin traitant avec ce bilan : il pourra réaliser un test cognitif standardisé (MMSE ou MoCA) et, si besoin, vous orienter vers une consultation mémoire ou un neurologue pour un bilan neuropsychologique complet.',
+    medicalBiology:
+      'Un bilan sanguin et clinique permet d’écarter des causes réversibles de troubles de la mémoire : carence en vitamine B12, hypothyroïdie, troubles du sommeil, dépression ou effet de certains médicaments (somnifères, anxiolytiques).',
+    medicalBring: 'Venez si possible accompagné(e) d’un proche, avec la liste de vos médicaments.',
+    reassure: 'Rien d’inhabituel n’est ressorti aujourd’hui. Refaites ce bilan dans 6 à 12 mois, ou plus tôt si vous ou vos proches remarquez un changement.',
+    isolated: (areas: string) => `Un signe isolé concerne ${areas} : surveillez-le et parlez-en lors de votre prochaine consultation.`,
+    priority: (text: string) => `Priorité pour vous · ${text}`,
+  },
   domainTips: {
     AMNESIE: 'Mémoire : un agenda ou un calendrier bien visible, des routines fixes et un endroit unique pour les objets importants (clés, lunettes).',
     APHASIE: 'Langage : parler calmement, une idée à la fois, laisser le temps de trouver le mot sans le finir à sa place.',
@@ -128,7 +171,12 @@ const memory = {
   domainLine: (title: string, area: string, n: number) => `${title} (${area}) : ${n} signe${n > 1 ? 's' : ''} sur 2`,
   recallLine: (recalled: number, recognised: number) => `Rappel des mots : ${recalled} / 4 retrouvés, ${recognised} reconnu(s) en images.`,
   noExercise: 'Jeu de mémoire non réalisé.',
-  tipsTitle: 'Conseils pour prendre soin de sa mémoire',
+  findingsTitle: 'Ce que montrent vos réponses',
+  medicalTitle: 'Orientation médicale (HAS, OMS, consultation mémoire)',
+  practicalTitle: 'Conseils pratiques au quotidien',
+  preventionTitle: 'Prévention personnalisée (OMS, Commission Lancet)',
+  sources:
+    'Sources : Commission Lancet sur la prévention de la démence (2024, 14 facteurs de risque modifiables) ; OMS, lignes directrices pour la réduction du risque de déclin cognitif et de démence (2019) ; HAS, parcours des personnes présentant des troubles neurocognitifs.',
   pdf: {
     title: 'Bilan Mémoire & 4 A — pré-dépistage cognitif',
     dialog: 'Bilan Mémoire NeuroCare',
@@ -149,7 +197,6 @@ const memory = {
     wrong: 'Erreur',
     none: 'aucun',
     wrongDay: (answered: string, actual: string) => `Répondu « ${answered} » (jour : ${actual})`,
-    tipsTitle: 'Conseils pratiques',
     historyTitle: 'Historique enregistré sur le téléphone',
     historyColumns: ['Date', 'Indice', 'Détail'],
     summary: (signs: number, recall: number | null) => `${signs}/8 signes · ${recall === null ? 'sans exercice' : `rappel ${recall}/4`}`,
@@ -159,7 +206,7 @@ const memory = {
     title: 'Avant de commencer',
     conditions: [
       'Passation au calme, sans bruit ni télévision.',
-      'Avec les lunettes et les appareils auditifs habituels, si la personne en porte.',
+      'Avec vos lunettes et les appareils auditifs habituels, si vous en portez.',
       'Prenez votre temps : ce n’est pas un examen.',
     ],
   },
