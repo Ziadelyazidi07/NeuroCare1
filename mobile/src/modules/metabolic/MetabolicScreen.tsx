@@ -1,17 +1,17 @@
 /**
  * Module 4 — Métabolique : questionnaire FINDRISC (8 questions, IMC calculé), résultat immédiat même hors
- * ligne, historique et bilan PDF nominatif. Estimation de risque, jamais un diagnostic.
+ * ligne, historique et bilan PDF nominatif. Accès direct, sans compte : tout reste sur le téléphone.
+ * Estimation de risque, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { errorMessage } from '../../lib/problem';
 import { HomeButton } from '../../ui/HomeButton';
 import { Button, Card, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
 import { aidantColours as c } from '../../ui/theme';
-import { PatientGate, type Patient } from '../PatientGate';
+import { PatientNameField, displayName, usePatientName } from '../PatientName';
 import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
 import { OptionGroup, YES_NO, parseDecimal } from '../ui';
 import {
@@ -20,18 +20,15 @@ import {
   LEVEL_TEXT,
   MAX_SCORE,
   computeImc,
-  findriscPoints,
-  levelOf,
   levelSummary,
   parseForm,
   parseHeightCm,
-  totalOf,
   type FamilyHistory,
   type FindriscForm,
   type FindriscLevel,
 } from './findrisc';
-import { findriscApi, type FindriscAssessmentDto } from './findriscApi';
 import { findriscReportHtml, type FindriscReport } from './findriscPdf';
+import { loadAssessments, saveAssessment, scoreAnswers, type FindriscAssessment } from './findriscStore';
 import { metabolicModule } from './module';
 
 const LEVEL_COLOUR: Record<FindriscLevel, string> = {
@@ -43,6 +40,7 @@ const LEVEL_COLOUR: Record<FindriscLevel, string> = {
 };
 
 export default function MetabolicScreen() {
+  const [name, setName] = usePatientName();
   return (
     <SafeAreaView style={ui.screen}>
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
@@ -50,27 +48,23 @@ export default function MetabolicScreen() {
         <Text style={styles.title} accessibilityRole="header">
           {metabolicModule.title}
         </Text>
-        <PatientGate>{(patient) => <FindriscPanel key={patient.seniorId} patient={patient} />}</PatientGate>
+        <PatientNameField value={name} onChange={setName} />
+        <FindriscPanel patient={displayName(name)} />
         <Notice>{NOT_A_DIAGNOSIS}</Notice>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function FindriscPanel({ patient }: { patient: Patient }) {
+function FindriscPanel({ patient }: { patient: string }) {
   const [form, setForm] = useState<FindriscForm>(EMPTY_FORM);
-  const [result, setResult] = useState<{ report: FindriscReport; saved: boolean } | null>(null);
-  const [history, setHistory] = useState<FindriscAssessmentDto[] | null>(null);
+  const [result, setResult] = useState<FindriscReport | null>(null);
+  const [history, setHistory] = useState<FindriscAssessment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const loadHistory = useCallback(async () => {
-    try {
-      setHistory((await findriscApi.history(patient.seniorId)).passations);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  }, [patient.seniorId]);
+    setHistory(await loadAssessments());
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,44 +84,29 @@ function FindriscPanel({ patient }: { patient: Patient }) {
       setError(answers);
       return;
     }
-    const points = findriscPoints(answers);
-    const total = totalOf(points);
-    // Résultat affiché immédiatement, même si l'enregistrement échoue (réseau).
-    setResult({
-      report: {
-        ...answers,
-        datePassation: new Date().toISOString(),
-        imc: computeImc(answers.poidsKg, answers.tailleCm),
-        points,
-        scoreTotal: total,
-        niveau: levelOf(total),
-      },
-      saved: false,
-    });
-    setBusy(true);
+    // Résultat affiché immédiatement, puis mémorisé sur le téléphone.
+    const assessment = scoreAnswers(answers);
+    setResult(assessment);
     setError(null);
     try {
-      const saved = await findriscApi.record(patient.seniorId, answers);
-      setResult({ report: saved, saved: true });
-      await loadHistory();
-    } catch (e) {
-      setError(`Questionnaire non enregistré : ${errorMessage(e)}`);
-    } finally {
-      setBusy(false);
+      await saveAssessment(assessment);
+      setHistory((list) => [assessment, ...(list ?? [])]);
+    } catch {
+      setError('Questionnaire non mémorisé sur ce téléphone (le résultat reste affiché).');
     }
   };
 
   const downloadPdf = async (report: FindriscReport) => {
     setError(null);
     try {
-      await sharePdf(findriscReportHtml(patient.nom, report, new Date()), 'Bilan FINDRISC NeuroCare');
+      await sharePdf(findriscReportHtml(patient, report, new Date()), 'Bilan FINDRISC NeuroCare');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
     }
   };
 
   if (result) {
-    const { report } = result;
+    const report = result;
     const colour = LEVEL_COLOUR[report.niveau];
     return (
       <>
@@ -138,7 +117,6 @@ function FindriscPanel({ patient }: { patient: Patient }) {
           </Text>
           <Text style={ui.text}>IMC calculé : {report.imc.toFixed(1).replace('.', ',')} kg/m²</Text>
           <Text style={ui.text}>{LEVEL_TEXT[report.niveau].orientation}</Text>
-          {busy ? <Text style={ui.muted}>Enregistrement…</Text> : null}
           <ErrorText message={error} />
         </View>
         <Button label="Télécharger le bilan FINDRISC PDF" onPress={() => void downloadPdf(report)} />
@@ -212,7 +190,7 @@ function FindriscPanel({ patient }: { patient: Patient }) {
           onChange={(v) => set('antecedentsFamiliaux', v)}
         />
         <ErrorText message={error} />
-        <Button label="Calculer le score" onPress={() => void submit()} loading={busy} />
+        <Button label="Calculer le score" onPress={() => void submit()} />
       </Card>
 
       <Card title="Questionnaires précédents">

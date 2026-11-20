@@ -39,6 +39,21 @@ describe('grille des modules', () => {
     }
   });
 
+  it('ouvre les 4 modules cliniques sans session, appairage ni serveur', () => {
+    const clinical = ids.filter((id) => id !== 'observance').flatMap((id) => filesOf(path.join(modulesDir, id)));
+    const shared = fs
+      .readdirSync(modulesDir)
+      .filter((name) => /\.tsx?$/.test(name))
+      .map((name) => path.join(modulesDir, name));
+    for (const file of [...clinical, ...shared]) {
+      const source = fs.readFileSync(file, 'utf8');
+      expect({ file: path.relative(modulesDir, file), dependsOnModule1: /\/(auth|api|senior|realtime)\//.test(source) }).toEqual({
+        file: path.relative(modulesDir, file),
+        dependsOnModule1: false,
+      });
+    }
+  });
+
   it('garde chaque module indépendant des autres', () => {
     for (const id of ids) {
       const others = ids.filter((other) => other !== id);

@@ -1,11 +1,11 @@
 import { escapeHtml, formatDateTime, pdfDocument } from '../pdf';
 import { profileLabel, spo2Advice, type Spo2Level } from './spo2';
-import type { Spo2MeasurementDto } from './spo2Api';
+import type { Spo2Measurement } from './spo2Store';
 
 const LEVEL_LABEL: Record<Spo2Level, string> = { VERT: 'Vert', ORANGE: 'Alerte orange', ROUGE: 'Alerte rouge' };
 
 /** Relevé SpO2 nominatif : profil respiratoire, historique et alertes. */
-export function spo2ReportHtml(patient: string, chronic: boolean, measures: Spo2MeasurementDto[], generatedAt: Date): string {
+export function spo2ReportHtml(patient: string, chronic: boolean, measures: Spo2Measurement[], generatedAt: Date): string {
   const alerts = measures.filter((m) => m.niveau !== 'VERT');
   const rows = measures
     .map(

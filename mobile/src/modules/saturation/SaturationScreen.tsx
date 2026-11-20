@@ -1,31 +1,24 @@
 /**
  * Module 2 — Saturation en oxygène : profil respiratoire, mesure au repos avec alerte immédiate et
- * orientation, historique et relevé PDF nominatif. Pré-dépistage, jamais un diagnostic.
+ * orientation, historique et relevé PDF nominatif. Accès direct, sans compte : tout reste sur le téléphone.
+ * Pré-dépistage, jamais un diagnostic.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { errorMessage } from '../../lib/problem';
 import { HomeButton } from '../../ui/HomeButton';
 import { Button, Card, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
 import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
-import { PatientGate, type Patient } from '../PatientGate';
+import { PatientNameField, displayName, usePatientName } from '../PatientName';
 import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
+import { EmergencyButtons } from '../ui';
 import { saturationModule } from './module';
-import {
-  EMERGENCY_NUMBERS,
-  PROFILE_QUESTION,
-  classifySpo2,
-  parseMeasurement,
-  profileLabel,
-  spo2Advice,
-  type Spo2Level,
-} from './spo2';
-import { spo2Api, type Spo2MeasurementDto } from './spo2Api';
+import { PROFILE_QUESTION, parseMeasurement, profileLabel, spo2Advice, type Spo2Level } from './spo2';
 import { spo2ReportHtml } from './spo2Pdf';
+import { addMeasure, loadMeasures, loadProfile, saveProfile, type Spo2Measurement } from './spo2Store';
 
 const LEVEL_COLOUR: Record<Spo2Level, { bg: string; fg: string }> = {
   VERT: { bg: '#E6F4EA', fg: '#1E7B34' },
@@ -34,6 +27,7 @@ const LEVEL_COLOUR: Record<Spo2Level, { bg: string; fg: string }> = {
 };
 
 export default function SaturationScreen() {
+  const [name, setName] = usePatientName();
   return (
     <SafeAreaView style={ui.screen}>
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
@@ -41,66 +35,42 @@ export default function SaturationScreen() {
         <Text style={styles.title} accessibilityRole="header">
           {saturationModule.title}
         </Text>
-        <PatientGate>{(patient) => <Spo2Panel key={patient.seniorId} patient={patient} />}</PatientGate>
+        <PatientNameField value={name} onChange={setName} />
+        <Spo2Panel patient={displayName(name)} />
         <Notice>{NOT_A_DIAGNOSIS}</Notice>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-interface LastResult {
-  spo2: number;
-  pouls: number;
-  chronic: boolean;
-  level: Spo2Level;
-  saved: boolean;
-}
-
-function Spo2Panel({ patient }: { patient: Patient }) {
+function Spo2Panel({ patient }: { patient: string }) {
   const [chronic, setChronic] = useState<boolean | null | undefined>(undefined); // undefined = chargement
   const [editingProfile, setEditingProfile] = useState(false);
-  const [history, setHistory] = useState<Spo2MeasurementDto[] | null>(null);
+  const [history, setHistory] = useState<Spo2Measurement[] | null>(null);
   const [spo2, setSpo2] = useState('');
   const [pouls, setPouls] = useState('');
-  const [last, setLast] = useState<LastResult | null>(null);
+  const [last, setLast] = useState<Spo2Measurement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
-  const loadHistory = useCallback(async () => {
-    try {
-      setHistory((await spo2Api.history(patient.seniorId)).mesures);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  }, [patient.seniorId]);
-
-  useEffect(() => {
-    spo2Api
-      .profile(patient.seniorId)
-      .then((p) => setChronic(p.maladieRespiratoireChronique ?? null))
-      .catch((e) => {
-        setChronic(null);
-        setError(errorMessage(e));
-      });
-  }, [patient.seniorId]);
+  const load = useCallback(async () => {
+    const [profile, measures] = await Promise.all([loadProfile(), loadMeasures()]);
+    setChronic(profile);
+    setHistory(measures);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void loadHistory();
-    }, [loadHistory]),
+      void load();
+    }, [load]),
   );
 
   const chooseProfile = async (value: boolean) => {
-    setBusy(true);
-    setError(null);
+    setChronic(value);
+    setEditingProfile(false);
     try {
-      const saved = await spo2Api.setProfile(patient.seniorId, value);
-      setChronic(saved.maladieRespiratoireChronique ?? value);
-      setEditingProfile(false);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
+      await saveProfile(value);
+    } catch {
+      setError('Profil non mémorisé sur ce téléphone.');
     }
   };
 
@@ -111,20 +81,15 @@ function Spo2Panel({ patient }: { patient: Patient }) {
       setError(parsed);
       return;
     }
-    // L'alerte s'affiche immédiatement, même si l'enregistrement échoue (réseau).
-    setLast({ ...parsed, chronic, level: classifySpo2(parsed.spo2, chronic), saved: false });
-    setBusy(true);
     setError(null);
     try {
-      const saved = await spo2Api.record(patient.seniorId, parsed);
-      setLast({ ...parsed, chronic: saved.maladieRespiratoireChronique, level: saved.niveau, saved: true });
+      const saved = await addMeasure(parsed, chronic);
+      setLast(saved);
+      setHistory((list) => [saved, ...(list ?? [])]);
       setSpo2('');
       setPouls('');
-      await loadHistory();
-    } catch (e) {
-      setError(`Mesure non enregistrée : ${errorMessage(e)}`);
-    } finally {
-      setBusy(false);
+    } catch {
+      setError('Mesure non mémorisée sur ce téléphone.');
     }
   };
 
@@ -132,9 +97,9 @@ function Spo2Panel({ patient }: { patient: Patient }) {
     if (chronic == null || !history) return;
     setError(null);
     try {
-      await sharePdf(spo2ReportHtml(patient.nom, chronic, history, new Date()), 'Relevé SpO2 NeuroCare');
+      await sharePdf(spo2ReportHtml(patient, chronic, history, new Date()), 'Relevé SpO2 NeuroCare');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
     }
   };
 
@@ -145,8 +110,8 @@ function Spo2Panel({ patient }: { patient: Patient }) {
       <Card title="Profil respiratoire">
         <Text style={ui.text}>{PROFILE_QUESTION}</Text>
         <View style={styles.choices}>
-          <ChoiceButton label="Oui" onPress={() => void chooseProfile(true)} disabled={busy} />
-          <ChoiceButton label="Non" onPress={() => void chooseProfile(false)} disabled={busy} />
+          <ChoiceButton label="Oui" onPress={() => void chooseProfile(true)} />
+          <ChoiceButton label="Non" onPress={() => void chooseProfile(false)} />
         </View>
         <Text style={ui.muted}>Oui : cible 88-92 % (BPCO, insuffisance respiratoire). Non : cible standard 95-100 %.</Text>
         {editingProfile ? <Button label="Annuler" variant="secondary" onPress={() => setEditingProfile(false)} /> : null}
@@ -172,11 +137,11 @@ function Spo2Panel({ patient }: { patient: Patient }) {
         <Text style={ui.muted}>Patient assis, au calme depuis 5 minutes, main au chaud, sans vernis sur le doigt mesuré.</Text>
         <Field label="SpO2 (%)" value={spo2} onChangeText={setSpo2} keyboardType="number-pad" maxLength={3} placeholder="97" />
         <Field label="Pouls (bpm)" value={pouls} onChangeText={setPouls} keyboardType="number-pad" maxLength={3} placeholder="72" />
-        <Button label="Enregistrer la mesure" onPress={() => void submit()} loading={busy} disabled={!spo2 || !pouls} />
+        <Button label="Enregistrer la mesure" onPress={() => void submit()} disabled={!spo2 || !pouls} />
         <ErrorText message={error} />
       </Card>
 
-      {last ? <AlertCard result={last} /> : null}
+      {last ? <AlertCard measure={last} /> : null}
 
       <Card title="Historique">
         {history === null ? <Loading /> : null}
@@ -200,34 +165,20 @@ function Spo2Panel({ patient }: { patient: Patient }) {
   );
 }
 
-function AlertCard({ result }: { result: LastResult }) {
-  const advice = spo2Advice(result.level, result.chronic);
-  const colour = LEVEL_COLOUR[result.level];
+function AlertCard({ measure }: { measure: Spo2Measurement }) {
+  const advice = spo2Advice(measure.niveau, measure.maladieRespiratoireChronique);
+  const colour = LEVEL_COLOUR[measure.niveau];
   return (
     <View style={[styles.alert, { backgroundColor: colour.bg, borderColor: colour.fg }]} accessibilityRole="alert" accessibilityLiveRegion="assertive">
       <View style={ui.row}>
-        <Ionicons name={result.level === 'VERT' ? 'checkmark-circle' : 'warning'} size={28} color={colour.fg} />
+        <Ionicons name={measure.niveau === 'VERT' ? 'checkmark-circle' : 'warning'} size={28} color={colour.fg} />
         <Text style={[styles.alertTitle, { color: colour.fg }]}>{advice.title}</Text>
       </View>
       <Text style={[styles.alertValue, { color: colour.fg }]}>
-        SpO2 {result.spo2} % · Pouls {result.pouls} bpm
+        SpO2 {measure.spo2} % · Pouls {measure.pouls} bpm
       </Text>
       <Text style={{ color: colour.fg, fontSize: 16 }}>{advice.message}</Text>
-      {result.level === 'ROUGE'
-        ? EMERGENCY_NUMBERS.map((n) => (
-            <Pressable
-              key={n}
-              accessibilityRole="button"
-              accessibilityLabel={`Appeler le ${n}`}
-              onPress={() => void Linking.openURL(`tel:${n}`)}
-              style={({ pressed }) => [styles.emergency, pressed && { opacity: 0.8 }]}
-            >
-              <Ionicons name="call" size={24} color="#B3261E" />
-              <Text style={styles.emergencyText}>Appeler le {n}</Text>
-            </Pressable>
-          ))
-        : null}
-      {!result.saved ? <Text style={{ color: colour.fg, fontSize: 14 }}>Enregistrement en cours ou impossible.</Text> : null}
+      {measure.niveau === 'ROUGE' ? <EmergencyButtons /> : null}
     </View>
   );
 }
@@ -242,15 +193,9 @@ function LevelBadge({ level }: { level: Spo2Level }) {
   );
 }
 
-function ChoiceButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+function ChoiceButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.choice, (pressed || disabled) && { opacity: 0.6 }]}
-    >
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.choice, pressed && { opacity: 0.6 }]}>
       <Text style={styles.choiceText}>{label}</Text>
     </Pressable>
   );
@@ -264,16 +209,6 @@ const styles = StyleSheet.create({
   alert: { borderWidth: 2, borderRadius: 14, padding: 16, gap: 10 },
   alertTitle: { fontSize: 20, fontWeight: '800', flex: 1 },
   alertValue: { fontSize: 18, fontWeight: '700' },
-  emergency: {
-    minHeight: MIN_TOUCH,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  emergencyText: { color: '#B3261E', fontSize: 22, fontWeight: '800' },
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.border },
   badge: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 },
 });

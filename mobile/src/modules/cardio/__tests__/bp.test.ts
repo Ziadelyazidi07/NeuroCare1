@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { PROTOCOL_SLOTS, averageOf, classifyBp, nextEmptySlot, parseBp } from '../bp';
-import type { BpSeriesDto } from '../bpApi';
+import type { BpSeries } from '../bpStore';
 import { bpReportHtml } from '../bpPdf';
 
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
@@ -47,14 +47,10 @@ describe('protocole sur 3 jours', () => {
 
 describe('relevé PDF', () => {
   it('contient le tableau 3 jours matin / soir, la moyenne, les alertes et une orientation', () => {
-    const series: BpSeriesDto = {
+    const series: BpSeries = {
       id: 's1',
       dateDebut: '2026-11-17',
       creeLe: '2026-11-17T06:00:00Z',
-      nombreMesures: 18,
-      complet: true,
-      moyenneAuDessusDuSeuil: true,
-      avertissement: '',
       mesures: PROTOCOL_SLOTS.map((s, i) => ({
         id: `m${i}`,
         dateMesure: '2026-11-17T06:00:00Z',
@@ -62,7 +58,6 @@ describe('relevé PDF', () => {
         tad: 80,
         pouls: 70,
         niveau: i === 0 ? 'URGENCE_HYPERTENSIVE' : 'TENSION_ELEVEE',
-        serieId: 's1',
         ...s,
       })),
     };

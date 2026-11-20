@@ -19,11 +19,15 @@ Toute l'architecture, le SQL, les endpoints et les règles sont dans `docs/cahie
    Exception autorisée : les échelles cliniques standardisées des modules de pré-dépistage (Mini-GDS / GDS-15,
    FINDRISC, seuils SpO2, automesure HTA) peuvent calculer leur score et leurs seuils officiels, comme outils de
    pré-dépistage, de suivi d'indicateurs et d'orientation médicale. Conditions :
-   - barème officiel recalculé côté serveur (jamais repris de l'application) ;
+   - barème officiel testé (mobile et backend appliquent les mêmes seuils ; un score reçu par le serveur est
+     toujours recalculé, jamais repris de l'application) ;
    - formulations « indicateurs compatibles avec… » et orientation vers un professionnel, jamais « vous avez… » ;
    - chaque écran, réponse d'API et PDF porte la mention explicite que le résultat ne constitue pas un diagnostic
      médical officiel et ne remplace pas un médecin (vérifié par `EthicsTest`).
 6. Mobile : un dossier par module dans `mobile/src/modules/`, sans import d'un module à l'autre (vérifié par les tests).
+7. Seul le Module 1 (« Rappels & Suivi ») dépend de la relation aidant / senior (appairage, compte, consentements).
+   Les modules 2 à 5 s'ouvrent sans compte ni réseau et stockent leurs données sur le téléphone ; ils n'importent
+   jamais `auth/`, `api/`, `senior/` ni `realtime/` (vérifié par les tests).
 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.

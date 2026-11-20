@@ -1,7 +1,7 @@
 /**
  * Module 5 — Cardio-vasculaire : alerte immédiate à chaque mesure (même hors ligne), check-list de
  * symptômes en urgence, protocole d'automesure sur 3 jours (18 mesures) avec moyenne et relevé PDF.
- * Pré-dépistage et orientation, jamais un diagnostic.
+ * Accès direct, sans compte : tout reste sur le téléphone. Pré-dépistage et orientation, jamais un diagnostic.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,11 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { toIsoDate } from '../../lib/dates';
-import { errorMessage } from '../../lib/problem';
 import { HomeButton } from '../../ui/HomeButton';
 import { Button, Card, Checkbox, ErrorText, Field, Loading, Notice, styles as ui } from '../../ui/components';
 import { aidantColours as c } from '../../ui/theme';
-import { PatientGate, type Patient } from '../PatientGate';
+import { PatientNameField, displayName, usePatientName } from '../PatientName';
 import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
 import { EmergencyButtons } from '../ui';
 import {
@@ -36,7 +35,7 @@ import {
   type BpValues,
   type Slot,
 } from './bp';
-import { bpApi, type BpMeasurementDto, type BpSeriesDto } from './bpApi';
+import { addMeasure, loadMeasures, loadSeries, recordSlot, startSeries, type BpMeasurement, type BpSeries } from './bpStore';
 import { bpReportHtml } from './bpPdf';
 import { cardioModule } from './module';
 
@@ -48,6 +47,7 @@ const LEVEL_COLOUR: Record<BpLevel, { bg: string; fg: string }> = {
 };
 
 export default function CardioScreen() {
+  const [name, setName] = usePatientName();
   return (
     <SafeAreaView style={ui.screen}>
       <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
@@ -55,7 +55,8 @@ export default function CardioScreen() {
         <Text style={styles.title} accessibilityRole="header">
           {cardioModule.title}
         </Text>
-        <PatientGate>{(patient) => <CardioPanel key={patient.seniorId} patient={patient} />}</PatientGate>
+        <PatientNameField value={name} onChange={setName} />
+        <CardioPanel patient={displayName(name)} />
         <Notice>{NOT_A_DIAGNOSIS}</Notice>
       </ScrollView>
     </SafeAreaView>
@@ -68,23 +69,18 @@ interface LastResult extends BpValues {
   label: string;
 }
 
-function CardioPanel({ patient }: { patient: Patient }) {
-  const [series, setSeries] = useState<BpSeriesDto[] | null>(null);
-  const [history, setHistory] = useState<BpMeasurementDto[] | null>(null);
+function CardioPanel({ patient }: { patient: string }) {
+  const [series, setSeries] = useState<BpSeries[] | null>(null);
+  const [history, setHistory] = useState<BpMeasurement[] | null>(null);
   const [selected, setSelected] = useState<Slot | null>(null);
   const [last, setLast] = useState<LastResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const [s, h] = await Promise.all([bpApi.series(patient.seniorId), bpApi.history(patient.seniorId)]);
-      setSeries(s.series);
-      setHistory(h.mesures);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  }, [patient.seniorId]);
+    const [s, h] = await Promise.all([loadSeries(), loadMeasures()]);
+    setSeries(s);
+    setHistory(h);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -93,53 +89,49 @@ function CardioPanel({ patient }: { patient: Patient }) {
   );
 
   const current = series?.[0] ?? null;
-  const active = current && !current.complet ? current : null;
+  const currentComplete = !!current && current.mesures.length >= PROTOCOL_SIZE;
+  const active = current && !currentComplete ? current : null;
   const slot = active ? (selected ?? nextEmptySlot(active.mesures)) : null;
 
   const save = async (values: BpValues, target: { serieId: string; slot: Slot } | null): Promise<boolean> => {
     const label = target ? slotLabel(target.slot) : 'Mesure ponctuelle';
-    // L'alerte s'affiche immédiatement, même si l'enregistrement échoue (réseau).
+    // L'alerte s'affiche immédiatement, avant même la mémorisation sur le téléphone.
     setLast({ ...values, level: classifyBp(values.tas, values.tad), saved: false, label });
-    setBusy(true);
     setError(null);
     try {
-      const saved = await bpApi.record(patient.seniorId, values, target ? { serieId: target.serieId, ...target.slot } : undefined);
-      setLast({ ...values, level: saved.niveau, saved: true, label });
+      if (target) await recordSlot(target.serieId, target.slot, values);
+      else await addMeasure(values);
+      setLast({ ...values, level: classifyBp(values.tas, values.tad), saved: true, label });
       setSelected(null);
       await load();
       return true;
-    } catch (e) {
-      setError(`Mesure non enregistrée : ${errorMessage(e)}`);
+    } catch {
+      setError('Mesure non mémorisée sur ce téléphone.');
       return false;
-    } finally {
-      setBusy(false);
     }
   };
 
   const startProtocol = async () => {
-    setBusy(true);
     setError(null);
     try {
-      await bpApi.startSeries(patient.seniorId, toIsoDate(new Date()));
+      await startSeries(toIsoDate(new Date()));
       setSelected(null);
       await load();
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
+    } catch {
+      setError('Protocole non créé sur ce téléphone.');
     }
   };
 
-  const downloadPdf = async (s: BpSeriesDto) => {
+  const downloadPdf = async (s: BpSeries) => {
     setError(null);
     try {
-      await sharePdf(bpReportHtml(patient.nom, s, new Date()), 'Relevé d’automesure HTA NeuroCare');
+      await sharePdf(bpReportHtml(patient, s, new Date()), 'Relevé d’automesure HTA NeuroCare');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
     }
   };
 
-  if (series === null && !error) return <Loading />;
+  if (series === null) return <Loading />;
 
   const avg = current ? averageOf(current.mesures) : null;
 
@@ -159,17 +151,17 @@ function CardioPanel({ patient }: { patient: Patient }) {
         {avg && current ? (
           <View
             style={[styles.average, { borderColor: avg.elevated ? '#8A4600' : '#1E7B34' }]}
-            accessibilityRole={current.complet ? 'alert' : 'text'}
+            accessibilityRole={currentComplete ? 'alert' : 'text'}
           >
             <Text style={[ui.text, { fontWeight: '700' }]}>
-              Moyenne {current.complet ? 'des 18 mesures' : `provisoire (${avg.count}/${PROTOCOL_SIZE})`} : {formatAverage(avg)}
+              Moyenne {currentComplete ? 'des 18 mesures' : `provisoire (${avg.count}/${PROTOCOL_SIZE})`} : {formatAverage(avg)}
             </Text>
-            {current.complet && avg.elevated ? (
+            {currentComplete && avg.elevated ? (
               <Text style={[ui.text, { color: '#8A4600' }]}>
                 Moyenne ≥ 135/85 mmHg : montrez ce relevé tensionnel à votre médecin.
               </Text>
             ) : null}
-            {current.complet && !avg.elevated ? (
+            {currentComplete && !avg.elevated ? (
               <Text style={[ui.text, { color: '#1E7B34' }]}>Moyenne inférieure à 135/85 mmHg.</Text>
             ) : null}
           </View>
@@ -184,7 +176,6 @@ function CardioPanel({ patient }: { patient: Patient }) {
             <BpForm
               key={slotKey(slot)}
               submitLabel={`Enregistrer ${slotLabel(slot)}`}
-              busy={busy}
               onSubmit={(values) => save(values, { serieId: active.id, slot })}
             />
           </>
@@ -193,16 +184,15 @@ function CardioPanel({ patient }: { patient: Patient }) {
             label={current ? 'Démarrer un nouveau protocole (jour 1 = aujourd’hui)' : 'Démarrer le protocole (jour 1 = aujourd’hui)'}
             variant={current ? 'secondary' : 'primary'}
             onPress={() => void startProtocol()}
-            loading={busy}
           />
         )}
-        {current && current.nombreMesures > 0 ? (
+        {current && current.mesures.length > 0 ? (
           <Button label="Télécharger le relevé d’automesure HTA PDF" variant="secondary" onPress={() => void downloadPdf(current)} />
         ) : null}
       </Card>
 
       <Card title="Mesure ponctuelle">
-        <BpForm submitLabel="Enregistrer la mesure" busy={busy} onSubmit={(values) => save(values, null)} />
+        <BpForm submitLabel="Enregistrer la mesure" onSubmit={(values) => save(values, null)} />
         {history && history.length > 0 ? <Text style={[ui.text, { fontWeight: '700' }]}>Dernières mesures</Text> : null}
         {history?.slice(0, 10).map((m) => (
           <View key={m.id} style={styles.historyRow}>
@@ -217,7 +207,7 @@ function CardioPanel({ patient }: { patient: Patient }) {
   );
 }
 
-function BpForm({ submitLabel, busy, onSubmit }: { submitLabel: string; busy: boolean; onSubmit: (v: BpValues) => Promise<boolean> }) {
+function BpForm({ submitLabel, onSubmit }: { submitLabel: string; onSubmit: (v: BpValues) => Promise<boolean> }) {
   const [tas, setTas] = useState('');
   const [tad, setTad] = useState('');
   const [pouls, setPouls] = useState('');
@@ -249,7 +239,7 @@ function BpForm({ submitLabel, busy, onSubmit }: { submitLabel: string; busy: bo
       </View>
       <Field label="Pouls (bpm)" value={pouls} onChangeText={setPouls} keyboardType="number-pad" maxLength={3} placeholder="70" />
       <ErrorText message={error} />
-      <Button label={submitLabel} onPress={() => void submit()} loading={busy} disabled={!tas || !tad || !pouls} />
+      <Button label={submitLabel} onPress={() => void submit()} disabled={!tas || !tad || !pouls} />
     </View>
   );
 }
@@ -343,7 +333,7 @@ function RestTimer() {
   );
 }
 
-function ProtocolGrid({ series, selected, onSelect }: { series: BpSeriesDto; selected: Slot | null; onSelect?: (s: Slot) => void }) {
+function ProtocolGrid({ series, selected, onSelect }: { series: BpSeries; selected: Slot | null; onSelect?: (s: Slot) => void }) {
   const bySlot = new Map(series.mesures.map((m) => [slotKey(m), m]));
   return (
     <View style={styles.grid}>

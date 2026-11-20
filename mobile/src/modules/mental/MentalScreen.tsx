@@ -1,17 +1,17 @@
 /**
  * Module 3 — Santé mentale : Mini-GDS (4 questions), puis GDS-15 seulement si la Mini-GDS vaut au moins 1.
- * Restitution, orientation médicale et rapport PDF nominatif. Pré-dépistage, jamais un diagnostic.
+ * Restitution, orientation médicale et rapport PDF nominatif. Accès direct, sans compte : tout reste sur le
+ * téléphone. Pré-dépistage, jamais un diagnostic.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { errorMessage } from '../../lib/problem';
 import { HomeButton } from '../../ui/HomeButton';
 import { Button, Card, ErrorText, Loading, Notice, styles as ui } from '../../ui/components';
 import { MIN_TOUCH, aidantColours as c } from '../../ui/theme';
-import { PatientGate, type Patient } from '../PatientGate';
+import { PatientNameField, displayName, usePatientName } from '../PatientName';
 import { NOT_A_DIAGNOSIS, formatDateTime, sharePdf } from '../pdf';
 import {
   INSTRUCTIONS,
@@ -26,13 +26,14 @@ import {
   type GdsAnswers,
   type GdsLevel,
 } from './gds';
-import { gdsApi, type GdsAssessmentDto } from './gdsApi';
 import { gdsReportHtml, type GdsReport } from './gdsPdf';
+import { addAssessment, loadAssessments, type GdsAssessment } from './gdsStore';
 import { mentalModule } from './module';
 
 const LEVEL_COLOUR: Record<GdsLevel, string> = { INDICE_NORMAL: '#1E7B34', LEGERE_A_MODEREE: '#8A4600', SEVERE: '#B3261E' };
 
 export default function MentalScreen() {
+  const [name, setName] = usePatientName();
   return (
     <SafeAreaView style={ui.screen}>
       <ScrollView contentContainerStyle={ui.content}>
@@ -40,7 +41,8 @@ export default function MentalScreen() {
         <Text style={styles.title} accessibilityRole="header">
           {mentalModule.title}
         </Text>
-        <PatientGate>{(patient) => <GdsPanel key={patient.seniorId} patient={patient} />}</PatientGate>
+        <PatientNameField value={name} onChange={setName} />
+        <GdsPanel patient={displayName(name)} />
         <Notice>{NOT_A_DIAGNOSIS}</Notice>
       </ScrollView>
     </SafeAreaView>
@@ -49,21 +51,16 @@ export default function MentalScreen() {
 
 type Phase = 'intro' | 'questions' | 'result';
 
-function GdsPanel({ patient }: { patient: Patient }) {
+function GdsPanel({ patient }: { patient: string }) {
   const [phase, setPhase] = useState<Phase>('intro');
   const [answers, setAnswers] = useState<GdsAnswers>({});
-  const [saved, setSaved] = useState<GdsAssessmentDto | null>(null);
-  const [history, setHistory] = useState<GdsAssessmentDto[] | null>(null);
+  const [saved, setSaved] = useState<GdsAssessment | null>(null);
+  const [history, setHistory] = useState<GdsAssessment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const loadHistory = useCallback(async () => {
-    try {
-      setHistory((await gdsApi.history(patient.seniorId)).passations);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  }, [patient.seniorId]);
+    setHistory(await loadAssessments());
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,15 +70,13 @@ function GdsPanel({ patient }: { patient: Patient }) {
 
   const finish = async (complete: GdsAnswers) => {
     setPhase('result');
-    setBusy(true);
     setError(null);
     try {
-      setSaved(await gdsApi.record(patient.seniorId, answersToSend(complete)));
-      await loadHistory();
-    } catch (e) {
-      setError(`Questionnaire non enregistré : ${errorMessage(e)}`);
-    } finally {
-      setBusy(false);
+      const assessment = await addAssessment(complete);
+      setSaved(assessment);
+      setHistory((list) => [assessment, ...(list ?? [])]);
+    } catch {
+      setError('Questionnaire non mémorisé sur ce téléphone (le résultat reste affiché).');
     }
   };
 
@@ -112,9 +107,9 @@ function GdsPanel({ patient }: { patient: Patient }) {
   const downloadPdf = async (report: GdsReport) => {
     setError(null);
     try {
-      await sharePdf(gdsReportHtml(patient.nom, report, new Date()), 'Rapport GDS NeuroCare');
+      await sharePdf(gdsReportHtml(patient, report, new Date()), 'Rapport GDS NeuroCare');
     } catch (e) {
-      setError(errorMessage(e));
+      setError(e instanceof Error ? e.message : 'PDF impossible à créer.');
     }
   };
 
@@ -165,7 +160,6 @@ function GdsPanel({ patient }: { patient: Patient }) {
           <Text style={ui.text}>Score Mini-GDS : {result.miniGds} / 4</Text>
           {result.gds15 !== null ? <Text style={ui.text}>Score GDS-15 : {result.gds15} / 15</Text> : null}
           <Text style={ui.text}>{LEVEL_TEXT[result.level].orientation}</Text>
-          {busy ? <Text style={ui.muted}>Enregistrement…</Text> : null}
           <ErrorText message={error} />
         </View>
         <Button label="Télécharger le rapport GDS PDF" onPress={() => void downloadPdf(report)} />

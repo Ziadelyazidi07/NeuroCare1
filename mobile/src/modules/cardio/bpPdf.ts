@@ -1,6 +1,6 @@
 import { escapeHtml, formatDateTime, pdfDocument } from '../pdf';
 import { BP_ADVICE, PROTOCOL_SIZE, averageOf, formatAverage, protocolDay, slotKey, type BpLevel } from './bp';
-import type { BpSeriesDto } from './bpApi';
+import type { BpSeries } from './bpStore';
 
 const LEVEL_CLASS: Record<BpLevel, string> = {
   URGENCE_HYPERTENSIVE: 'ROUGE',
@@ -10,7 +10,7 @@ const LEVEL_CLASS: Record<BpLevel, string> = {
 };
 
 /** Relevé d'automesure nominatif : tableau 3 jours matin / soir (M1-M3), moyenne, alertes et orientation. */
-export function bpReportHtml(patient: string, series: BpSeriesDto, generatedAt: Date): string {
+export function bpReportHtml(patient: string, series: BpSeries, generatedAt: Date): string {
   const bySlot = new Map(series.mesures.map((m) => [slotKey(m), m]));
   const rows = ([1, 2, 3] as const)
     .flatMap((jour) =>

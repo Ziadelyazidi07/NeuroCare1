@@ -100,8 +100,12 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   et aide à la décision, jamais de diagnostic).
 - « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
   déjà appairé ou un aidant connecté va directement dans son espace.
-- Modules 2 à 5 : le patient est le senior lui-même (téléphone appairé) ou un proche choisi par
-  l'aidant connecté (consentement « Partage familial » requis). Sans session, l'écran renvoie vers « Rappels & Suivi ».
+- Modules 2 à 5 : accès direct depuis la grille, sans appairage, sans connexion et sans réseau. La relation
+  aidant / senior (code à 6 chiffres, compte aidant, consentements) ne concerne que « Rappels & Suivi ».
+  Historiques stockés sur le téléphone (AsyncStorage, clés `neurocare.spo2.*`, `neurocare.gds.*`,
+  `neurocare.findrisc.*`, `neurocare.bp.*`, 500 éléments au plus par historique, 20 protocoles HTA).
+  Un champ facultatif « Nom et prénom du patient », mémorisé et commun aux 4 modules, personnalise les PDF
+  (« Patient » s'il est vide). Désinstaller l'application efface ces données.
 - **Saturation SpO₂** (`src/modules/saturation/`) : question du profil respiratoire (maladie respiratoire
   chronique : Oui / Non, modifiable), saisie au repos de la SpO₂ et du pouls, alerte immédiate même hors ligne.
   Standard : 95-100 % vert, 90-94 % orange (repos, vérifier le capteur, recontrôler dans 10 min), < 90 % rouge
@@ -110,7 +114,7 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 - **Santé mentale** (`src/modules/mental/`) : Mini-GDS (4 questions, 7 derniers jours). À 0, arrêt : « absence
   probable de dépression ». Dès 1 point, les 12 autres items de la GDS-15 (vie vide, heureux et situation
   désespérée sont communs aux deux échelles). Restitution 0-4 / 5-9 / 10-15, orientation médicale et
-  « Télécharger le rapport GDS PDF » (questions, réponses, scores). Le serveur recalcule toujours le score.
+  « Télécharger le rapport GDS PDF » (questions, réponses, scores).
 - **Diabète (FINDRISC)** (`src/modules/metabolic/`) : les 8 questions officielles, IMC calculé depuis le poids et
   la taille (en cm ou en m), score sur 26 et restitution (< 7 faible 1 % ; 7-11 légèrement accru 4 % ; 12-14 modéré
   17 % ; 15-20 élevé 33 % ; > 20 très élevé 50 %, risque à 10 ans) avec l'orientation médicale. Résultat immédiat
