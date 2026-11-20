@@ -289,7 +289,7 @@ def slide_1_hook():
     slogan = text(s, 0.75, 4.35, 7.4, 1.4, [[('L’alliance de la ', {}), ('voix familiale', {'colour': '7FB0FF'})],
                                              [('et du ', {}), ('pré-dépistage intelligent', {'colour': '6EE7B7'})]], size=32, colour=WHITE, bold=True, name='Slogan')
     sig_bg = box(s, 0.75, 6.05, 8.9, 0.62, fill='1B3A66', radius=0.5, soft_shadow=False)
-    sig_tx = text(s, 0.95, 6.05, 8.6, 0.62, [[('Équipe « Khaliha 3la allah »  ·  ', {'bold': True, 'colour': WHITE}),
+    sig_tx = text(s, 0.95, 6.05, 8.6, 0.62, [[('Équipe NeuroCare  ·  ', {'bold': True, 'colour': WHITE}),
                                                ('Ingénierie — EHEIM Oujda  ×  Médecine Générale — 6ᵉ année', {'colour': 'C9D6E8'})]],
                   size=16, anchor=MSO_ANCHOR.MIDDLE)
     sig = group(s, [sig_bg, sig_tx], 'Signature')
@@ -304,7 +304,8 @@ Sa tension ? Personne ne l'a mesurée depuis des mois.
 
 Cette scène, chacun de nous la connaît dans sa propre famille.
 
-Nous sommes l'équipe « Khaliha 3la allah » : trois élèves-ingénieurs de l'EHEIM Oujda et deux futures médecins.
+Nous sommes l'Équipe NeuroCare : trois élèves-ingénieurs en 5e année Informatique et Gestion à l'EHEIM Oujda,
+et deux étudiantes en 6e année de Médecine Générale.
 Et voici NeuroCare : l'alliance de la voix familiale et du pré-dépistage intelligent. »
 
 Timing : histoire 0:00-0:18 · présentation équipe 0:18-0:25 · slogan 0:25-0:30.
@@ -648,7 +649,7 @@ def slide_9_team():
     s = prs.slides.add_slide(BLANK)
     background(s, NAVY)
     card = box(s, 0.75, 0.8, 7.3, 3.55, fill=WHITE, radius=0.08)
-    team_t = text(s, 1.15, 1.1, 6.6, 0.5, 'Équipe « Khaliha 3la allah »', size=28, colour=NAVY, bold=True)
+    team_t = text(s, 1.15, 1.1, 6.6, 0.5, 'Équipe NeuroCare', size=28, colour=NAVY, bold=True)
     members = []
     for i in range(5):
         med = i >= 3
@@ -663,7 +664,7 @@ def slide_9_team():
     team = group(s, [card, team_t, *members, lab1, lab2], 'Equipe')
     closing = text(s, 0.75, 4.85, 7.6, 1.9, [
         [('Aucun parent ne devrait affronter seul ses médicaments.', {'colour': WHITE, 'bold': True, 'size': 26})],
-        [('« Khaliha 3la allah »… et laissez NeuroCare veiller sur ceux que vous aimez.', {'colour': '6EE7B7', 'size': 18, 'italic': True})],
+        [('Équipe NeuroCare — laissez NeuroCare veiller sur ceux que vous aimez.', {'colour': '6EE7B7', 'size': 18, 'italic': True})],
     ], spacing=8, name='Cloture')
     qr_card = box(s, 8.85, 0.8, 3.75, 5.9, fill=WHITE, radius=0.08, name=None)
     qr = image(s, A / 'qr-github.png', 9.17, 1.05, 3.1, 3.1)
@@ -676,9 +677,10 @@ def slide_9_team():
     animate(s, [team, qr_g, closing], step_ms=550)
     notes(s, """[4:45 – 5:00] — ÉQUIPE & CLOSING (15 s)
 
-« Nous sommes trois futurs ingénieurs de l'EHEIM Oujda et deux futures médecins.
+« Nous sommes l'Équipe NeuroCare : trois élèves-ingénieurs en 5e année Informatique et Gestion à l'EHEIM Oujda,
+et deux étudiantes en 6e année de Médecine Générale.
 Nous croyons qu'aucun parent ne devrait affronter seul ses médicaments.
-Notre équipe s'appelle « Khaliha 3la allah »… et nous, on ajoute : laissez NeuroCare veiller sur ceux que vous aimez.
+Laissez NeuroCare veiller sur ceux que vous aimez.
 Merci. Le code et la démo sont derrière ce QR code. »
 
 (Pause, sourire, laisser le QR code affiché pour les questions.)""")

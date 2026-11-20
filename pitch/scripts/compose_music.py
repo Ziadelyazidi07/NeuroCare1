@@ -14,7 +14,8 @@ Forme (120 BPM, do majeur, 1 mesure = 2 s) :
 Usage :
   python pitch/scripts/compose_music.py                     # compose la musique originale et la mixe (après render_video.py)
   python pitch/scripts/compose_music.py --track musique.mp3 # utilise plutôt une musique sous licence (coupée à 45 s,
-                                                            # fondu de sortie, même normalisation -14 LUFS)
+                                                            # fondu de sortie 41 s -> 45 s, même normalisation -14 LUFS)
+Si pitch/neurocare-launch-music.mp3 (ou .wav) existe, il est utilisé automatiquement à la place de la composition.
 """
 import argparse
 import subprocess
@@ -357,12 +358,15 @@ ff = imageio_ffmpeg.get_ffmpeg_exe()
 ap = argparse.ArgumentParser()
 ap.add_argument('--track', type=Path, help='musique externe sous licence à utiliser à la place de la composition')
 args = ap.parse_args()
+if not args.track:
+    # Musique fournie par l'équipe, déposée dans pitch/ : prioritaire sur la composition.
+    args.track = next((f for f in (PITCH / 'neurocare-launch-music.mp3', PITCH / 'neurocare-launch-music.wav') if f.exists()), None)
 source, extra = str(WAV), []
 if args.track:
     source = str(args.track)
     extra = ['-t', str(DUR)]
     print('musique externe :', args.track)
-fades = 'afade=t=in:d=0.02,afade=t=out:st=42.8:d=2.2,' if args.track else ''
+fades = 'afade=t=in:d=0.02,afade=t=out:st=41:d=4,' if args.track else ''
 # Normalisation de sonie (-14 LUFS, crête vraie -1,5 dBTP : standard des plateformes vidéo) et encodage AAC.
 subprocess.run([ff, '-y', '-loglevel', 'error', '-i', source, *extra, '-af', fades + 'loudnorm=I=-14:TP=-1.5:LRA=9',
                 '-ar', '48000', '-c:a', 'aac', '-b:a', '256k', str(M4A)], check=True)

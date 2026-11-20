@@ -1,6 +1,6 @@
 # Pitch NeuroCare — hackathon (5 minutes)
 
-Équipe « Khaliha 3la allah » : 3 élèves-ingénieurs (5ᵉ année Informatique & Gestion, EHEIM Oujda) et
+Équipe NeuroCare : 3 élèves-ingénieurs (5ᵉ année Informatique & Gestion, EHEIM Oujda) et
 2 étudiantes en 6ᵉ année de Médecine Générale.
 
 | Livrable | Contenu |
@@ -39,4 +39,6 @@ HTML fidèle de l'application (textes des dictionnaires `fr.ts` / `ar.ts`, thèm
 mêmes coordonnées que `DeviceIllustration.tsx`) : ce n'est pas un enregistrement d'écran du téléphone.
 La musique est synthétisée par `compose_music.py` (numpy, aucun échantillon externe) : elle est originale et
 libre de droits pour l'équipe. Un nouveau rendu de la vidéo efface la piste audio : relancer `compose_music.py` ensuite.
+Pour utiliser une autre musique, la déposer sous `pitch/neurocare-launch-music.mp3` (ou `.wav`) : `compose_music.py`
+la prend automatiquement (coupée à 45 s, fondu de sortie de 41 à 45 s, -14 LUFS).
 La patiente « Hajja Zahra », « Ahmed Benali » et « Salma » sont des personnages illustratifs.
