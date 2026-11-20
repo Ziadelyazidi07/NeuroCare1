@@ -8,6 +8,7 @@ Prérequis : python pitch/scripts/prepare_assets.py, puis python pitch/scripts/r
 Usage : python pitch/scripts/build_pptx.py
 """
 import copy
+import os
 import subprocess
 from pathlib import Path
 
@@ -26,7 +27,7 @@ A = PITCH / 'assets'
 SCREENS = A / 'screens'
 ICONS = A / 'icons'
 VIDEO = PITCH / 'NeuroCare_Demo_45s.mp4'
-OUT = PITCH / 'NeuroCare_Pitch_Hackathon.pptx'
+OUT = Path(os.environ.get('NEUROCARE_PPTX_OUT', PITCH / 'NeuroCare_Pitch_Hackathon.pptx'))  # autre sortie : utile si le deck est ouvert
 
 BG = 'F5F8FC'; WHITE = 'FFFFFF'; BLUE = '246BFD'; NAVY = '112950'; EMERALD = '10B981'
 TEXT = '1C2B45'; MUTED = '55657E'; BORDER = 'E6EEF8'; SOFTBLUE = 'EBF2FF'; SOFTGREEN = 'D1FAE5'; RED = 'EF4444'
@@ -555,48 +556,46 @@ def slide_7_clinical():
         duo_items += [b, n, l]
     plus = text(s, 0.95, 5.55, 3.4, 1.1, 'Chaque seuil validé par le binôme, chaque règle couverte par un test.', size=15, colour='C9D6E8', italic=True)
     duo_g = group(s, [duo, *duo_items, plus], 'Binome')
-    scales = [
-        ('leaf', 'Mini-GDS → GDS-15', 'humeur, score /15', '7C3AED', 'F3E8FF'),
-        ('water', 'FINDRISC', 'risque de diabète à 10 ans, /26', 'F59E0B', 'FEF3C7'),
-        ('heart', 'Automesure HTA', '3 jours × 18 mesures, moyenne', 'EF4444', 'FEE2E2'),
-        ('pulse', 'Seuils SpO₂', 'standard 95-100 % · BPCO 88-92 %', '0EA5E9', 'E0F2FE'),
-        ('extension-puzzle', '4 A d’Alzheimer', 'indice de vigilance à 2 issues', '10B981', 'D1FAE5'),
-        ('shield-checkmark', 'Barème recalculé', 'le serveur ne fait jamais confiance au score reçu', '112950', 'E8EDF5'),
+    # Trois piliers seulement, lisibles en 3 secondes ; les détails techniques sont dans les notes.
+    pillars = [
+        ('medkit', SOFTBLUE, 'Échelles médicales validées', 'GDS-15 · FINDRISC · HTA 3 j · SpO₂ · 4 A'),
+        ('shield-checkmark', SOFTGREEN, 'Aide à la décision, jamais de diagnostic', 'Oriente vers le médecin, zéro verdict'),
+        ('call', 'FEE2E2', 'Sécurité & urgences intégrées', 'Appel 15 / 141 en un geste, consentement'),
     ]
-    tiles = []
-    for i, (ic, h, d, col, tint) in enumerate(scales):
-        x = 4.9 + (i % 2) * 3.95
-        y = 1.7 + (i // 2) * 1.2
-        c = box(s, x, y, 3.8, 1.05)
-        b = icon_badge(s, ic, x + 0.2, y + 0.2, 0.65, tint)
-        a = text(s, x + 1.0, y + 0.13, 2.7, 0.4, h, size=16, colour=NAVY, bold=True)
-        e = text(s, x + 1.0, y + 0.5, 2.7, 0.5, d, size=12, colour=MUTED)
-        tiles.append(group(s, [c, b, a, e], f'Echelle{i + 1}'))
-    guards = [('eye-off', 'Jamais de diagnostic', 'des indicateurs, pas un verdict'), ('call', 'Urgences 15 / 141', 'appel en un geste'), ('lock-closed', '4 consentements', 'granulaires et révocables')]
-    gs = []
-    for i, (ic, h, d) in enumerate(guards):
-        x = 4.9 + i * 2.65
-        c = box(s, x, 5.4, 2.5, 1.5, fill=SOFTGREEN, radius=0.12, soft_shadow=False)
-        b = image(s, ICONS / f'{ic}.png', x + 0.2, 5.55, 0.48, 0.48)
-        a = text(s, x + 0.2, 6.05, 2.2, 0.38, h, size=15, colour='065F46', bold=True)
-        e = text(s, x + 0.2, 6.4, 2.2, 0.45, d, size=11.5, colour='065F46')
-        gs.append(group(s, [c, b, a, e], f'Garde{i + 1}'))
-    footer = text(s, 4.9, 6.98, 7.0, 0.3, 'Outils de pré-dépistage et d’aide à la décision médicale : ils orientent vers le médecin, ils ne le remplacent pas.', size=10.5, colour=MUTED, name='Mention')
+    cards = []
+    for i, (ic, tint, head, sub) in enumerate(pillars):
+        y = 1.7 + i * 1.85
+        c = box(s, 4.9, y, 7.8, 1.5)
+        b = icon_badge(s, ic, 5.2, y + 0.3, 0.9, tint)
+        h = text(s, 6.4, y + 0.27, 6.1, 0.55, head, size=24, colour=NAVY, bold=True)
+        d = text(s, 6.4, y + 0.85, 6.1, 0.45, sub, size=16, colour=MUTED)
+        cards.append(group(s, [c, b, h, d], f'Pilier{i + 1}'))
     transition(s, 'push')
-    animate(s, [t, duo_g, *tiles, *gs, footer], step_ms=190)
+    animate(s, [t, duo_g, *cards], step_ms=350)
     notes(s, """[3:50 – 4:20] — RIGUEUR CLINIQUE & ÉTHIQUE (30 s)
 (Idéalement porté par une des deux étudiantes en médecine.)
 
-« Notre force, c'est le binôme médecine–ingénierie.
-Nous n'avons rien inventé côté clinique : nous avons implémenté des échelles validées — la Mini-GDS puis la GDS-15,
-le score FINDRISC, le protocole d'automesure tensionnelle sur trois jours, les seuils de saturation standard et BPCO.
-Pour la mémoire, l'observation des 4 A donne seulement un indice de vigilance à deux issues : rassurant, ou signes à signaler au médecin.
+« Notre force, c'est le binôme médecine–ingénierie. Trois piliers :
 
-Notre règle d'or : jamais de diagnostic. Nous parlons d'« indicateurs compatibles avec… » et nous orientons vers un médecin.
-En cas d'alerte rouge, l'appel au 15 ou au 141 est à un geste. Et rien ne se fait sans consentement : quatre consentements
-séparés, révocables à tout moment. »
+1. Des échelles médicales validées. Nous n'avons rien inventé côté clinique.
+2. De l'aide à la décision, jamais de diagnostic : NeuroCare oriente vers le médecin, il ne rend aucun verdict.
+3. La sécurité d'abord : en cas d'alerte rouge, l'appel au 15 ou au 141 est à un geste, et rien ne se fait sans consentement. »
 
-Timing : binôme 3:50-3:58 · échelles 3:58-4:10 · garde-fous 4:10-4:20.""")
+Timing : binôme 3:50-3:58 · pilier 1 3:58-4:06 · pilier 2 4:06-4:13 · pilier 3 4:13-4:20.
+
+DÉTAILS TECHNIQUES (pour les questions du jury, pas à lire) :
+- Santé mentale : Mini-GDS (4 questions) ; si une réponse le justifie, GDS-15 complète (16 questions au total), score /15.
+- Diabète : FINDRISC, 8 critères, score /26, IMC calculé, risque estimé de diabète de type 2 à 10 ans.
+- Tension : automesure 3 jours × 18 mesures (3 le matin, 3 le soir), moyenne ; urgence ≥ 180/110, vigilance 135-179 / 85-109,
+  normale < 135/85, hypotension TAS < 100.
+- SpO₂ : profil standard 95-100 % ; profil BPCO / insuffisance respiratoire 88-92 % ; alertes orange et rouge.
+- Alzheimer & Mémoire : observation des 4 A (amnésie, aphasie, apraxie, agnosie) + jeu des 4 mots ; aucun score Alzheimer,
+  seulement un indice de vigilance à 2 issues (rassurant / signes à signaler au médecin).
+- Barème recalculé : le serveur recalcule toujours le score, il ne reprend jamais celui envoyé par l'application.
+- Formulations « indicateurs compatibles avec… » ; chaque écran, réponse d'API et PDF porte la mention de non-diagnostic
+  (vérifiée par EthicsTest et les tests mobile, en français et en arabe).
+- Consentement : 4 consentements séparés (rappels, exercices, partage familial, voix), révocables à tout moment.
+- Mention : outils de pré-dépistage et d'aide à la décision médicale ; ils orientent vers le médecin, ils ne le remplacent pas.""")
 
 
 def slide_8_impact():
