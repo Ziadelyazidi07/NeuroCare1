@@ -35,3 +35,6 @@ mobile/ios/
 
 # Outils locaux
 .claude/
+
+# Pitch : fichiers intermédiaires (aperçus, rendus de contrôle)
+pitch/build/
