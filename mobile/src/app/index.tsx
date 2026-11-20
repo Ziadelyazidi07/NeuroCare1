@@ -1,5 +1,5 @@
 /**
- * Accueil : grille des 5 modules NeuroCare (façon lanceur d'applications), adresse du serveur et rappel
+ * Accueil : grille des 6 modules NeuroCare (façon lanceur d'applications), adresse du serveur et rappel
  * éthique. Exception : un téléphone senior ouvert par une alarme va droit à son écran de rappel.
  */
 import { useEffect, useState } from 'react';

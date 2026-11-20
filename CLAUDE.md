@@ -24,9 +24,12 @@ Toute l'architecture, le SQL, les endpoints et les règles sont dans `docs/cahie
    - formulations « indicateurs compatibles avec… » et orientation vers un professionnel, jamais « vous avez… » ;
    - chaque écran, réponse d'API et PDF porte la mention explicite que le résultat ne constitue pas un diagnostic
      médical officiel et ne remplace pas un médecin (vérifié par `EthicsTest`).
+   Le module « Alzheimer & Mémoire » (observation des 4 A, jeu des 4 mots) n'est pas une échelle validée : il ne
+   calcule ni score Alzheimer, ni risque, ni probabilité, seulement un « indice de vigilance cognitive » à deux
+   issues (rassurant / signes à signaler au médecin), avec orientation et mention de pré-dépistage.
 6. Mobile : un dossier par module dans `mobile/src/modules/`, sans import d'un module à l'autre (vérifié par les tests).
 7. Seul le Module 1 (« Rappels & Suivi ») dépend de la relation aidant / senior (appairage, compte, consentements).
-   Les modules 2 à 5 s'ouvrent sans compte ni réseau et stockent leurs données sur le téléphone ; ils n'importent
+   Les modules 2 à 6 s'ouvrent sans compte ni réseau et stockent leurs données sur le téléphone ; ils n'importent
    jamais `auth/`, `api/`, `senior/` ni `realtime/` (vérifié par les tests).
 
 ## Règles de Travail

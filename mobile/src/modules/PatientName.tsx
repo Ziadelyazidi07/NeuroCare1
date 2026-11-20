@@ -1,6 +1,6 @@
 /**
  * Nom du patient pour les PDF des modules cliniques : champ facultatif, mémorisé sur le téléphone et
- * partagé par les 4 modules. Laissé vide, les rapports portent « Patient ». Ne bloque jamais l'utilisation.
+ * partagé par les modules cliniques. Laissé vide, les rapports portent « Patient ». Ne bloque jamais l'utilisation.
  */
 import { useEffect, useState } from 'react';
 

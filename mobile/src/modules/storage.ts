@@ -1,5 +1,5 @@
 /**
- * Stockage local des modules cliniques (2 à 5) : tout reste sur le téléphone, sans compte ni réseau.
+ * Stockage local des modules cliniques (2 à 6) : tout reste sur le téléphone, sans compte ni réseau.
  * Les écritures sont sérialisées pour qu'une lecture-modification-écriture n'en écrase pas une autre.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';

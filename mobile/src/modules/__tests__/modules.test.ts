@@ -16,13 +16,14 @@ const filesOf = (dir: string): string[] =>
   });
 
 describe('grille des modules', () => {
-  it('présente les 5 modules dans l’ordre prévu', () => {
+  it('présente les 6 modules dans l’ordre prévu', () => {
     expect(MODULES.map((m) => m.title)).toEqual([
       'Rappels & Suivi',
       'Saturation SpO₂',
       'Santé Mentale',
       'Diabète (FINDRISC)',
       'Tension (HTA)',
+      'Alzheimer & Mémoire',
     ]);
   });
 
@@ -39,7 +40,7 @@ describe('grille des modules', () => {
     }
   });
 
-  it('ouvre les 4 modules cliniques sans session, appairage ni serveur', () => {
+  it('ouvre les 5 modules cliniques sans session, appairage ni serveur', () => {
     const clinical = ids.filter((id) => id !== 'observance').flatMap((id) => filesOf(path.join(modulesDir, id)));
     const shared = fs
       .readdirSync(modulesDir)

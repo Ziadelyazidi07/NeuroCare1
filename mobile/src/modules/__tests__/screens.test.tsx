@@ -1,5 +1,5 @@
 /**
- * Les 4 modules cliniques montés comme sur un téléphone vierge : aucune session, aucun appairage, aucun
+ * Les 5 modules cliniques montés comme sur un téléphone vierge : aucune session, aucun appairage, aucun
  * serveur. Chacun s'ouvre, calcule son alerte ou son score, mémorise l'historique et produit son PDF.
  */
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -8,6 +8,8 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 
+import AlzheimerScreen from '../alzheimer/AlzheimerScreen';
+import { weekdayOf } from '../alzheimer/memory';
 import CardioScreen from '../cardio/CardioScreen';
 import MentalScreen from '../mental/MentalScreen';
 import MetabolicScreen from '../metabolic/MetabolicScreen';
@@ -146,5 +148,33 @@ describe('accès direct depuis la grille, sans compte', () => {
 
     await press('Télécharger le relevé d’automesure HTA PDF');
     expect(printed()).toContain('128/78');
+  });
+
+  it('Alzheimer & Mémoire : 4 A, jeu des 4 mots, indice, bilan local et PDF', async () => {
+    await render(<AlzheimerScreen />);
+    await press('Commencer');
+    // Un seul signe (amnésie) sur les 8 questions.
+    for (const answer of ['Oui', 'Non', 'Non', 'Non', 'Non', 'Non', 'Non', 'Non']) await press(answer);
+
+    expect(await screen.findByText('Horloge')).toBeTruthy();
+    await press('J’ai retenu les 4 mots');
+    await press(weekdayOf(new Date()));
+    await press('17');
+    await press('Continuer');
+    await type('Mots retrouvés', 'citron, clef, horloge');
+    await press('Valider mes mots');
+    await fireEvent.press(screen.getByLabelText('Olivier'));
+    await press('Voir le résultat');
+
+    expect(await screen.findByText('Indice de vigilance cognitive : rassurant')).toBeTruthy();
+    expect(screen.getByText('Amnésie (Mémoire récente) : 1 signe sur 2')).toBeTruthy();
+    expect(screen.getByText(/Rappel des mots : 3 \/ 4 retrouvés, 1 reconnu/)).toBeTruthy();
+    expect(screen.getByText(/^• Mémoire : un agenda/)).toBeTruthy();
+    expect(await stored('neurocare.memory.assessments')).toHaveLength(1);
+
+    await press('Télécharger le bilan Mémoire & 4 A PDF');
+    expect(printed()).toContain('Patient : <strong>Patient</strong>');
+    expect(printed()).toContain('3 / 4');
+    expect(printed()).toContain('Historique enregistré sur le téléphone');
   });
 });

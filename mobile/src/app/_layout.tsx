@@ -55,6 +55,7 @@ export default function RootLayout() {
           <Stack.Screen name="modules/mental" options={{ headerShown: false }} />
           <Stack.Screen name="modules/metabolic" options={{ headerShown: false }} />
           <Stack.Screen name="modules/cardio" options={{ headerShown: false }} />
+          <Stack.Screen name="modules/alzheimer" options={{ headerShown: false }} />
           <Stack.Screen name="senior/pair" options={{ headerShown: false }} />
           <Stack.Screen name="senior/index" options={{ headerShown: false }} />
           <Stack.Screen name="senior/exercise" options={{ headerShown: false }} />

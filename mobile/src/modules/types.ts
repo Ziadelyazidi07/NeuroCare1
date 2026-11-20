@@ -4,7 +4,7 @@ import type { Href } from 'expo-router';
 
 /** Fiche d'un module fonctionnel, affichée en tuile sur la grille d'accueil. */
 export interface ModuleDefinition {
-  id: 'observance' | 'saturation' | 'mental' | 'metabolic' | 'cardio';
+  id: 'observance' | 'saturation' | 'mental' | 'metabolic' | 'cardio' | 'alzheimer';
   title: string;
   subtitle: string;
   icon: ComponentProps<typeof Ionicons>['name'];

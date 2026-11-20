@@ -95,16 +95,16 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 ## Fonctionnement détaillé
 
 **Grille des modules** (`src/app/index.tsx`)
-- Au démarrage, une grille de 5 tuiles : « Rappels & Suivi », « Saturation SpO₂ », « Santé Mentale »,
-  « Diabète (FINDRISC) » et « Tension (HTA) », avec l'adresse du serveur et un rappel éthique (pré-dépistage
+- Au démarrage, une grille de 6 tuiles : « Rappels & Suivi », « Saturation SpO₂ », « Santé Mentale »,
+  « Diabète (FINDRISC) », « Tension (HTA) » et « Alzheimer & Mémoire », avec l'adresse du serveur et un rappel éthique (pré-dépistage
   et aide à la décision, jamais de diagnostic).
 - « Rappels & Suivi » (Module 1) ouvre le choix Senior / Aidant (`src/app/observance-role.tsx`) ; un téléphone
   déjà appairé ou un aidant connecté va directement dans son espace.
-- Modules 2 à 5 : accès direct depuis la grille, sans appairage, sans connexion et sans réseau. La relation
+- Modules 2 à 6 : accès direct depuis la grille, sans appairage, sans connexion et sans réseau. La relation
   aidant / senior (code à 6 chiffres, compte aidant, consentements) ne concerne que « Rappels & Suivi ».
   Historiques stockés sur le téléphone (AsyncStorage, clés `neurocare.spo2.*`, `neurocare.gds.*`,
-  `neurocare.findrisc.*`, `neurocare.bp.*`, 500 éléments au plus par historique, 20 protocoles HTA).
-  Un champ facultatif « Nom et prénom du patient », mémorisé et commun aux 4 modules, personnalise les PDF
+  `neurocare.findrisc.*`, `neurocare.bp.*`, `neurocare.memory.*`, 500 éléments au plus par historique, 20 protocoles HTA).
+  Un champ facultatif « Nom et prénom du patient », mémorisé et commun aux 5 modules, personnalise les PDF
   (« Patient » s'il est vide). Désinstaller l'application efface ces données.
 - **Saturation SpO₂** (`src/modules/saturation/`) : question du profil respiratoire (maladie respiratoire
   chronique : Oui / Non, modifiable), saisie au repos de la SpO₂ et du pouls, alerte immédiate même hors ligne.
@@ -125,6 +125,16 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   d'automesure guidé : 3 jours × matin et soir × M1-M3 = 18 mesures, minuteur de repos de 1 ou 2 min, moyenne
   (alerte « à montrer au médecin » si ≥ 135/85) et « Télécharger le relevé d'automesure HTA PDF ». Ressaisir un
   créneau remplace la mesure.
+- **Alzheimer & Mémoire** (`src/modules/alzheimer/`) : section A, 8 questions d'observation Oui / Non sur les
+  dernières semaines, 2 par domaine des « 4 A » (amnésie, aphasie, apraxie, agnosie). Section B, jeu de mémoire
+  sans chronomètre : 4 mots illustrés (Clé, Citron, Horloge, Olivier), distraction (jour de la semaine, petit
+  calcul), rappel libre écrit (accents, majuscules et pluriels indifférents), puis reconnaissance parmi 12 images.
+  Le jeu peut être passé. « Indice de vigilance cognitive » à deux issues seulement, sans score chiffré : rassurant,
+  ou signes à signaler (≥ 2 signes sur les 4 A ou les 2 d'un domaine, ≤ 1 mot retrouvé spontanément, un mot ni
+  retrouvé ni reconnu, ≥ 2 intrus, jour faux) avec orientation vers le médecin traitant, un neurologue ou une
+  consultation mémoire. Conseils personnalisés par domaine et prévention (marche 30 min, sommeil 7 h, lien
+  social, assiette MIND). « Télécharger le bilan Mémoire & 4 A PDF » : domaines, rappel, conseils, historique.
+  Questionnaire et jeu non validés comme test : outil de pré-dépistage et d'aide à la consultation.
 - Chaque écran, réponse d'API et PDF de ces modules rappelle qu'ils ne constituent pas un diagnostic médical
   officiel et ne remplacent pas un médecin.
 - Le bouton « ← Accueil Modules » (choix Senior / Aidant, espaces senior et aidant, modules) revient à la grille.
@@ -167,7 +177,7 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
 ```
 src/
   app/          écrans (Expo Router) : index (grille), observance-role, modules/*, senior/*, aidant/*
-  modules/      un dossier par module (observance, saturation, mental, metabolic, cardio), sans import croisé
+  modules/      un dossier par module (observance, saturation, mental, metabolic, cardio, alzheimer), sans import croisé
   api/          client HTTP (JWT / token d'appareil, erreurs RFC 7807), types, appels
   auth/         session sécurisée et contexte React
   senior/       file hors ligne, rappels locaux, audio du rappel
