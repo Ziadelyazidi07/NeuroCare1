@@ -1,8 +1,13 @@
 <!doctype html>
 <!--
   Démo produit NeuroCare (45 s). Reconstitution HTML fidèle de l'interface mobile (textes des dictionnaires
-  fr.ts / ar.ts, thème Dokterian, icônes Ionicons, illustrations DeviceIllustration). Chaque image est calculée
-  par renderFrame(t) : rendu déterministe, image par image, par pitch/scripts/render_video.py.
+  fr.ts / ar.ts et de la base de connaissances de l'Assistant Santé, thème Dokterian, icônes Ionicons,
+  illustrations DeviceIllustration). Chaque image est calculée par renderFrame(t) : rendu déterministe,
+  image par image, par pitch/scripts/render_video.py.
+
+  0:00-0:06 accueil + bascule FR ⇄ العربية · 0:06-0:15 Assistant Santé (الدارجة, micro, carte sourcée, voix, FR)
+  0:15-0:24 Diabète (IMC, FINDRISC /26, 7 signes → alerte prioritaire) · 0:24-0:33 Alzheimer (2ᵉ personne, 4 mots) + Tension
+  0:33-0:41 Rappels & Suivi (mode démo Hajja Zahra, « C'est fait », aidant) · 0:41-0:45 PDF horodaté + logo
 -->
 <html lang="fr">
 <head>
@@ -26,7 +31,7 @@
   .island { position: absolute; left: 50%; top: 12px; width: 112px; height: 32px; margin-left: -56px; background: #0F172A; border-radius: 20px; z-index: 50; }
   .status { position: absolute; left: 0; right: 0; top: 0; height: 52px; z-index: 40; display: flex; align-items: center;
             justify-content: space-between; padding: 8px 30px 0; font-size: 16px; font-weight: 700; color: #112950; background: #F5F8FC; }
-  .scr { position: absolute; inset: 0; background: #F5F8FC; }
+  .scr { position: absolute; inset: 0; background: #F5F8FC; display: none; }
   .scroll { position: absolute; left: 0; top: 56px; width: 392px; padding: 0 14px 40px; display: flex; flex-direction: column; gap: 12px; }
   .card { background: #fff; border: 1px solid #E6EEF8; border-radius: 20px; padding: 16px; box-shadow: 0 4px 12px rgba(15, 61, 110, .06); }
   .row { display: flex; align-items: center; }
@@ -51,6 +56,43 @@
   .tile .t { font-size: 15px; font-weight: 800; color: #112950; line-height: 18px; }
   .tile .s { font-size: 12px; color: #55657E; line-height: 15px; }
   [dir=rtl] .card, [dir=rtl] .scroll { text-align: right; }
+  .fab { position: absolute; bottom: 30px; height: 66px; padding: 0 22px 0 14px; border-radius: 999px; background: #246BFD; color: #fff; z-index: 20;
+         display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; box-shadow: 0 10px 24px rgba(36, 107, 253, .38); }
+  .fab .fi { position: relative; width: 40px; height: 40px; }
+  .fab .fi .mb { position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 11px; background: #fff; display: flex;
+                 align-items: center; justify-content: center; }
+
+  /* Assistant Santé (écran unique, sans défilement) */
+  .as { position: absolute; left: 0; right: 0; top: 52px; bottom: 0; display: flex; flex-direction: column; }
+  .as-top { padding: 8px 12px 0; display: flex; flex-direction: column; gap: 10px; }
+  .as-row { display: flex; gap: 10px; }
+  .as-btn { flex: 1; height: 54px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; font-weight: 800; }
+  .as-btn.ghost { background: #EBF2FF; color: #246BFD; border: 2px solid #246BFD; }
+  .as-btn.solid { background: #246BFD; color: #fff; }
+  .as-lang { flex: 1; height: 54px; border-radius: 16px; border: 2px solid #246BFD; background: #fff; color: #246BFD; display: flex; align-items: center;
+             justify-content: center; font-size: 18px; font-weight: 800; }
+  .as-lang.on { background: #246BFD; color: #fff; }
+  .as-center { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 12px; gap: 10px; }
+  .as-ins { font-size: 18px; line-height: 25px; font-weight: 600; color: #112950; text-align: center; }
+  .as-chip { height: 60px; border-radius: 22px; border: 2px solid #246BFD; background: #fff; display: flex; align-items: center; justify-content: space-between;
+             padding: 0 18px; font-size: 18px; font-weight: 600; color: #112950; }
+  .as-card { background: #fff; border: 1px solid #E6EEF8; border-radius: 24px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+             box-shadow: 0 6px 16px rgba(15, 61, 110, .08); }
+  .as-card .tt { font-size: 19px; font-weight: 800; color: #112950; }
+  .as-card .sm { font-size: 18px; line-height: 26px; color: #1C2B45; }
+  .as-act { min-height: 58px; border-radius: 16px; border: 2px solid #246BFD; background: #EBF2FF; color: #246BFD; display: flex; align-items: center;
+            justify-content: center; gap: 8px; font-size: 16.5px; font-weight: 800; padding: 0 8px; text-align: center; }
+  .as-act.solid { background: #246BFD; color: #fff; }
+  .as-src { font-size: 13px; font-style: italic; color: #55657E; }
+  .as-eth { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #55657E; padding: 4px 12px 6px; }
+  .as-bottom { height: 132px; background: #fff; border-top: 1px solid #E6EEF8; position: relative; }
+  .as-write { position: absolute; top: 30px; height: 56px; padding: 0 16px; border-radius: 999px; border: 2px solid #246BFD; background: #EBF2FF; color: #246BFD;
+              display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; }
+  .as-mic { position: absolute; left: 156px; top: 6px; width: 80px; height: 80px; border-radius: 40px; background: #246BFD; display: flex; align-items: center;
+            justify-content: center; box-shadow: 0 8px 18px rgba(36, 107, 253, .35); z-index: 2; }
+  .as-halo { position: absolute; left: 156px; top: 6px; width: 80px; height: 80px; border-radius: 40px; background: #C62828; opacity: 0; z-index: 1; }
+  .as-mlab { position: absolute; left: 0; right: 0; top: 92px; text-align: center; font-size: 18px; font-weight: 800; color: #112950; }
+  .as-partial { font-size: 22px; font-weight: 800; color: #246BFD; text-align: center; min-height: 30px; }
 
   /* En-tête de module */
   .homebtn { align-self: flex-start; height: 38px; padding: 0 14px; border-radius: 999px; background: #EBF2FF; color: #246BFD; font-weight: 700;
@@ -59,7 +101,7 @@
   .mhead .ic { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
   .mhead .t { font-size: 22px; font-weight: 800; color: #112950; }
   .mhead .s { font-size: 14px; color: #55657E; }
-  .ctitle { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; color: #112950; margin-bottom: 10px; }
+  .ctitle { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; color: #112950; margin-bottom: 10px; line-height: 23px; }
   .h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #112950; margin: 10px 0 6px; }
   .p { font-size: 14px; line-height: 20px; }
   .reading { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-top: 5px; }
@@ -68,21 +110,29 @@
   .pharma b { color: #167A45; display: block; font-size: 14.5px; }
   .cond { display: flex; gap: 6px; font-size: 13.5px; line-height: 19px; margin-top: 5px; }
   .illus { border-radius: 18px; padding: 10px 0; display: flex; justify-content: center; }
-  .field { margin-top: 8px; }
-  .field label { font-size: 14px; font-weight: 700; color: #112950; }
+  .field { margin-top: 10px; }
+  .field label { font-size: 14px; font-weight: 700; color: #112950; line-height: 19px; display: block; }
   .field .in { margin-top: 4px; height: 46px; border: 1.5px solid #C9D6E8; border-radius: 14px; background: #fff; display: flex; align-items: center;
-               padding: 0 12px; font-size: 18px; font-weight: 700; }
+               padding: 0 12px; font-size: 18px; font-weight: 600; }
   .field .in.focus { border-color: #246BFD; box-shadow: 0 0 0 3px #EBF2FF; }
   .caret { width: 2px; height: 22px; background: #246BFD; margin-left: 2px; }
+  .imc { margin-top: 8px; font-size: 15px; color: #55657E; }
+  .imc.on { color: #112950; font-weight: 800; }
+  .yn { display: flex; gap: 10px; margin-top: 8px; }
+  .yn div { flex: 1; height: 46px; border-radius: 14px; border: 1.5px solid #C9D6E8; background: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 800; color: #112950; }
+  .yn div.on { background: #246BFD; border-color: #246BFD; color: #fff; }
+  .q { font-size: 14px; font-weight: 700; color: #112950; line-height: 19px; margin-top: 12px; }
   .btn { height: 56px; border-radius: 14px; background: #246BFD; color: #fff; font-size: 17px; font-weight: 800; display: flex; align-items: center;
          justify-content: center; gap: 8px; margin-top: 12px; text-align: center; padding: 0 10px; }
   .btn.sec { background: #fff; color: #246BFD; border: 1.5px solid #246BFD; }
-  .alert { background: #C62828; color: #fff; border-radius: 20px; padding: 16px; }
-  .alert .at { font-size: 18px; font-weight: 800; line-height: 23px; }
-  .alert .am { font-size: 14px; line-height: 20px; margin-top: 6px; }
-  .call { margin-top: 10px; height: 52px; border-radius: 14px; background: #fff; color: #C62828; font-size: 18px; font-weight: 800; display: flex;
-          align-items: center; justify-content: center; gap: 8px; }
+  .res { border: 2px solid; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #fff; }
+  .res .rt { font-size: 19px; font-weight: 800; line-height: 24px; }
+  .res .p { font-size: 14.5px; line-height: 20px; }
   .notice { background: #FFF8E6; border: 1px solid #F1C66B; border-radius: 16px; padding: 12px; font-size: 13px; line-height: 18px; color: #6B4500; }
+  .word { flex: 1 0 45%; height: 92px; border-radius: 18px; background: #D1FAE5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 2px; font-size: 21px; font-weight: 800; color: #065F46; }
+  .word span { font-family: 'Segoe UI Emoji', 'Segoe UI', sans-serif; font-size: 34px; line-height: 40px; }
 
   /* Senior */
   .notif { position: absolute; left: 10px; right: 10px; top: 54px; z-index: 30; background: rgba(255, 255, 255, .97); border-radius: 22px; padding: 12px 14px;
@@ -97,7 +147,8 @@
           justify-content: center; gap: 12px; box-shadow: 0 10px 24px rgba(36, 107, 253, .35); }
 
   /* Aidant (2e téléphone) */
-  #phone2 { position: absolute; left: 1330px; top: 545px; width: 420px; height: 860px; transform-origin: 0 0; }
+  #phone2 { position: absolute; left: 1330px; top: 545px; width: 420px; height: 860px; transform-origin: 0 0; opacity: 0; }
+  #phone2 .scr { display: block; }
   .dose { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #E6EEF8; }
   .dot { width: 18px; height: 18px; border-radius: 9px; flex: none; }
   .badge { padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; }
@@ -113,7 +164,7 @@
   .apps { display: flex; justify-content: space-between; margin-top: 16px; }
   .app { width: 68px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #55657E; }
   .app span { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
-  #pdf { position: absolute; left: 1010px; top: 55px; width: 640px; height: 905px; background: #fff; border-radius: 10px; transform-origin: 50% 50%;
+  #pdf { position: absolute; left: 1010px; top: 55px; width: 640px; height: 905px; background: #fff; border-radius: 10px; transform-origin: 50% 50%; opacity: 0;
          box-shadow: 0 30px 70px rgba(15, 61, 110, .28); padding: 44px 48px; font-family: Helvetica, Arial, sans-serif; color: #1C2B45; font-size: 16px; line-height: 1.35; }
   #pdf .brandrow { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 2px solid #E6EEF8; }
   #pdf .brandrow img { width: 70px; height: 60px; object-fit: contain; }
@@ -133,13 +184,21 @@
   .headline { margin-top: 26px; font-size: 76px; line-height: 84px; font-weight: 900; color: #112950; letter-spacing: -1.5px; }
   .headline em { font-style: normal; color: #246BFD; }
   .sub { margin-top: 22px; font-size: 32px; line-height: 44px; color: #3B4B66; font-weight: 600; }
-  #fnchip { position: absolute; left: 960px; top: 990px; width: 740px; text-align: center; font-family: Consolas, 'Cascadia Mono', monospace; font-size: 22px; font-weight: 700;
-            color: #112950; background: #fff; border: 2px solid #246BFD; border-radius: 999px; padding: 10px 18px; }
+  #fnchip { position: absolute; left: 960px; top: 990px; width: 740px; text-align: center; font-family: Consolas, 'Cascadia Mono', monospace; font-size: 21px; font-weight: 700;
+            color: #112950; background: #fff; border: 2px solid #246BFD; border-radius: 999px; padding: 10px 18px; opacity: 0; }
+
+  /* Onde vocale (hors téléphone) */
+  #vw { position: absolute; left: 1010px; top: 700px; height: 96px; padding: 0 30px 0 22px; border-radius: 999px; background: #fff; border: 2px solid #E6EEF8;
+        box-shadow: 0 14px 34px rgba(15, 61, 110, .12); display: flex; align-items: center; gap: 18px; opacity: 0; }
+  #vwIc { width: 60px; height: 60px; border-radius: 30px; background: #246BFD; display: flex; align-items: center; justify-content: center; }
+  #vwBars { display: flex; align-items: center; gap: 5px; height: 64px; }
+  #vwBars i { width: 7px; border-radius: 4px; background: #246BFD; display: block; }
+  #vwLab { font-size: 26px; font-weight: 800; color: #112950; white-space: nowrap; }
 
   /* Curseur */
   #cursor { position: absolute; z-index: 100; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(255, 255, 255, .55);
-            border: 3px solid #112950; box-shadow: 0 4px 12px rgba(0, 0, 0, .25); pointer-events: none; }
-  #ripple { position: absolute; z-index: 99; border-radius: 50%; border: 4px solid #246BFD; pointer-events: none; }
+            border: 3px solid #112950; box-shadow: 0 4px 12px rgba(0, 0, 0, .25); pointer-events: none; opacity: 0; }
+  #ripple { position: absolute; z-index: 99; border-radius: 50%; border: 4px solid #246BFD; pointer-events: none; opacity: 0; }
 
   /* Ouverture / fermeture */
   .full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -158,21 +217,22 @@
   <div class="blob" style="right:-200px;bottom:-260px;width:820px;height:820px;background:#C9F2E3"></div>
 
   <div id="caption"><div class="chip" id="chip"></div><div class="headline" id="headline"></div><div class="sub" id="sub"></div></div>
+  <div id="vw"><div id="vwIc"></div><div id="vwBars"></div><div id="vwLab"></div></div>
   <div id="pdf"></div>
-  <div id="fnchip">NeuroCare_Tension-HTA_Ahmed-Benali_2026-11-20_11h30.pdf</div>
+  <div id="fnchip">NeuroCare_Tension-HTA_Hajja-Zahra_2026-11-21_09h30.pdf</div>
 
   <div id="phone"><div class="bezel"></div><div class="screen" id="screen"><div class="island"></div>
-    <div class="status"><span>11:30</span><span class="row" style="gap:6px"><i class="ion" data-i="cellular" style="font-size:16px"></i><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
+    <div class="status"><span id="clock">09:30</span><span class="row" style="gap:6px"><i class="ion" data-i="cellular" style="font-size:16px"></i><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
   </div></div>
   <div id="phone2"><div class="bezel"></div><div class="screen" id="screen2"><div class="island"></div>
-    <div class="status"><span>11:30</span><span class="row" style="gap:6px"><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
+    <div class="status"><span>08:02</span><span class="row" style="gap:6px"><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
   </div></div>
   <div id="ripple"></div><div id="cursor"></div>
 
   <div id="intro" class="full"><img id="introLogo" src="../assets/neurocare-logo-transparent.png" style="width:520px" />
     <div class="bigtag" id="introTag">L’alliance de la voix familiale et du pré-dépistage intelligent</div></div>
-  <div id="outro" class="full"><img id="outroLogo" src="../assets/neurocare-logo-transparent.png" style="width:430px" />
-    <div class="bigtag" id="outroTag">L’alliance de la voix familiale et du pré-dépistage intelligent</div>
+  <div id="outro" class="full" style="display:none"><img id="outroLogo" src="../assets/neurocare-logo-transparent.png" style="width:430px" />
+    <div class="bigtag" id="outroTag">5 bilans + Assistant vocal · FR · <bdi>العربية</bdi> · <bdi>الدارجة</bdi></div>
     <div class="team" id="outroTeam">
       <div class="tcard"><b>Équipe NeuroCare</b><span>3 élèves-ingénieurs · 5ᵉ année Informatique &amp; Gestion — EHEIM Oujda</span></div>
       <div class="tcard"><b>× Médecine Générale</b><span>2 étudiantes en 6ᵉ année de Médecine Générale</span></div>
@@ -202,47 +262,55 @@ function homeScreen(lang) {
   const fr = lang === 'fr';
   const tiles = MODULES.map((m, i) => `<div class="tile" id="tile-${lang}-${i}"><div class="ic" style="background:${m.tint}">${ic(m.icon, 30, m.colour)}</div>
       <div class="t">${m[lang][0]}</div><div class="s">${m[lang][1]}</div></div>`).join('');
+  const fab = `<div class="fab" id="fab-${lang}" style="${fr ? 'right' : 'left'}:16px"><div class="fi">${ic('chatbubble-ellipses', 38, '#fff')}<div class="mb">${ic('mic', 15, '#246BFD')}</div></div>${fr ? 'Assistant Santé' : 'المساعد الصحي'}</div>`;
   return `<div class="scr" id="home-${lang}" dir="${fr ? 'ltr' : 'rtl'}"><div class="scroll">
     <div class="card welcome"><img src="../assets/neurocare-logo.png" />
       <div><div class="brand">NeuroCare</div><div class="hello">${fr ? 'Bonjour 👋' : 'مرحبًا 👋'}</div></div>
       <div class="subtitle">${fr ? 'Prenez soin de votre santé, simplement. Choisissez un module.' : 'اعتنِ بصحتك ببساطة. اختر وحدة.'}</div>
       <div class="pills"><div class="pill ${fr ? 'on' : ''}" id="pillfr-${lang}"><b>FR</b>Français</div><div class="pill ${fr ? '' : 'on'}" id="pillar-${lang}"><b>AR</b>العربية</div></div>
     </div>
-    <div class="grid">${tiles}</div></div></div>`;
+    <div class="grid">${tiles}</div></div>${fab}</div>`;
 }
 
-function seniorScreen() {
-  const bars = Array.from({ length: 34 }, (_, i) => `<i id="bar${i}"></i>`).join('');
-  return `<div class="scr" id="senior"><div class="scroll" style="gap:14px">
-    <div style="font-size:24px;font-weight:700;color:#55657E;margin-top:6px">Bonjour Ahmed</div>
-    <div class="senior-title">C’est l’heure de ton médicament</div>
-    <div class="card"><div class="row" style="gap:12px"><div style="width:58px;height:58px;border-radius:18px;background:#EBF2FF;display:flex;align-items:center;justify-content:center">${ic('medkit', 32, '#246BFD')}</div>
-      <div><div class="med">Metformine 500 mg</div><div style="font-size:20px;color:#55657E">1 comprimé · 08:00</div></div></div></div>
-    <div class="voice"><div class="row" style="gap:8px;font-size:19px;font-weight:800;color:#112950">${ic('volume-high', 24, '#246BFD')} Voix de Salma, votre fille</div>
-      <div class="wave">${bars}</div>
-      <div style="font-size:16px;line-height:22px;margin-top:8px;color:#1C2B45;font-style:italic">« Bonjour, c’est moi. C’est l’heure de ton médicament. Prends ton temps, et appuie sur le gros bouton quand c’est fait. »</div></div>
-    <div class="done" id="doneBtn">${ic('checkmark-circle', 44, '#fff')}<span id="doneTxt">C’est fait</span></div>
-    <div class="card row" style="gap:12px">${ic('alarm', 30, '#55657E')}<div><div style="font-size:18px;color:#55657E">Prochain rappel</div><div style="font-size:21px;font-weight:800;color:#112950">13:00 · Amlodipine 5 mg</div></div></div>
-    <div class="row" style="gap:10px;height:64px;border-radius:20px;border:2px solid #246BFD;justify-content:center;font-size:21px;font-weight:800;color:#246BFD">${ic('call', 26, '#246BFD')} Appeler Salma</div>
-  </div>
-  <div class="notif" id="notif"><img src="../assets/neurocare-logo.png" /><div style="flex:1">
-    <div class="row" style="justify-content:space-between;font-size:13px;color:#55657E"><b style="color:#112950">NeuroCare</b><span>maintenant</span></div>
-    <div style="font-size:16px;font-weight:800;color:#112950">C'est l'heure de ton médicament</div>
-    <div style="font-size:14.5px">Metformine 500 mg — appuie sur « C'est fait »</div>
-    <div style="margin-top:6px;font-size:14px;font-weight:800;color:#246BFD">${ic('play-circle', 16, '#246BFD')} Écouter le message</div></div></div></div>`;
-}
-
-function aidantScreen() {
-  return `<div class="scr"><div class="scroll">
-    <div style="font-size:22px;font-weight:800;color:#112950;margin-top:4px">Ahmed — tableau de bord</div>
-    <div class="row" style="gap:8px"><span class="badge" style="background:#DCFCE7;color:#167A45">● Temps réel</span><span class="muted" style="font-size:14px">Aujourd’hui (20/11/2026)</span></div>
-    <div class="card" style="padding:6px 16px">
-      <div class="dose"><div class="dot" id="aDot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">08:00 · Metformine 500 mg</b>
-        <div class="muted" style="font-size:14px" id="aStatus">En attente</div></div></div>
-      <div class="dose"><div class="dot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">13:00 · Amlodipine 5 mg</b><div class="muted" style="font-size:14px">En attente</div></div></div>
-      <div class="dose" style="border:0"><div class="dot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">20:00 · Metformine 500 mg</b><div class="muted" style="font-size:14px">En attente</div></div></div>
-    </div>
-    <div class="card row" id="aToast" style="gap:10px;background:#DCFCE7;border-color:#BBF7D0">${ic('checkmark-circle', 28, '#167A45')}<div style="font-size:15px;font-weight:700;color:#14653A">Ahmed a confirmé la prise de 08:00</div></div>
+/* Assistant Santé : mêmes textes que i18n/{fr,ar}/assistant.ts et knowledge-base.json (fiche « oubli-medicament »). */
+const AS = {
+  fr: { back: 'Retour', sound: 'Son activé', talk: 'Parler', stop: 'Terminer', write: 'Écrire', ethics: 'Informe et oriente, ne remplace pas le médecin.',
+        ins: 'Appuyez sur le micro et posez votre question, ou choisissez un sujet ci-dessous.', listening: 'Je vous écoute… Touchez pour terminer',
+        chips: ["J'ai oublié mon médicament", 'Ma tension est élevée', 'Mon sucre est trop bas', "J'oublie souvent des choses"],
+        title: 'Un médicament oublié', open: 'Ouvrir « Rappels & Suivi »', speaking: 'Arrêter', another: 'Poser une autre question', source: 'Source : OMS · HAS',
+        summary: "Pas d'inquiétude. Ne prenez jamais deux doses d'un coup pour rattraper. Regardez la notice ou demandez à votre pharmacien. Les rappels NeuroCare aident à ne plus oublier." },
+  ar: { back: 'رجوع', sound: 'الصوت مفعّل', talk: 'تكلّم', stop: 'إنهاء', write: 'اكتب', ethics: 'يُخبر ويُوجّه، ولا يعوّض الطبيب.',
+        ins: 'اضغط على الميكروفون واطرح سؤالك، أو اختر موضوعًا من الأسفل.', listening: 'أنا أستمع إليك… المس للإنهاء',
+        title: 'نسيان الدواء', open: 'فتح «التذكيرات والمتابعة»', speaking: 'إيقاف', another: 'اطرح سؤالًا آخر', source: 'المصدر: منظمة الصحة العالمية · الهيئة العليا للصحة',
+        summary: 'لا تقلق. لا تتناول أبدًا جرعتين معًا للتعويض. راجع النشرة الداخلية أو اسأل الصيدلي. تذكيرات نوروكير تساعدك على عدم النسيان.' },
+};
+const DARIJA_CHIPS = ['نسيت الدوا', 'الطونسيو طالع', 'السكر طالع', 'عندي الدوخة'];
+function assistantScreen(id, mode, view) {
+  const rtl = mode !== 'fr', d = rtl ? AS.ar : AS.fr;
+  const chips = mode === 'dj' ? DARIJA_CHIPS : AS.fr.chips;
+  const lang = (k, label) => `<div class="as-lang ${mode === k ? 'on' : ''}" id="${id}-${k}">${label}</div>`;
+  let center = '';
+  if (view === 'home') {
+    center = `<div class="as-ins">${d.ins}</div>` + chips.map((c) => `<div class="as-chip"><span>${c}</span>${ic(rtl ? 'chevron-back' : 'chevron-forward', 24, '#246BFD')}</div>`).join('');
+  } else if (view === 'listen') {
+    center = `<div class="as-ins">${d.listening}</div><div class="as-partial" id="${id}-partial"></div>`;
+  } else {
+    center = `<div class="as-card" id="${id}-card"><div class="tt">${d.title}</div><div class="sm">${d.summary}</div>
+      <div class="as-act">${ic('open-outline', 24, '#246BFD')}<span>${d.open}</span></div>
+      <div class="as-row"><div class="as-act solid" style="flex:1">${ic('square', 20, '#fff')}<span>${d.speaking}</span></div><div class="as-act" style="flex:1.3">${d.another}</div></div>
+      <div class="as-src">${d.source}</div></div>`;
+  }
+  const listening = view === 'listen';
+  return `<div class="scr" id="${id}" dir="${rtl ? 'rtl' : 'ltr'}"><div class="as">
+    <div class="as-top"><div class="as-row"><div class="as-btn ghost">${ic(rtl ? 'arrow-forward' : 'arrow-back', 24, '#246BFD')} ${d.back}</div>
+      <div class="as-btn solid">${ic('volume-high', 24, '#fff')} ${d.sound}</div></div>
+      <div class="as-row">${lang('fr', 'FR')}${lang('ar', 'العربية')}${lang('dj', 'الدارجة')}</div></div>
+    <div class="as-center">${center}</div>
+    <div class="as-eth">${ic('shield-checkmark', 16, '#8A4600')}<span>${d.ethics}</span></div>
+    <div class="as-bottom"><div class="as-write" style="${rtl ? 'right' : 'left'}:14px">${ic('create', 22, '#246BFD')} ${d.write}</div>
+      <div class="as-halo" id="${id}-halo"></div>
+      <div class="as-mic" id="${id}-mic" style="${listening ? 'background:#C62828;box-shadow:0 8px 18px rgba(198,40,40,.35)' : ''}">${ic(listening ? 'stop' : 'mic', 40, '#fff')}</div>
+      <div class="as-mlab">${listening ? d.stop : d.talk}</div></div>
   </div></div>`;
 }
 
@@ -263,21 +331,85 @@ function tensiometer() {
       B(8, 10, 98, 108, LCD + 'display:flex;flex-direction:column;padding:2px 0', row('SYS', '120', '#C62828', 1) + row('DIA', '80', '#1D4ED8', 1) + row('PUL', '72', '#167A45', 0))
       + B(43, 126, 30, 30, 'background:#246BFD;border-radius:15px;border:3px solid #BFD3FE') + B(14, 136, 20, 9, 'background:#C9D6E8;border-radius:5px') + B(82, 136, 20, 9, 'background:#C9D6E8;border-radius:5px'));
 }
-function oximeter() {
-  return B(0, 80, 240, 46, SKIN + 'border-radius:0 23px 23px 0') + B(214, 84, 20, 14, 'background:#F8DCD5;border:1px solid #E5B5AC;border-radius:7px')
-    + B(-12, 66, 64, 104, SKIN + 'border-radius:22px') + B(30, 126, 118, 26, SKIN + 'border-radius:22px') + B(30, 148, 100, 22, SKIN + 'border-radius:22px')
-    + B(64, 66, 14, 58, 'background:#93A4BF;border-radius:7px') + B(72, 112, 138, 26, 'background:#fff;border:2px solid #C9D6E8;border-radius:10px')
-    + B(68, 14, 146, 78, 'background:#1D4ED8;border-radius:18px;border:2px solid #1E40AF',
-      B(7, 8, 128, 52, 'background:#0B1220;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:3px',
-        `<div style="line-height:11px">${LEDT('SpO₂', '#38BDF8', 10)}<br>${LEDT('%', '#38BDF8', 10)}</div>${LEDT('98', '#7DD3FC', 26)}<div style="width:6px"></div>
-         <div style="line-height:11px">${LEDT('PR', '#4ADE80', 10)}<br>${LEDT('bpm', '#4ADE80', 10)}</div>${LEDT('72', '#86EFAC', 20)}`)
-      + B(64, 66, 16, 6, 'background:#BFDBFE;border-radius:3px'));
+function scaleAndMeter() {
+  return B(0, 52, 100, 112, 'background:#F8FAFC;border-radius:18px;border:2px solid #C9D6E8;overflow:hidden',
+      B(16, 10, 64, 28, 'background:#0B1220;border-radius:8px;display:flex;align-items:center;justify-content:center', LEDT('72.0', '#7DD3FC', 16) + LEDT('kg', '#7DD3FC', 10, 'margin-left:3px'))
+      + B(14, 48, 30, 50, 'background:#E2E8F0;border-radius:14px;border:1px solid #CBD5E1') + B(54, 48, 30, 50, 'background:#E2E8F0;border-radius:14px;border:1px solid #CBD5E1')
+      + B(0, 0, 6, 112, 'background:#1D4ED8'))
+    + B(110, 8, 76, 156, SKIN + 'border-radius:34px 34px 14px 14px')
+    + B(104, 74, 88, 16, 'background:#FACC15;border:1px solid #B45309;border-radius:3px') + B(170, 86, 14, 30, 'background:#FACC15;border:1px solid #B45309;border-radius:2px')
+    + B(230, 10, 16, 34, 'background:#fff;border:1px solid #94A3B8;border-radius:2px', B(0, 0, 14, 9, 'background:#F59E0B')) + B(232, 0, 11, 11, 'background:#DC2626;border-radius:6px 6px 6px 1px')
+    + B(198, 40, 80, 124, 'background:#fff;border-radius:18px;border:2px solid #C9D6E8',
+      B(8, 14, 60, 48, LCD + 'display:flex;flex-direction:column;align-items:center;justify-content:center', LEDT('0.95', '#10243F', 18) + LEDT('g/L', '#10243F', 12))
+      + B(24, 78, 28, 28, 'background:#246BFD;border-radius:15px;border:3px solid #BFD3FE'));
 }
 const illus = (inner, tint) => `<div class="illus" style="background:${tint}"><div style="position:relative;width:280px;height:170px">${inner}</div></div>`;
 
 function moduleTop(m, title, subtitle) {
-  return `<div class="homebtn">${ic('home', 18, '#246BFD')} Accueil Modules</div>
+  return `<div class="homebtn">${ic('arrow-back', 18, '#246BFD')} Accueil Modules</div>
     <div class="mhead"><div class="ic" style="background:${m.tint}">${ic(m.icon, 30, m.colour)}</div><div><div class="t">${title}</div><div class="s">${subtitle}</div></div></div>`;
+}
+const yn = (id, on) => `<div class="yn"><div id="${id}-o" class="${on === 'o' ? 'on' : ''}">Oui</div><div id="${id}-n" class="${on === 'n' ? 'on' : ''}">Non</div></div>`;
+
+/* Module 4 — Diabète : textes de i18n/fr/findrisc.ts. Profil : femme, 68 ans, 72 kg, 1,68 m, tour de taille 86 cm → 14 / 26. */
+function diabScreen() {
+  const m = MODULES[3];
+  const sym = [['URINES', 'Urines fréquentes', 'Avez-vous besoin d’uriner beaucoup plus souvent que d’habitude, notamment 2 fois ou plus par nuit, alors que ce n’est pas habituel ?'],
+    ['SOIF', 'Soif intense', 'Avez-vous besoin de boire constamment, nettement plus que d’habitude (par exemple plus de 3 litres par jour) ?'],
+    ['FATIGUE', 'Fatigue inhabituelle', 'Ressentez-vous une fatigue persistante qui gêne vos activités quotidiennes ?'],
+    ['BOUCHE', 'Bouche sèche', 'Avez-vous une sensation permanente de bouche sèche malgré la prise d’eau ?'],
+    ['VISION', 'Vision floue', 'Votre vision est-elle devenue trouble récemment ?'],
+    ['FAIM', 'Faim excessive', 'Avez-vous faim de façon répétée malgré des repas habituels ?'],
+    ['AMAIG', 'Amaigrissement inexpliqué', 'Vos vêtements sont-ils devenus plus larges, ou avez-vous perdu du poids sans faire de régime ?']];
+  const signs = sym.map(([k, t, q], i) => `<div class="q">${i + 1}. ${t} : ${q}</div>${yn('s-' + k, i < 2 ? '' : 'n')}`).join('');
+  return `<div class="scr" id="diab"><div class="scroll" id="diabScroll">
+    ${moduleTop(m, 'Diabète (FINDRISC)', 'Pré-dépistage & glycémie')}
+    <div class="card"><div class="field" style="margin:0"><label>Nom et prénom du patient (facultatif, pour les rapports PDF)</label><div class="in">Hajja Zahra</div></div></div>
+    <div class="card" id="fdForm"><div class="ctitle">${ic('clipboard', 22, '#246BFD')} Questionnaire FINDRISC (8 questions)</div>
+      <div class="field" style="margin-top:0"><label>1. Âge (ans)</label><div class="in">68</div></div>
+      <div class="field"><label>Sexe</label><div class="yn" style="margin-top:4px"><div>Homme</div><div class="on">Femme</div></div></div>
+      <div class="field"><label>2. Poids (kg)</label><div class="in" id="fPoids"></div></div>
+      <div class="field"><label>Taille (cm ou m)</label><div class="in" id="fTaille"></div></div>
+      <div class="imc" id="fImc">IMC calculé : —</div>
+      <div class="field"><label>3. Tour de taille (cm, au niveau du nombril)</label><div class="in">86</div></div>
+      <div class="q">4. Au moins 30 minutes d’activité physique par jour (travail ou loisirs) ?</div>${yn('a', 'o')}
+    </div>
+    <div class="card" id="fdSigns"><div class="ctitle">${ic('warning', 22, '#246BFD')} Partie 2 : signes cliniques d’alerte (symptômes d’hyperglycémie)</div>
+      <div class="p muted">Ces 7 questions ne modifient pas le score FINDRISC sur 26 : elles repèrent des signes qui, s’ils sont présents, justifient de consulter rapidement.</div>
+      ${signs}<div class="btn" id="fdSubmit">Calculer le score</div></div>
+  </div></div>
+  <div class="scr" id="diabRes"><div class="scroll">
+    ${moduleTop(m, 'Diabète (FINDRISC)', 'Pré-dépistage & glycémie')}
+    <div class="res" id="fdAlert" style="border-color:#C62828;background:#FEF3C7"><div class="row" style="gap:8px;align-items:flex-start">${ic('warning', 26, '#C62828')}<div class="rt" style="color:#C62828">Alerte clinique prioritaire : symptômes évocateurs d’hyperglycémie</div></div>
+      <div class="p">Plusieurs signes évocateurs d’hyperglycémie sont présents, quel que soit le score FINDRISC. Consultez un médecin rapidement (dans les prochains jours) pour un dosage de la glycémie à jeun et de l’HbA1c.</div>
+      <div class="p"><b>Signes présents : Urines fréquentes, Soif intense.</b></div></div>
+    <div class="res" id="fdScore" style="border-color:#8A4600"><div class="rt" style="color:#8A4600">Risque modéré (environ 17 % de risque de diabète de type 2 à 10 ans)</div>
+      <div style="font-size:24px;font-weight:800;color:#112950">Score FINDRISC : 14 / 26</div>
+      <div class="p">IMC calculé : 25,5 kg/m²</div><div class="p">Il est conseillé d’en parler à votre médecin.</div></div>
+    <div class="btn">${ic('document-text', 20, '#fff')} Télécharger le bilan FINDRISC PDF</div>
+  </div></div>`;
+}
+
+/* Module 6 — Alzheimer & Mémoire : textes de i18n/fr/memory.ts (questions à la 2ᵉ personne, mots CLE / CITRON / HORLOGE / OLIVIER). */
+function alzScreen() {
+  const m = MODULES[5];
+  const words = [['🔑', 'Clé'], ['🍋', 'Citron'], ['🕰️', 'Horloge'], ['🌳', 'Olivier']]
+    .map(([e, w], i) => `<div class="word" id="w${i}"><span>${e}</span>${w}</div>`).join('');
+  return `<div class="scr" id="alz"><div class="scroll">
+    ${moduleTop(m, 'Alzheimer & Mémoire', 'Pré-dépistage des 4 A et prévention cognitive')}
+    <div class="card" id="alzQ"><div class="row" style="justify-content:space-between;gap:8px"><span class="badge" style="background:#D1FAE5;color:#065F46">Section A : les 4 A · Amnésie (Mémoire récente)</span><span class="muted" style="font-size:14px;white-space:nowrap">1 / 8</span></div>
+      <div style="font-size:15px;color:#55657E;margin-top:14px">Ces dernières semaines :</div>
+      <div style="font-size:21px;line-height:29px;font-weight:700;color:#112950;margin-top:4px">Oubliez-vous de façon répétée des événements récents (une visite, une conversation, le repas de la veille) ?</div>
+      <div class="yn" style="margin-top:16px"><div id="alzYes" style="height:56px;font-size:18px">Oui</div><div id="alzNo" style="height:56px;font-size:18px">Non</div></div></div>
+    <div class="notice">Outil de pré-dépistage, de suivi et d’orientation : ce document ne constitue pas un diagnostic médical officiel et ne remplace pas un médecin.</div>
+  </div></div>
+  <div class="scr" id="alz2"><div class="scroll">
+    ${moduleTop(m, 'Alzheimer & Mémoire', 'Pré-dépistage des 4 A et prévention cognitive')}
+    <div class="card"><div class="ctitle">${ic('bulb', 22, '#10B981')} Section B : jeu de mémoire (1/4)</div>
+      <div class="p" style="font-size:15.5px;line-height:22px;margin-bottom:12px">Lisez ces 4 mots à voix haute et prenez le temps de bien les retenir. Je vous les redemanderai dans un instant.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">${words}</div>
+      <div class="btn">J’ai retenu les 4 mots</div></div>
+  </div></div>`;
 }
 
 function cardioScreen() {
@@ -295,15 +427,7 @@ function cardioScreen() {
       <div class="h3">${ic('time', 18, '#EF4444')} Conditions de mesure</div>
       ${cond('Rester assis au calme 5 minutes avant la mesure, dos appuyé, sans parler.')}${cond('Bras posé sur la table, brassard à hauteur du cœur.')}
       ${cond('Le matin : avant le petit-déjeuner et avant la prise des médicaments.')}</div>
-    <div class="card"><div class="field" style="margin:0"><label>Nom et prénom du patient (facultatif, pour les rapports PDF)</label><div class="in">Ahmed Benali</div></div></div>
-    <div class="card" id="bpMeasure"><div class="ctitle">${ic('pulse', 22, '#246BFD')} Mesure ponctuelle</div>
-      <div class="field"><label>TAS (grand chiffre)</label><div class="in" id="fTas"></div></div>
-      <div class="field"><label>TAD (petit chiffre)</label><div class="in" id="fTad"></div></div>
-      <div class="field"><label>Pouls (bpm)</label><div class="in" id="fPul"></div></div>
-      <div class="btn" id="bpSave">Enregistrer la mesure</div></div>
-    <div class="alert" id="bpAlert"><div class="row" style="gap:8px">${ic('warning', 26, '#fff')}<div class="at">Alerte rouge : tension très élevée (≥ 180/110)</div></div>
-      <div class="am">Restez au calme, assis. Au moindre symptôme, appelez immédiatement le 15 ou le 141.</div>
-      <div class="call">${ic('call', 22, '#C62828')} Appeler le 15</div><div class="call">${ic('call', 22, '#C62828')} Appeler le 141</div></div>
+    <div class="card"><div class="field" style="margin:0"><label>Nom et prénom du patient (facultatif, pour les rapports PDF)</label><div class="in">Hajja Zahra</div></div></div>
     <div class="card" id="bpPdfCard"><div class="ctitle">${ic('document-text', 22, '#246BFD')} Relevé pour le médecin</div>
       <div class="p muted">Protocole 3 jours · moyenne · alertes · orientation</div>
       <div class="btn sec" id="bpPdfBtn">${ic('download', 20, '#246BFD')} Télécharger le relevé d’automesure HTA PDF</div></div>
@@ -311,66 +435,77 @@ function cardioScreen() {
   </div>
   <div class="sheet" id="sheet"><div class="grab"></div>
     <div style="font-size:16px;font-weight:800;color:#112950;margin-bottom:10px">Relevé d’automesure HTA NeuroCare</div>
-    <div class="file"><div class="pdfic">PDF</div><div><div class="fname">NeuroCare_Tension-HTA_Ahmed-Benali_2026-11-20_11h30.pdf</div><div class="muted" style="font-size:12px;margin-top:2px">Document PDF · 48 Ko</div></div></div>
+    <div class="file"><div class="pdfic">PDF</div><div><div class="fname">NeuroCare_Tension-HTA_Hajja-Zahra_2026-11-21_09h30.pdf</div><div class="muted" style="font-size:12px;margin-top:2px">Document PDF · 48 Ko</div></div></div>
     <div class="apps"><div class="app"><span style="background:#DCFCE7">${ic('logo-whatsapp', 30, '#16A34A')}</span>WhatsApp</div><div class="app"><span style="background:#EBF2FF">${ic('mail', 28, '#246BFD')}</span>E-mail</div>
       <div class="app"><span style="background:#FEF3C7">${ic('folder', 28, '#B45309')}</span>Fichiers</div><div class="app"><span style="background:#F3E8FF">${ic('print', 28, '#7C3AED')}</span>Imprimer</div></div></div>
   </div>`;
 }
 
-function spo2Screen() {
-  const m = MODULES[1];
-  const cond = (t) => `<div class="cond">${ic('checkmark-circle', 18, '#0EA5E9')}<span>${t}</span></div>`;
-  return `<div class="scr" id="spo2"><div class="scroll">
-    ${moduleTop(m, 'Saturation SpO₂', 'Oxygénation & pouls')}
-    <div class="card"><div class="ctitle">${ic('information-circle', 22, '#246BFD')} Bien mesurer la saturation</div>
-      <div id="oxIllus">${illus(oximeter(), m.tint)}</div>
-      <div class="h3">${ic('hardware-chip', 18, '#0EA5E9')} Appareil requis</div>
-      <div class="p">Utilisez un oxymètre de pouls : une petite pince qui se clipse au bout du doigt. Recopiez les 2 chiffres de l’écran :</div>
-      <div class="reading"><span class="sw" style="background:#0284C7"></span>SpO₂ → champ SpO2 (%)</div><div class="reading"><span class="sw" style="background:#167A45"></span>PR → champ Pouls (bpm)</div>
-      <div class="pharma">${ic('medkit', 22, '#167A45')}<div><b>Sans appareil : en pharmacie</b>Pas d’oxymètre ? Demandez une mesure de la saturation en pharmacie.</div></div>
-      <div class="h3">${ic('time', 18, '#0EA5E9')} Conditions de mesure</div>
-      ${cond('Au repos complet depuis 5 minutes.')}${cond('Doigt propre, sec et réchauffé.')}${cond('Sans vernis à ongles ni faux ongles.')}</div>
-  </div></div>`;
+/* Module 1 — mode démo hors ligne (src/demo/demoData.ts) : Hajja Zahra, Salma, Metformine 850 mg. */
+function seniorScreen() {
+  const bars = Array.from({ length: 34 }, (_, i) => `<i id="bar${i}"></i>`).join('');
+  return `<div class="scr" id="senior"><div class="scroll" style="gap:14px">
+    <div style="font-size:24px;font-weight:700;color:#55657E;margin-top:6px">Bonjour Hajja Zahra</div>
+    <div class="senior-title">C’est l’heure de ton médicament</div>
+    <div class="card"><div class="row" style="gap:12px"><div style="width:58px;height:58px;border-radius:18px;background:#EBF2FF;display:flex;align-items:center;justify-content:center">${ic('medkit', 32, '#246BFD')}</div>
+      <div><div class="med">Metformine 850 mg</div><div style="font-size:19px;color:#55657E">1 comprimé pendant le repas · 08:00</div></div></div></div>
+    <div class="voice"><div class="row" style="gap:8px;font-size:19px;font-weight:800;color:#112950">${ic('volume-high', 24, '#246BFD')} Voix de Salma, votre fille</div>
+      <div class="wave">${bars}</div>
+      <div style="font-size:16px;line-height:22px;margin-top:8px;color:#1C2B45;font-style:italic">« Bonjour Mama, c’est Salma. C’est l’heure de ta Metformine. Prends ton temps, et appuie sur le gros bouton quand c’est fait. »</div></div>
+    <div class="done" id="doneBtn">${ic('checkmark-circle', 44, '#fff')}<span id="doneTxt">C’est fait</span></div>
+    <div class="card row" style="gap:12px">${ic('alarm', 30, '#55657E')}<div><div style="font-size:18px;color:#55657E">Prochain rappel</div><div style="font-size:21px;font-weight:800;color:#112950">09:00 · Amlodipine 5 mg</div></div></div>
+    <div class="row" style="gap:10px;height:64px;border-radius:20px;border:2px solid #246BFD;justify-content:center;font-size:21px;font-weight:800;color:#246BFD">${ic('call', 26, '#246BFD')} Appeler Salma</div>
+  </div>
+  <div class="notif" id="notif"><img src="../assets/neurocare-logo.png" /><div style="flex:1">
+    <div class="row" style="justify-content:space-between;font-size:13px;color:#55657E"><b style="color:#112950">NeuroCare</b><span>maintenant</span></div>
+    <div style="font-size:16px;font-weight:800;color:#112950">C'est l'heure de ton médicament</div>
+    <div style="font-size:14.5px">Metformine 850 mg — appuie sur « C'est fait »</div>
+    <div style="margin-top:6px;font-size:14px;font-weight:800;color:#246BFD">${ic('play-circle', 16, '#246BFD')} Écouter le message</div></div></div></div>`;
 }
 
-function alzScreen() {
-  const m = MODULES[5];
-  const words = ['Citron', 'Clef', 'Horloge', 'Olivier'].map((w) => `<div style="flex:1 0 45%;height:64px;border-radius:16px;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#065F46">${w}</div>`).join('');
-  return `<div class="scr" id="alz"><div class="scroll">
-    ${moduleTop(m, 'Alzheimer & Mémoire', 'Pré-dépistage des 4 A et prévention cognitive')}
-    <div class="card" id="alzQ"><div class="row" style="justify-content:space-between"><span class="badge" style="background:#D1FAE5;color:#065F46">Amnésie · Mémoire récente</span><span class="muted" style="font-size:14px">1 / 8</span></div>
-      <div style="font-size:19px;line-height:27px;font-weight:700;color:#112950;margin-top:12px">La personne oublie-t-elle de façon répétée des événements récents (une visite, une conversation, le repas de la veille) ?</div>
-      <div class="row" style="gap:10px;margin-top:14px"><div class="btn sec" style="flex:1;margin:0" id="alzYes">Oui</div><div class="btn sec" style="flex:1;margin:0" id="alzNo">Non</div></div></div>
-    <div class="card" id="alzW"><div class="ctitle">${ic('bulb', 22, '#10B981')} Jeu des 4 mots</div><div class="p" style="margin-bottom:10px">Lisez ces 4 mots à voix haute et retenez-les.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px">${words}</div></div>
-    <div class="card" id="alzR" style="background:#DCFCE7;border-color:#BBF7D0"><div class="row" style="gap:10px">${ic('shield-checkmark', 30, '#167A45')}<div style="font-size:19px;font-weight:800;color:#14653A;line-height:25px">Indice de vigilance cognitive : rassurant</div></div>
-      <div class="p" style="margin-top:8px">Rappel des mots : 4 / 4 retrouvés. Pré-dépistage : ne constitue pas un diagnostic.</div></div>
+function aidantScreen() {
+  return `<div class="scr"><div class="scroll">
+    <div class="row" style="gap:8px;margin-top:4px"><span class="badge" style="background:#FEF3C7;color:#8A4600">Mode démo hors ligne</span></div>
+    <div style="font-size:22px;font-weight:800;color:#112950">Hajja Zahra — tableau de bord</div>
+    <div class="row" style="gap:8px"><span class="badge" style="background:#DCFCE7;color:#167A45">● Temps réel</span><span class="muted" style="font-size:14px">Aujourd’hui (21/11/2026)</span></div>
+    <div class="card" style="padding:6px 16px">
+      <div class="dose"><div class="dot" id="aDot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">08:00 · Metformine 850 mg</b>
+        <div class="muted" style="font-size:14px" id="aStatus">En attente</div></div></div>
+      <div class="dose"><div class="dot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">09:00 · Amlodipine 5 mg</b><div class="muted" style="font-size:14px">En attente</div></div></div>
+      <div class="dose" style="border:0"><div class="dot" style="background:#6B7280"></div><div style="flex:1"><b style="color:#112950;font-size:16px">20:00 · Metformine 850 mg</b><div class="muted" style="font-size:14px">En attente</div></div></div>
+    </div>
+    <div class="card row" id="aToast" style="gap:10px;background:#DCFCE7;border-color:#BBF7D0">${ic('checkmark-circle', 28, '#167A45')}<div style="font-size:15px;font-weight:700;color:#14653A">Hajja Zahra a confirmé la prise de 08:00</div></div>
   </div></div>`;
 }
 
 function pdfPage() {
   const cells = (a) => a.map((v) => (v ? `<td class="${v[1]}">${v[0]}</td>` : '<td>—</td>')).join('');
   const rows = [
-    ['Jour 1 · 18/11', 'Matin', [['128/78', 'VERT'], ['126/80', 'VERT'], ['131/82', 'VERT']]],
-    ['Jour 1 · 18/11', 'Soir', [['138/88', 'ORANGE'], ['134/84', 'VERT'], ['136/86', 'ORANGE']]],
-    ['Jour 2 · 19/11', 'Matin', [['129/79', 'VERT'], ['127/80', 'VERT'], ['130/81', 'VERT']]],
-    ['Jour 2 · 19/11', 'Soir', [['133/84', 'VERT'], ['135/85', 'ORANGE'], ['132/83', 'VERT']]],
-    ['Jour 3 · 20/11', 'Matin', [['185/100', 'ROUGE'], ['130/80', 'VERT'], null]],
+    ['Jour 1 · 19/11', 'Matin', [['128/78', 'VERT'], ['126/80', 'VERT'], ['131/82', 'VERT']]],
+    ['Jour 1 · 19/11', 'Soir', [['138/88', 'ORANGE'], ['134/84', 'VERT'], ['136/86', 'ORANGE']]],
+    ['Jour 2 · 20/11', 'Matin', [['129/79', 'VERT'], ['127/80', 'VERT'], ['130/81', 'VERT']]],
+    ['Jour 2 · 20/11', 'Soir', [['133/84', 'VERT'], ['135/85', 'ORANGE'], ['132/83', 'VERT']]],
+    ['Jour 3 · 21/11', 'Matin', [['185/100', 'ROUGE'], ['130/80', 'VERT'], null]],
   ].map(([d, mo, c]) => `<tr><td>${d}</td><td>${mo}</td>${cells(c)}</tr>`).join('');
   return `<div class="brandrow"><img src="../assets/neurocare-mark.png" /><b style="font-size:22px;color:#112950">NeuroCare</b></div>
     <h1>Relevé d’automesure tensionnelle (HTA)</h1>
-    <div style="color:#55657E;margin:6px 0 16px">Patient : <b style="color:#1C2B45">Ahmed Benali</b><br>Document généré le 20/11/2026 11:30 par NeuroCare</div>
-    <div class="box">Protocole d’automesure commencé le 18/11/2026 (3 jours consécutifs, 3 mesures le matin et 3 le soir)<br>Moyenne de 14 mesures sur 18 : <b>137/85 mmHg</b>, pouls moyen 74 bpm</div>
+    <div style="color:#55657E;margin:6px 0 16px">Patient : <b style="color:#1C2B45">Hajja Zahra</b><br>Document généré le 21/11/2026 09:30 par NeuroCare</div>
+    <div class="box">Protocole d’automesure commencé le 19/11/2026 (3 jours consécutifs, 3 mesures le matin et 3 le soir)<br>Moyenne de 14 mesures sur 18 : <b>137/85 mmHg</b>, pouls moyen 74 bpm</div>
     <h2>Orientation</h2><div class="box">Moyenne ≥ 135/85 mmHg : montrez ce relevé tensionnel à votre médecin.</div>
     <h2>Mesures (3 jours, matin et soir)</h2>
     <table><tr><th>Jour</th><th>Moment</th><th>M1</th><th>M2</th><th>M3</th></tr>${rows}</table>
-    <h2>Alertes</h2><div class="ROUGE">20/11/2026 08:05 — 185/100 : Alerte rouge : tension très élevée (≥ 180/110)</div>
+    <h2>Alertes</h2><div class="ROUGE">21/11/2026 08:05 — 185/100 : Alerte rouge : tension très élevée (≥ 180/110)</div>
     <div class="pnotice">Outil de pré-dépistage, de suivi et d’orientation : ce document ne constitue pas un diagnostic médical officiel et ne remplace pas un médecin.</div>`;
 }
 
-$('screen').insertAdjacentHTML('beforeend', homeScreen('fr') + homeScreen('ar') + seniorScreen() + cardioScreen() + spo2Screen() + alzScreen());
+$('screen').insertAdjacentHTML('beforeend', homeScreen('fr') + homeScreen('ar')
+  + assistantScreen('asFrHome', 'fr', 'home') + assistantScreen('asDjHome', 'dj', 'home') + assistantScreen('asDjListen', 'dj', 'listen')
+  + assistantScreen('asDjCard', 'dj', 'card') + assistantScreen('asFrCard', 'fr', 'card')
+  + diabScreen() + alzScreen() + cardioScreen() + seniorScreen());
 $('screen2').insertAdjacentHTML('beforeend', aidantScreen());
 $('pdf').innerHTML = pdfPage();
+$('vwIc').innerHTML = ic('volume-high', 32, '#fff');
+$('vwBars').innerHTML = Array.from({ length: 28 }, (_, i) => `<i id="vb${i}"></i>`).join('');
 document.querySelectorAll('[data-i]').forEach((el) => { el.textContent = String.fromCodePoint(ION[el.dataset.i] || 0x3f); });
 
 // ---------------------------------------------------------------- Outils d'animation
@@ -386,19 +521,18 @@ const css = (el, o) => { const e = typeof el === 'string' ? $(el) : el; Object.a
 const show = (el, op, dy = 0, sc = 1) => css(el, { opacity: op, transform: `translateY(${dy}px) scale(${sc})` });
 
 const PHONE = { x: 420, y: 110 };
-/** Position d'un élément de l'écran (coordonnées écran 392 × 832, sans caméra). */
+/** Position d'un élément de l'écran (coordonnées écran 392 × 832, sans caméra), même si son écran est masqué. */
 function at(id, fx = .5, fy = .5) {
   const s = $('screen'), el = $(id), k = s.getBoundingClientRect().width / 392;
+  const host = el.closest('.scr'), hidden = host && host.style.display === 'none';
+  if (hidden) host.style.display = 'block';
   const r = el.getBoundingClientRect(), o = s.getBoundingClientRect();
+  if (hidden) host.style.display = 'none';
   return [(r.left - o.left + r.width * fx) / k, (r.top - o.top + r.height * fy) / k];
 }
-let cam = { s: 1, fx: 196, fy: 416 };
 function camera(s, fx, fy, dx = 0) {
-  cam = { s, fx, fy };
-  const ox = PHONE.x + 14 + 196 * 1 + dx, oy = PHONE.y + 14 + 416;
-  const tx = ox - (14 + fx) * s, ty = oy - (14 + fy) * s;
-  css('phone', { transform: `translate(${tx - PHONE.x + (1 - 1) * 0}px, ${ty - PHONE.y}px) scale(${s})` });
-  return { tx, ty };
+  const ox = PHONE.x + 14 + 196 + dx, oy = PHONE.y + 14 + 416;
+  return { tx: ox - (14 + fx) * s, ty: oy - (14 + fy) * s };
 }
 /** Curseur placé en coordonnées écran, converti avec la caméra courante. */
 function cursorAt(x, y, op, press = 0, ripple = 0) {
@@ -418,10 +552,10 @@ function cursorPath(t, keys) {
     if (i + 1 < keys.length && t >= tk && t < keys[i + 1][0]) {
       const [tn, tg2] = keys[i + 1];
       const q = typeof tg2 === 'string' ? at(tg2) : tg2;
-      const x = eio(prog(t, tn - .75, tn));
+      const x = eio(prog(t, tn - .6, tn));
       pos = [lerp(p[0], q[0], x), lerp(p[1], q[1], x)];
     }
-    if (tap) { press = Math.max(press, 1 - Math.abs(t - tk) / .12 > 0 ? 1 - Math.abs(t - tk) / .12 : 0); if (t >= tk && t < tk + .55) rip = (t - tk) / .55; }
+    if (tap) { const d = 1 - Math.abs(t - tk) / .12; press = Math.max(press, d > 0 ? d : 0); if (t >= tk && t < tk + .55) rip = (t - tk) / .55; }
   }
   return { pos, press, rip };
 }
@@ -430,154 +564,186 @@ function caption(t, items) {
   for (const it of items) if (t >= it.a && t < it.b) cur = it;
   if (!cur) { css('caption', { opacity: 0 }); return; }
   $('chip').innerHTML = cur.chip; $('headline').innerHTML = cur.h; $('sub').innerHTML = cur.s;
-  const k = window_(t, cur.a, cur.b, .45);
-  css('caption', { opacity: k });
+  css('caption', { opacity: window_(t, cur.a, cur.b, .4) });
   show('chip', fadeIn(t, cur.a, .4), 16 * (1 - fadeIn(t, cur.a, .4)));
   show('headline', fadeIn(t, cur.a + .1, .5), 30 * (1 - fadeIn(t, cur.a + .1, .5)));
   show('sub', fadeIn(t, cur.a + .25, .5), 30 * (1 - fadeIn(t, cur.a + .25, .5)));
 }
 const typed = (t, a, text, cps = 9) => text.slice(0, Math.floor(clamp((t - a) * cps, 0, text.length)));
+/** Onde vocale hors téléphone : [début, fin, libellé, icône]. */
+const VOICE = [
+  [7.55, 9.3, 'Reconnaissance vocale · الدارجة', 'mic'],
+  [9.6, 12.55, 'Lecture vocale · العربية', 'volume-high'],
+  [12.85, 14.9, 'Lecture vocale · Français', 'volume-high'],
+  [34.7, 37.3, 'Voix de Salma, sa fille', 'volume-high'],
+];
 
 const CAPTIONS = [
-  { a: 3.0, b: 8.2, chip: '01 · Accueil', h: '6 modules.<br><em>Une seule app.</em>', s: 'Une grille d’icônes façon lanceur d’applications : zéro surcharge cognitive pour les seniors.' },
-  { a: 8.2, b: 14.8, chip: '02 · Bilingue', h: 'Français ⇄ <em>العربية</em>', s: 'Bascule instantanée, de droite à gauche, sans redémarrer l’application.' },
-  { a: 14.8, b: 21.2, chip: '03 · Rappels & Suivi', h: 'La voix d’un proche.<br><em>Un seul bouton.</em>', s: 'Le rappel est lu avec la voix enregistrée par la famille.' },
-  { a: 21.2, b: 25.0, chip: '03 · Rappels & Suivi', h: 'L’aidant voit <em>tout de suite</em>.', s: 'Confirmation en temps réel sur le téléphone de l’aidant.' },
-  { a: 25.0, b: 29.5, chip: '04 · Tension (HTA)', h: 'Le bon appareil.<br><em>Le bon geste.</em>', s: 'Guide illustré : quel chiffre recopier, pharmacie, 5 min de repos.' },
-  { a: 29.5, b: 31.6, chip: '04 · Tension (HTA)', h: 'Alerte <em>intelligente</em>.', s: 'Seuils officiels — appel du 15 ou du 141 en un geste.' },
-  { a: 31.6, b: 33.6, chip: '05 · Saturation SpO₂', h: 'Oxymètre au doigt.', s: 'Repos complet, doigt chaud, sans vernis : une mesure fiable.' },
-  { a: 33.6, b: 37.2, chip: '06 · Alzheimer & Mémoire', h: 'Les 4 A.<br><em>Jamais de diagnostic.</em>', s: 'Un indice de vigilance à deux issues et une orientation vers le médecin.' },
-  { a: 37.2, b: 38.9, chip: '07 · Rapport PDF', h: 'Un rapport <em>pour le médecin</em>.', s: '' },
+  { a: 1.9, b: 5.75, chip: '01 · Accueil', h: '6 modules +<br><em>Assistant Santé</em>', s: 'Grille d’icônes, bouton flottant bleu, et FR ⇄ <bdi>العربية</bdi> en un toucher, de droite à gauche.' },
+  { a: 5.75, b: 15.0, chip: '02 · Assistant Santé vocal', h: 'Il parle <em>votre langue</em>.', s: 'FR · <bdi>العربية</bdi> · <bdi>الدارجة</bdi> — écran unique sans défilement, réponse sourcée OMS · HAS, lue à voix haute.' },
+  { a: 15.0, b: 24.0, chip: '03 · Diabète (FINDRISC)', h: 'Score /26 +<br><em>7 signes d’alerte</em>.', s: 'IMC calculé automatiquement. Soif intense + urines fréquentes : alerte clinique prioritaire vers le médecin.' },
+  { a: 24.0, b: 28.6, chip: '04 · Alzheimer & Mémoire', h: 'Des questions<br><em>directes</em>.', s: '« Oubliez-vous… ? » à la 2ᵉ personne, puis le jeu des 4 mots. Jamais de diagnostic.' },
+  { a: 28.6, b: 33.0, chip: '05 · Tension (HTA)', h: 'Le bon appareil.<br><em>Le bon geste.</em>', s: 'Tensiomètre dessiné : quel chiffre recopier, 5 min de repos, ou la pharmacie.' },
+  { a: 33.0, b: 37.7, chip: '06 · Rappels & Suivi · mode démo', h: 'La voix d’un proche.<br><em>Un seul bouton.</em>', s: 'Hajja Zahra entend Salma, sa fille : « C’est l’heure de ta Metformine 850 mg. »' },
+  { a: 37.7, b: 40.6, chip: '06 · Rappels & Suivi · mode démo', h: 'L’aidant voit<br><em>tout de suite</em>.', s: '« C’est fait » : la pastille passe au vert chez Salma, en temps réel.' },
 ];
 
 // ---------------------------------------------------------------- Timeline
-const scr = ['home-fr', 'home-ar', 'senior', 'cardio', 'spo2', 'alz'];
+const SCREENS = ['home-fr', 'home-ar', 'asFrHome', 'asDjHome', 'asDjListen', 'asDjCard', 'asFrCard', 'diab', 'diabRes', 'alz', 'alz2', 'cardio', 'senior'];
+/** Écran affiché : [id, début, fin] (fondu de 0,3 s à l'entrée). L'ordre de la liste donne l'empilement. */
+const SHOTS = [
+  ['home-fr', 0, 5.95], ['home-ar', 3.0, 4.45, .25], ['asFrHome', 5.65, 6.75, .3], ['asDjHome', 6.65, 7.5, .1], ['asDjListen', 7.45, 9.5, .1],
+  ['asDjCard', 9.35, 12.75, .2], ['asFrCard', 12.65, 15.35, .12], ['diab', 15.0, 20.45, .35], ['diabRes', 20.2, 24.35, .25],
+  ['alz', 24.0, 25.85, .35], ['alz2', 25.55, 28.95, .25], ['cardio', 28.6, 33.35, .35], ['senior', 33.0, 40.85, .35], ['cardio', 40.55, 45, .3],
+];
 function renderFrame(t) {
   // Ouverture
-  const introOut = eio(prog(t, 2.3, 3.0));
+  const introOut = eio(prog(t, 1.35, 1.9));
   css('intro', { opacity: 1 - introOut, display: introOut >= 1 ? 'none' : 'flex' });
-  show('introLogo', fadeIn(t, .1, .8), 0, lerp(.82, 1, eback(prog(t, .1, 1.1))) * lerp(1, 1.08, introOut));
-  show('introTag', fadeIn(t, .9, .6), 24 * (1 - fadeIn(t, .9, .6)));
+  show('introLogo', fadeIn(t, 0, .6), 0, lerp(.85, 1, eback(prog(t, 0, .8))) * lerp(1, 1.08, introOut));
+  show('introTag', fadeIn(t, .45, .5), 24 * (1 - fadeIn(t, .45, .5)));
   // Fermeture
-  const outro = eio(prog(t, 41.9, 42.6));
+  const outro = eio(prog(t, 43.1, 43.6));
   css('outro', { opacity: outro, display: outro > 0 ? 'flex' : 'none' });
-  show('outroLogo', fadeIn(t, 42.2, .7), 0, lerp(.85, 1, eback(prog(t, 42.2, 43.1))));
-  show('outroTag', fadeIn(t, 42.7, .5), 20 * (1 - fadeIn(t, 42.7, .5)));
-  show('outroTeam', fadeIn(t, 43.1, .5), 30 * (1 - fadeIn(t, 43.1, .5)));
-  show('outroUrl', fadeIn(t, 43.5, .5), 20 * (1 - fadeIn(t, 43.5, .5)));
+  show('outroLogo', fadeIn(t, 43.3, .6), 0, lerp(.85, 1, eback(prog(t, 43.3, 44.1))));
+  show('outroTag', fadeIn(t, 43.65, .45), 20 * (1 - fadeIn(t, 43.65, .45)));
+  show('outroTeam', fadeIn(t, 43.95, .45), 30 * (1 - fadeIn(t, 43.95, .45)));
+  show('outroUrl', fadeIn(t, 44.2, .4), 20 * (1 - fadeIn(t, 44.2, .4)));
 
-  // Écran visible
-  const vis = { 'home-fr': 0, 'home-ar': 0, senior: 0, cardio: 0, spo2: 0, alz: 0 };
-  const toAr = eio(prog(t, 9.5, 10.0)), toFr = eio(prog(t, 12.95, 13.4));
-  const lang = Math.min(toAr, 1 - toFr);
-  if (t < 14.75) { vis['home-fr'] = 1; vis['home-ar'] = lang; }
-  const sen = eio(prog(t, 14.55, 15.0));
-  if (t >= 14.55 && t < 25.3) { vis.senior = sen; vis['home-fr'] = t < 15 ? 1 : 0; }
-  if (t >= 24.9 && t < 31.75) vis.cardio = eio(prog(t, 24.9, 25.35));
-  if (t >= 31.4 && t < 33.75) vis.spo2 = eio(prog(t, 31.4, 31.85));
-  if (t >= 33.4 && t < 37.0) vis.alz = eio(prog(t, 33.4, 33.85));
-  if (t >= 36.75) vis.cardio = eio(prog(t, 36.75, 37.15));
-  let z = 1;
-  for (const id of scr) { css(id, { opacity: vis[id], zIndex: vis[id] > 0 ? z++ : 0, display: vis[id] > 0 ? 'block' : 'none' }); }
-  css('home-ar', { zIndex: 2 });
-  css('cardio', { zIndex: t > 36 ? 9 : 4 });
+  // Écrans visibles
+  const vis = {};
+  SHOTS.forEach(([id, a, b, d = .3], i) => { if (t >= a && t < b) vis[id] = { op: eio(prog(t, a, a + d)), z: i + 1 }; });
+  for (const id of SCREENS) {
+    const v = vis[id];
+    css(id, v ? { display: 'block', opacity: v.op, zIndex: v.z } : { display: 'none' });
+  }
+  $('clock').textContent = t >= 33 && t < 40.55 ? '08:00' : '09:30';
 
-  // Accueil : tuiles qui apparaissent
+  // Accueil : tuiles et bouton flottant
   for (let i = 0; i < 6; i++) {
-    const k = fadeIn(t, 3.15 + i * .12, .45);
-    for (const l of ['fr', 'ar']) show(`tile-${l}-${i}`, k, 26 * (1 - k), lerp(.92, 1, eback(prog(t, 3.15 + i * .12, 3.75 + i * .12))));
+    const k = fadeIn(t, 1.75 + i * .1, .4);
+    for (const l of ['fr', 'ar']) show(`tile-${l}-${i}`, k, 26 * (1 - k), lerp(.92, 1, eback(prog(t, 1.75 + i * .1, 2.3 + i * .1))));
+  }
+  const fabK = fadeIn(t, 2.4, .45);
+  for (const l of ['fr', 'ar']) css(`fab-${l}`, { opacity: fabK, transform: `translateY(${30 * (1 - fabK)}px) scale(${1 - .06 * Math.max(0, 1 - Math.abs(t - 5.45) / .12)})` });
+
+  // Assistant : micro qui pulse, transcription, carte
+  const halo = (t * 1000 % 1200) / 1200;
+  css('asDjListen-halo', { opacity: .45 * (1 - halo), transform: `scale(${1 + .45 * halo})` });
+  $('asDjListen-partial').textContent = t >= 7.85 ? `«${typed(t, 7.85, 'نسيت الدوا', 12)}»` : '';
+  for (const id of ['asDjCard', 'asFrCard']) {
+    const a = id === 'asDjCard' ? 9.35 : 12.65, k = fadeIn(t, a, .35);
+    show(`${id}-card`, k, 24 * (1 - k), lerp(.96, 1, eback(prog(t, a, a + .4))));
   }
 
+  // Diabète : saisie, IMC, signes, score
+  const dScroll = eio(prog(t, 15.25, 15.75)) * 250 + eio(prog(t, 17.25, 17.85)) * 600 + eio(prog(t, 19.25, 19.75)) * 430;
+  css('diabScroll', { transform: `translateY(${-dScroll}px)` });
+  [['fPoids', '72', 15.85, 16.35], ['fTaille', '1,68', 16.4, 16.95]].forEach(([id, v, a, b]) => {
+    const focus = t >= a - .1 && t < b;
+    $(id).innerHTML = typed(t, a, v, 9) + (focus && Math.floor(t * 3) % 2 === 0 ? '<span class="caret"></span>' : '');
+    $(id).classList.toggle('focus', focus);
+  });
+  const imcOn = t >= 16.95;
+  $('fImc').textContent = imcOn ? 'IMC calculé : 25,5 kg/m²' : 'IMC calculé : —';
+  $('fImc').classList.toggle('on', imcOn);
+  css('fImc', { transform: `scale(${1 + .06 * Math.max(0, 1 - Math.abs(t - 17.05) / .25)})`, transformOrigin: '0 50%' });
+  $('s-URINES-o').classList.toggle('on', t >= 18.3);
+  $('s-SOIF-o').classList.toggle('on', t >= 18.9);
+  css('fdSubmit', { transform: `scale(${1 - .05 * Math.max(0, 1 - Math.abs(t - 19.95) / .12)})` });
+  const alertK = fadeIn(t, 20.35, .4);
+  show('fdAlert', alertK, 24 * (1 - alertK), lerp(.95, 1, eback(prog(t, 20.35, 20.8))));
+  show('fdScore', fadeIn(t, 20.6, .4), 24 * (1 - fadeIn(t, 20.6, .4)));
+
+  // Alzheimer
+  const noK = t >= 25.05;
+  css('alzNo', { background: noK ? '#246BFD' : '#fff', color: noK ? '#fff' : '#112950', borderColor: noK ? '#246BFD' : '#C9D6E8' });
+  for (let i = 0; i < 4; i++) { const k = fadeIn(t, 25.8 + i * .18, .35); show('w' + i, k, 18 * (1 - k), lerp(.85, 1, eback(prog(t, 25.8 + i * .18, 26.25 + i * .18)))); }
+
+  // Tension : guide (défilement doux), puis feuille de partage du PDF
+  const toPdf = t >= 40.55;
+  const guide = eio(prog(t, 31.0, 32.4)) * 300;
+  css('cardioScroll', { transform: `translateY(${-(toPdf ? 560 : guide)}px)` });
+  const sheetK = eout(prog(t, 40.75, 41.15));
+  css('sheet', { transform: `translateY(${(1 - sheetK) * 420}px)`, display: toPdf ? 'block' : 'none' });
+
   // Senior : notification, voix, « C'est fait »
-  const notifIn = eout(prog(t, 15.3, 15.75)), notifOut = eio(prog(t, 16.75, 17.1));
+  const notifIn = eout(prog(t, 33.55, 34.0)), notifOut = eio(prog(t, 34.45, 34.8));
   show('notif', notifIn * (1 - notifOut), lerp(-140, 0, notifIn) - 60 * notifOut);
   for (let i = 0; i < 34; i++) {
-    const speaking = t > 17.2 && t < 20.6 ? 1 : 0.15;
+    const speaking = t > 34.7 && t < 37.3 ? 1 : 0.15;
     const h = 6 + speaking * 34 * Math.abs(Math.sin(t * 7.3 + i * .9) * Math.cos(t * 3.1 + i * .37));
     css('bar' + i, { height: h + 'px', opacity: .35 + .65 * speaking });
   }
-  const doneK = prog(t, 20.75, 20.95);
+  const doneK = prog(t, 37.55, 37.75);
   css('doneBtn', { background: doneK > 0 ? '#10B981' : '#246BFD', transform: `scale(${1 - .05 * Math.sin(Math.PI * doneK)})`, boxShadow: doneK > 0 ? '0 10px 24px rgba(16,185,129,.4)' : '' });
   $('doneTxt').textContent = doneK > 0 ? 'C’est noté. Merci !' : 'C’est fait';
   css('doneTxt', { fontSize: doneK > 0 ? '27px' : '34px' });
 
   // Aidant
-  const p2in = eout(prog(t, 21.1, 21.8)), p2out = eio(prog(t, 24.55, 25.05));
+  const p2in = eout(prog(t, 37.85, 38.45)), p2out = eio(prog(t, 40.3, 40.75));
   css('phone2', { opacity: p2in * (1 - p2out), transform: `translate(${lerp(260, 0, p2in) + 200 * p2out}px, 0) scale(.62)` });
-  const conf = t >= 22.35;
-  css('aDot', { background: conf ? '#167A45' : '#6B7280', transform: `scale(${1 + .6 * Math.max(0, 1 - Math.abs(t - 22.45) / .3)})` });
+  const conf = t >= 38.65;
+  css('aDot', { background: conf ? '#167A45' : '#6B7280', transform: `scale(${1 + .6 * Math.max(0, 1 - Math.abs(t - 38.75) / .3)})` });
   $('aStatus').textContent = conf ? 'Confirmé · 08:02' : 'En attente';
   css('aStatus', { color: conf ? '#167A45' : '#55657E', fontWeight: conf ? 800 : 400 });
-  show('aToast', fadeIn(t, 22.5, .4), 20 * (1 - fadeIn(t, 22.5, .4)));
+  show('aToast', fadeIn(t, 38.8, .4), 20 * (1 - fadeIn(t, 38.8, .4)));
 
-  // Tension : défilement, saisie, alerte, PDF
-  const guideScroll = 0;
-  const toMeasure = eio(prog(t, 27.4, 28.2)) * 640;
-  const toAlert = eio(prog(t, 29.75, 30.3)) * 210;
-  const toPdf = t >= 36.75 ? 1400 : 0;
-  css('cardioScroll', { transform: `translateY(${-(t >= 36.75 ? toPdf : guideScroll + toMeasure + toAlert)}px)` });
-  const fields = [['fTas', '185', 28.25], ['fTad', '100', 28.75], ['fPul', '80', 29.1]];
-  fields.forEach(([id, v, a], i) => {
-    const nxt = fields[i + 1] ? fields[i + 1][2] : 29.45;
-    const focus = t >= a - .1 && t < nxt;
-    $(id).innerHTML = typed(t, a, v, 10) + (focus && Math.floor(t * 3) % 2 === 0 ? '<span class="caret"></span>' : '');
-    $(id).classList.toggle('focus', focus);
-  });
-  const alertK = fadeIn(t, 29.6, .35);
-  show('bpAlert', alertK, 20 * (1 - alertK), lerp(.95, 1, eback(prog(t, 29.6, 30.0))));
-  css('bpAlert', { display: t >= 29.6 ? 'block' : 'none' });
-  css('bpSave', { transform: `scale(${1 - .05 * Math.max(0, 1 - Math.abs(t - 29.45) / .12)})` });
-  css('bpPdfBtn', { background: t > 37.85 && t < 38.1 ? '#EBF2FF' : '#fff' });
-  const sheetK = eout(prog(t, 38.05, 38.5));
-  css('sheet', { transform: `translateY(${(1 - sheetK) * 420}px)`, display: t > 38 ? 'block' : 'none' });
-
-  // SpO2 / Alzheimer
-  const noK = t > 34.35;
-  css('alzNo', { background: noK ? '#246BFD' : '#fff', color: noK ? '#fff' : '#246BFD' });
-  show('alzW', fadeIn(t, 34.6, .4), 20 * (1 - fadeIn(t, 34.6, .4)));
-  show('alzR', fadeIn(t, 35.7, .4), 20 * (1 - fadeIn(t, 35.7, .4)), lerp(.95, 1, eback(prog(t, 35.7, 36.1))));
+  // Onde vocale (hors téléphone)
+  let vOp = 0, vCur = null;
+  for (const v of VOICE) { const k = window_(t, v[0], v[1], .3); if (k > vOp) { vOp = k; vCur = v; } }
+  if (vCur) {
+    $('vwLab').textContent = vCur[2];
+    $('vwIc').innerHTML = ic(vCur[3], 32, '#fff');
+    css('vwIc', { background: vCur[3] === 'mic' ? '#C62828' : '#246BFD' });
+    for (let i = 0; i < 28; i++) {
+      const h = 8 + 52 * Math.abs(Math.sin(t * 8.1 + i * .73) * Math.cos(t * 2.7 + i * .41));
+      css('vb' + i, { height: h + 'px', background: vCur[3] === 'mic' ? '#C62828' : '#246BFD' });
+    }
+  }
+  css('vw', { opacity: vOp, transform: `translateY(${18 * (1 - vOp)}px)` });
 
   // Caméra (zooms)
   let s = 1, fx = 196, fy = 416, dx = 0;
-  const zoomTo = (a, b, sc, x, y, d = .7) => {
+  const zoomTo = (a, b, sc, x, y, d = .6) => {
     const k = Math.min(eio(prog(t, a, a + d)), 1 - eio(prog(t, b - d, b)));
     if (k > 0) { s = lerp(s, sc, k); fx = lerp(fx, x, k); fy = lerp(fy, y, k); }
   };
-  zoomTo(3.4, 8.0, 1.04, 196, 416, 2);
-  zoomTo(8.3, 12.2, 1.32, 196, 260, .8);
-  zoomTo(15.6, 18.6, 1.18, 196, 330, .7);
-  zoomTo(19.6, 22.2, 1.22, 196, 640, .7);
-  zoomTo(25.5, 27.6, 1.55, 196, 260, .7);
-  zoomTo(29.65, 31.6, 1.22, 196, 470, .6);
-  zoomTo(31.9, 33.6, 1.55, 196, 260, .6);
-  zoomTo(35.6, 37.0, 1.25, 196, 560, .5);
+  zoomTo(2.6, 5.2, 1.04, 196, 416, 1.2);
+  zoomTo(6.0, 9.45, 1.12, 196, 470, .6);
+  zoomTo(9.6, 14.8, 1.2, 196, 420, .6);
+  zoomTo(15.9, 17.3, 1.14, 196, 440, .5);
+  zoomTo(17.9, 19.3, 1.18, 196, 430, .45);
+  zoomTo(20.5, 23.9, 1.16, 196, 360, .6);
+  zoomTo(24.3, 28.4, 1.18, 196, 400, .6);
+  zoomTo(29.0, 30.9, 1.55, 196, 260, .6);
+  zoomTo(33.6, 36.9, 1.18, 196, 330, .6);
+  zoomTo(37.1, 38.6, 1.22, 196, 640, .5);
   // Phase PDF : le téléphone se décale à gauche pour laisser la place au rapport.
-  const pdfK = eio(prog(t, 38.7, 39.4));
+  const pdfK = eio(prog(t, 40.65, 41.3));
   dx = lerp(0, -170, pdfK);
   s = lerp(s, .92, pdfK);
-  // Phone entry
-  const enter = eout(prog(t, 2.4, 3.2));
+  const enter = eout(prog(t, 1.4, 2.2));
   const { tx, ty } = camera(s, fx, fy, dx);
   css('phone', { transform: `translate(${tx - PHONE.x}px, ${ty - PHONE.y + (1 - enter) * 260}px) scale(${s})`, opacity: enter });
 
-  const pdfIn = eout(prog(t, 38.8, 39.5));
-  css('pdf', { opacity: pdfIn * (1 - outro), transform: `translateY(${(1 - pdfIn) * 80}px) scale(${lerp(.9, 1, pdfIn) * lerp(1, 1.025, prog(t, 39.5, 41.9))})` });
-  show('fnchip', fadeIn(t, 39.6, .4) * (1 - outro), 16 * (1 - fadeIn(t, 39.6, .4)));
+  const pdfIn = eout(prog(t, 40.9, 41.6));
+  css('pdf', { opacity: pdfIn * (1 - outro), transform: `translateY(${(1 - pdfIn) * 80}px) scale(${lerp(.9, 1, pdfIn) * lerp(1, 1.025, prog(t, 41.6, 43.1))})` });
+  show('fnchip', fadeIn(t, 41.5, .4) * (1 - outro), 16 * (1 - fadeIn(t, 41.5, .4)));
   caption(t, CAPTIONS);
 
-  // Curseur
-  const keys = [
-    [8.4, [196, 520], 0], [9.4, 'pillar-fr', 1], [11.9, [250, 360], 0], [12.9, 'pillfr-ar', 1],
-    [14.3, 'tile-fr-0', 1], [16.7, 'notif', 1], [20.8, 'doneBtn', 1], [21.4, [300, 760], 0],
+  // Curseur : [temps, cible, appui]
+  const paths = [
+    [2.5, 5.95, [[2.5, [250, 620], 0], [3.0, 'pillar-fr', 1], [4.45, 'pillfr-ar', 1], [5.45, 'fab-fr', 1], [5.95, [300, 640], 0]]],
+    [6.0, 9.7, [[6.0, [250, 520], 0], [6.65, 'asFrHome-dj', 1], [7.45, 'asDjHome-mic', 1], [9.3, 'asDjListen-mic', 1], [9.7, [300, 640], 0]]],
+    [12.0, 13.1, [[12.0, [250, 400], 0], [12.65, 'asDjCard-fr', 1], [13.1, [300, 300], 0]]],
+    [15.6, 20.2, [[15.6, [300, 700], 0], [18.3, 's-URINES-o', 1], [18.9, 's-SOIF-o', 1], [19.95, 'fdSubmit', 1], [20.2, [300, 700], 0]]],
+    [24.4, 25.4, [[24.4, [300, 720], 0], [25.05, 'alzNo', 1], [25.4, [330, 760], 0]]],
+    [33.9, 34.7, [[33.9, [300, 400], 0], [34.4, 'notif', 1], [34.7, [300, 500], 0]]],
+    [36.9, 37.95, [[36.9, [300, 760], 0], [37.55, 'doneBtn', 1], [37.95, [300, 760], 0]]],
   ];
-  const keys2 = [[28.9, [300, 700], 0], [29.45, 'bpSave', 1], [30.1, [320, 760], 0]];
-  const keys3 = [[33.9, [300, 700], 0], [34.35, 'alzNo', 1], [35.0, [330, 760], 0]];
-  const keys4 = [[37.1, [300, 760], 0], [37.85, 'bpPdfBtn', 1], [38.5, [330, 780], 0]];
   let cur = { pos: null }, op = 0;
-  if (t >= 8.4 && t < 21.6) { cur = cursorPath(t, keys); op = window_(t, 8.4, 21.6, .3); }
-  else if (t >= 28.9 && t < 30.3) { cur = cursorPath(t, keys2); op = window_(t, 28.9, 30.3, .25); }
-  else if (t >= 33.9 && t < 35.2) { cur = cursorPath(t, keys3); op = window_(t, 33.9, 35.2, .25); }
-  else if (t >= 37.1 && t < 38.6) { cur = cursorPath(t, keys4); op = window_(t, 37.1, 38.6, .25); }
+  for (const [a, b, keys] of paths) if (t >= a && t < b) { cur = cursorPath(t, keys); op = window_(t, a, b, .25); }
   if (cur.pos) cursorAt(cur.pos[0], cur.pos[1], op, cur.press, cur.rip); else { css('cursor', { opacity: 0 }); css('ripple', { opacity: 0 }); }
 }
 
@@ -585,7 +751,7 @@ function renderFrame(t) {
 function renderStill(t) {
   renderFrame(t);
   document.body.classList.add('still');
-  for (const id of ['caption', 'pdf', 'fnchip', 'cursor', 'ripple', 'intro', 'outro', 'phone2']) css(id, { display: 'none' });
+  for (const id of ['caption', 'pdf', 'fnchip', 'cursor', 'ripple', 'intro', 'outro', 'phone2', 'vw']) css(id, { display: 'none' });
   document.querySelectorAll('.blob').forEach((b) => (b.style.display = 'none'));
   css('phone', { transform: 'none', opacity: 1 });
 }

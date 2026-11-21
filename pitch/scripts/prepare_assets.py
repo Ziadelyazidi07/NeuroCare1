@@ -31,6 +31,7 @@ DECK_ICONS = {
     'storefront': '#10B981', 'business': '#246BFD', 'home': '#10B981', 'school': '#246BFD', 'heart-circle': '#EF4444',
     'play-circle': '#246BFD', 'server': '#112950', 'phone-portrait': '#246BFD', 'flask': '#7C3AED',
     'git-branch': '#112950', 'lock-closed': '#112950', 'sparkles': '#F59E0B', 'hand-left': '#10B981',
+    'chatbubble-ellipses': '#246BFD', 'volume-high': '#246BFD',
 }
 
 

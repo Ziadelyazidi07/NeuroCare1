@@ -29,8 +29,8 @@ FPS, DURATION, W, H = 60, 45, 1920, 1080
 
 # Captures pour le deck : nom -> instant de la timeline.
 STILLS = {
-    'home-fr': 7.5, 'home-ar': 11.0, 'senior': 19.0, 'senior-done': 21.5,
-    'cardio-guide': 26.8, 'cardio-alert': 31.0, 'spo2-guide': 33.0, 'alz-result': 36.6, 'pdf-sheet': 38.7,
+    'home-fr': 5.3, 'home-ar': 4.2, 'assistant-dj': 12.0, 'assistant-fr': 14.6, 'diab-alert': 23.0,
+    'alz-question': 25.3, 'alz-words': 27.8, 'cardio-guide': 30.2, 'senior-done': 38.4, 'pdf-sheet': 41.8,
 }
 
 
@@ -73,7 +73,7 @@ def stills():
             page.wait_for_function("document.fonts.check('20px Ionicons')")
             print(target / f'{name}.png')
         # Page du rapport PDF, sans la mise en scène.
-        page.evaluate("renderFrame(41.5); document.getElementById('pdf').style.transform = 'none'")
+        page.evaluate("renderFrame(42.5); document.getElementById('pdf').style.transform = 'none'")
         page.locator('#pdf').screenshot(path=str(target / 'pdf-report.png'))
         browser.close()
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     ap.add_argument('--stills', action='store_true')
     args = ap.parse_args()
     if args.preview is not None:
-        preview(args.preview or [1, 5, 9, 11, 16, 19.5, 22.8, 26.5, 29, 30.8, 32.8, 36.5, 38.6, 40.5, 44])
+        preview(args.preview or [1, 2.8, 3.6, 5.45, 6.3, 7.0, 8.6, 10.5, 13.5, 16.6, 18.5, 19.95, 22, 25.2, 27, 30, 32.5, 34.2, 36, 38.9, 42, 44.5])
     elif args.stills:
         stills()
     else:

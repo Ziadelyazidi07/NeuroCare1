@@ -1,4 +1,4 @@
-"""Génère pitch/NeuroCare_Pitch_Hackathon.pptx : pitch de 5 minutes, 9 slides chronométrées.
+"""Génère pitch/NeuroCare_Pitch_Hackathon.pptx : pitch de 5 minutes, 10 slides chronométrées.
 
 - python-pptx pour les formes, images, vidéo et notes présentateur ;
 - XML OpenXML injecté pour les ombres douces, les transitions (fondu / poussée) et les animations
@@ -273,44 +273,91 @@ def animate(slide, shapes, step_ms=280, dur_ms=550, start_ms=150, effects=None):
 
 
 # ------------------------------------------------------------------ slides
+LRM = '‎'  # garde l'ordre « FR · العربية · الدارجة » dans un paragraphe de gauche à droite
+
+
 def slide_1_hook():
+    """Page de garde moderne : slogan, sous-titre, 2 atouts, logo officiel, signature de l'équipe."""
     s = prs.slides.add_slide(BLANK)
     background(s, NAVY)
-    glow = circle(s, 7.4, -1.6, 7.6, '17366A')
-    glow.name = 'Halo'
-    k = text(s, 0.75, 0.75, 6.5, 0.4, 'OUJDA, 8 H 00', size=14, colour='7FB0FF', bold=True, name='Lieu')
-    story = text(s, 0.75, 1.2, 6.6, 2.6, [
-        [('Hajja Zahra, 74 ans, seule face à ', {}), ('6 boîtes de médicaments', {'colour': 'FFFFFF', 'bold': True}), ('.', {})],
-        [('Sa tension ? Personne ne l’a mesurée depuis des mois.', {})],
-        [('À Casablanca, sa fille appelle. ', {}), ('Pas de réponse.', {'colour': 'FFB4B4', 'bold': True})],
-    ], size=24, colour='C9D6E8', spacing=12, name='Histoire')
-    card = box(s, 8.35, 1.05, 3.95, 3.55, fill=WHITE, radius=0.12, name='CarteLogo')
-    shadow(card, blur=30, dist=8, alpha=25)
-    logo = image(s, A / 'neurocare-logo-transparent.png', 8.75, 1.35, w=3.15, name='LogoNeuroCare')
-    slogan = text(s, 0.75, 4.35, 7.4, 1.4, [[('L’alliance de la ', {}), ('voix familiale', {'colour': '7FB0FF'})],
-                                             [('et du ', {}), ('pré-dépistage intelligent', {'colour': '6EE7B7'})]], size=32, colour=WHITE, bold=True, name='Slogan')
-    sig_bg = box(s, 0.75, 6.05, 8.9, 0.62, fill='1B3A66', radius=0.5, soft_shadow=False)
-    sig_tx = text(s, 0.95, 6.05, 8.6, 0.62, [[('Équipe NeuroCare  ·  ', {'bold': True, 'colour': WHITE}),
-                                               ('Ingénierie — EHEIM Oujda  ×  Médecine Générale — 6ᵉ année', {'colour': 'C9D6E8'})]],
-                  size=16, anchor=MSO_ANCHOR.MIDDLE)
-    sig = group(s, [sig_bg, sig_tx], 'Signature')
+    dot = circle(s, 0.75, 0.66, 0.13, EMERALD)
+    kick_t = text(s, 1.02, 0.55, 7.5, 0.36, 'SANTÉ SENIOR  •  PRÉ-DÉPISTAGE  •  OBSERVANCE', size=14, colour='93C5FD', bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    kick = group(s, [dot, kick_t], 'Surtitre')
+    lang = text(s, 10.3, 0.55, 2.28, 0.36, [[('FR', {'bold': True, 'colour': WHITE}), ('   |   ', {'colour': '5B7CB0'}), ('العربية', {'colour': 'E2E8F0'})]],
+                size=15, align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, name='Langues')
+    bar = box(s, 0.75, 1.83, 0.67, 0.06, fill=BLUE, radius=0.5, soft_shadow=False, name='Trait')
+    slogan = text(s, 0.75, 2.08, 7.3, 2.45, [[('L’alliance de la ', {}), ('voix familiale', {'colour': '7FB0FF'})],
+                                             [('et du ', {}), ('pré-dépistage intelligent', {'colour': '6EE7B7'})]], size=40, colour=WHITE, bold=True, name='Slogan')
+    sub = text(s, 0.75, 4.55, 7.0, 0.85, 'Une plateforme complète et bilingue pour sécuriser le quotidien des seniors à domicile.',
+               size=20, colour='C9D6E8', name='SousTitre')
+    feats = []
+    for i, (ic, label, tint) in enumerate([('mic-white', 'Rappels vocaux proches', '1F4A86'), ('chatbubble-ellipses-white', '5 bilans + Assistant vocal', '0F6E56')]):
+        x = 0.75 + i * 3.35
+        b = icon_badge(s, ic, x, 5.52, 0.5, tint, scale=.58)
+        t = text(s, x + 0.65, 5.52, 2.65, 0.5, label, size=16, colour=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+        feats.append(group(s, [b, t], f'Atout{i + 1}'))
+    card = box(s, 8.1, 1.45, 4.48, 4.35, fill='F5F8FC', radius=0.08, name='CarteLogo')
+    shadow(card, blur=30, dist=8, alpha=30)
+    logo_w = 3.5
+    logo = image(s, A / 'neurocare-logo-transparent.png', 8.1 + (4.48 - logo_w) / 2, 1.45 + (4.35 - logo_w * 818 / 984) / 2, w=logo_w, name='LogoNeuroCare')
+    line = box(s, 0.75, 6.44, 11.83, 0.015, fill='1E3A6E', radius=0, soft_shadow=False)
+    team = text(s, 0.75, 6.62, 3.5, 0.45, 'Équipe NeuroCare', size=17, colour=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    who = text(s, 4.3, 6.62, 8.28, 0.45, '3 élèves-ingénieurs (5ᵉ année, EHEIM Oujda)  ×  2 étudiantes en Médecine Générale (6ᵉ année)',
+               size=14, colour='93C5FD', align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
+    sig = group(s, [line, team, who], 'Signature')
     transition(s, 'fade', 'slow')
-    animate(s, [k, story, card, logo, slogan, sig], step_ms=420)
-    notes(s, """[0:00 – 0:30] — HOOK ÉMOTIONNEL (30 s)
+    animate(s, [kick, lang, bar, slogan, sub, *feats, card, logo, sig], step_ms=260)
+    notes(s, """[0:00 – 0:25] — HOOK ÉMOTIONNEL (25 s)
 
 (Silence d'une seconde, regarder le jury.)
 « Oujda, 8 heures du matin. Hajja Zahra a 74 ans. Elle vit seule, face à six boîtes de médicaments.
 Sa tension ? Personne ne l'a mesurée depuis des mois.
 À Casablanca, sa fille l'appelle… pas de réponse. Elle ne sait pas si sa mère a pris son traitement, ni si elle va bien.
 
-Cette scène, chacun de nous la connaît dans sa propre famille.
-
 Nous sommes l'Équipe NeuroCare : trois élèves-ingénieurs en 5e année Informatique et Gestion à l'EHEIM Oujda,
 et deux étudiantes en 6e année de Médecine Générale.
-Et voici NeuroCare : l'alliance de la voix familiale et du pré-dépistage intelligent. »
+Et voici NeuroCare : l'alliance de la voix familiale et du pré-dépistage intelligent — une plateforme complète
+et bilingue, avec des rappels vocaux par la voix d'un proche, cinq bilans et un assistant de santé vocal. »
 
-Timing : histoire 0:00-0:18 · présentation équipe 0:18-0:25 · slogan 0:25-0:30.
+Timing : histoire 0:00-0:14 · présentation équipe 0:14-0:19 · slogan 0:19-0:25.
 (Hajja Zahra est un personnage illustratif.)""")
+
+
+PLAN = [
+    ('alarm', 'Le Problème', 'Une crise silencieuse, à domicile'),
+    ('grid', 'La Solution NeuroCare', 'Une seule app — Socle + 5 pôles + Assistant vocal'),
+    ('play-circle', 'Démo Live (45 s)', 'Parcours complet sur smartphone'),
+    ('heart-circle', 'Notre Différence', 'Pensé pour un senior, pas pour un ingénieur'),
+    ('server', 'Architecture Technique', 'Mobile hors-ligne + Microservices Spring Boot'),
+    ('shield-checkmark', 'Rigueur Clinique & Éthique', 'La rigueur d’un médecin, la précision d’un ingénieur'),
+    ('storefront', 'Impact Social & Modèle', 'Déployable dès demain (B2C & B2B2C)'),
+    ('people', 'L’Équipe NeuroCare', 'Ingénierie EHEIM Oujda × Médecine Générale'),
+]
+
+
+def slide_plan():
+    s = prs.slides.add_slide(BLANK)
+    background(s, BG)
+    t = title(s, 'Ce que nous allons vous présenter', 'Plan de la présentation')
+    cards = []
+    for i, (ic, head, sub) in enumerate(PLAN):
+        x = 0.6 + (i % 4) * 3.09
+        y = 1.75 + (i // 4) * 2.55
+        c = box(s, x, y, 2.9, 2.3)
+        n = text(s, x + 0.28, y + 0.22, 1.4, 0.7, f'{i + 1:02d}', size=34, colour=BLUE, bold=True)
+        b = icon_badge(s, ic, x + 2.9 - 0.9, y + 0.27, 0.62, SOFTBLUE)
+        h = text(s, x + 0.28, y + 0.9, 2.45, 0.66, head, size=17, colour=NAVY, bold=True, anchor=MSO_ANCHOR.BOTTOM)
+        d = text(s, x + 0.28, y + 1.62, 2.45, 0.62, sub, size=13, colour=MUTED)
+        cards.append(group(s, [c, n, b, h, d], f'Etape{i + 1:02d}'))
+    footer_logo(s)
+    transition(s, 'push')
+    animate(s, [t, *cards], step_ms=160)
+    notes(s, """[0:25 – 0:35] — PLAN (10 s)
+
+« En cinq minutes : le problème, notre solution, une démo de 45 secondes, ce qui nous rend différents,
+l'architecture, la rigueur clinique, l'impact, et l'équipe. »
+
+(Ne pas lire les 8 cartes : les laisser apparaître, une phrase suffit.)""")
 
 
 def slide_2_problem():
@@ -349,7 +396,7 @@ def slide_2_problem():
     footer_logo(s)
     transition(s, 'push')
     animate(s, [t, *cards, *rows, src], step_ms=230)
-    notes(s, """[0:30 – 1:10] — LE PROBLÈME (40 s)
+    notes(s, """[0:35 – 1:10] — LE PROBLÈME (35 s)
 
 « Hajja Zahra n'est pas un cas isolé.
 Le Maroc compte aujourd'hui 5 millions de personnes de 60 ans et plus — 13,8 % de la population (recensement 2024).
@@ -361,7 +408,7 @@ Sur le terrain, trois douleurs :
 2. une barrière technologique et linguistique : les applications de santé sont complexes, en anglais ou en français ;
 3. des pathologies silencieuses — HTA, diabète, hypoxie, déclin cognitif — repérées beaucoup trop tard. »
 
-Timing : chiffres 0:30-0:50 · trois douleurs 0:50-1:10.
+Timing : chiffres 0:35-0:52 · trois douleurs 0:52-1:10.
 Sources (en cas de question) : HCP RGPH 2024 ; enquête STEPS 2017-2018 (Ministère de la Santé / OMS) ;
 OMS (diagnostic 43 %, traitement 29 %, contrôle 10 % des hypertendus 30-79 ans) ; OMS 2003, observance ≈ 50 %.""")
 
@@ -369,39 +416,45 @@ OMS (diagnostic 43 %, traitement 29 %, contrôle 10 % des hypertendus 30-79 ans)
 MODULES = [
     ('pulse', 'Saturation SpO₂', 'Seuils standard / BPCO', '0EA5E9', 'E0F2FE'),
     ('leaf', 'Santé mentale', 'Mini-GDS → GDS-15', '7C3AED', 'F3E8FF'),
-    ('water', 'Diabète', 'FINDRISC /26', 'F59E0B', 'FEF3C7'),
+    ('water', 'Diabète', 'FINDRISC /26 + 7 signes d’alerte.', 'F59E0B', 'FEF3C7'),
     ('heart', 'Tension (HTA)', '3 j × 18 mesures', 'EF4444', 'FEE2E2'),
-    ('extension-puzzle', 'Alzheimer & Mémoire', '4 A + jeu des 4 mots', '10B981', 'D1FAE5'),
+    ('extension-puzzle', 'Alzheimer & Mémoire', 'Repérage direct des 4 A & prévention.', '10B981', 'D1FAE5'),
 ]
 
 
 def slide_3_solution():
     s = prs.slides.add_slide(BLANK)
     background(s, BG)
-    t = title(s, 'Une seule app. Un socle + 5 pôles cliniques', 'La solution NeuroCare')
+    t = title(s, 'Une seule app. Socle + 5 pôles + Assistant vocal', 'La solution NeuroCare')
     phone = image(s, SCREENS / 'home-fr.png', 0.75, 1.65, h=5.45, name='TelephoneAccueil')
-    shadow_pic = phone
-    socle_bg = box(s, 4.0, 1.75, 8.7, 1.75, fill=BLUE, name=None)
-    socle_ic = icon_badge(s, 'mic-white', 4.3, 2.15, 0.95, '3D7EFF')
-    socle_h = text(s, 5.5, 1.98, 7.0, 0.5, 'Socle — Rappels & Suivi vocal', size=24, colour=WHITE, bold=True)
-    socle_d = text(s, 5.5, 2.5, 7.0, 0.9, 'Aidant ↔ Senior : rappel lu avec la voix d’un proche, un seul bouton « C’est fait », tableau de bord en temps réel.',
-                   size=15, colour='E3EDFF')
+    socle_bg = box(s, 4.0, 1.65, 8.7, 1.4, fill=BLUE)
+    socle_ic = icon_badge(s, 'mic-white', 4.28, 1.9, 0.9, '3D7EFF')
+    socle_h = text(s, 5.45, 1.8, 7.0, 0.45, 'Socle — Rappels & Suivi vocal', size=22, colour=WHITE, bold=True)
+    socle_d = text(s, 5.45, 2.27, 7.05, 0.75, 'Aidant ↔ Senior : rappel lu avec la voix d’un proche, un seul bouton « C’est fait », tableau de bord en temps réel.',
+                   size=14, colour='E3EDFF')
     socle = group(s, [socle_bg, socle_ic, socle_h, socle_d], 'Socle')
     mods = []
     for i, (ic, name, sub, col, tint) in enumerate(MODULES):
         x = 4.0 + i * 1.77
-        c = box(s, x, 3.8, 1.6, 2.05)
-        b = icon_badge(s, ic, x + 0.45, 4.02, 0.7, tint)
-        n = text(s, x + 0.1, 4.85, 1.4, 0.55, name, size=13.5, colour=NAVY, bold=True, align=PP_ALIGN.CENTER)
-        d = text(s, x + 0.1, 5.38, 1.4, 0.4, sub, size=11, colour=MUTED, align=PP_ALIGN.CENTER)
+        c = box(s, x, 3.22, 1.6, 1.98)
+        b = icon_badge(s, ic, x + 0.5, 3.36, 0.6, tint)
+        n = text(s, x + 0.08, 4.02, 1.44, 0.5, name, size=13, colour=NAVY, bold=True, align=PP_ALIGN.CENTER)
+        d = text(s, x + 0.08, 4.5, 1.44, 0.65, sub, size=11, colour=MUTED, align=PP_ALIGN.CENTER)
         mods.append(group(s, [c, b, n, d], f'Pole{i + 1}'))
-    band_bg = box(s, 4.0, 6.15, 8.7, 0.62, fill=SOFTGREEN, radius=0.5, soft_shadow=False)
-    band_ic = image(s, ICONS / 'cloud-offline.png', 4.22, 6.25, 0.42, 0.42)
-    band_tx = text(s, 4.8, 6.15, 7.8, 0.62, [[('5 pôles 100 % autonomes : ', {'bold': True, 'colour': '065F46'}),
-                                              ('sans compte, sans réseau, données gardées sur le téléphone', {'colour': '065F46'})]], size=15, anchor=MSO_ANCHOR.MIDDLE)
-    band = group(s, [band_bg, band_ic, band_tx], 'HorsLigne')
+    # Nouveauté : l'Assistant Santé vocal trilingue, accessible dès l'accueil.
+    as_bg = box(s, 4.0, 5.38, 8.7, 1.62, fill=NAVY)
+    as_ic = icon_badge(s, 'chatbubble-ellipses-white', 4.28, 5.62, 0.9, BLUE)
+    as_tag = chip(s, 5.45, 5.52, 'NOUVEAU', fill='0F6E56', colour='D1FAE5', size=11, w=1.05)
+    as_h = text(s, 6.62, 5.5, 5.95, 0.45, [[('Assistant Santé vocal trilingue  ', {}), (f'FR · العربية{LRM} · الدارجة{LRM}', {'colour': '7FB0FF'})]],
+                size=18, colour=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    as_d = text(s, 5.45, 6.02, 7.1, 0.4, 'Accessible dès l’accueil (bouton flottant) : on parle, il répond et lit sa réponse à voix haute.', size=13.5, colour='C9D6E8')
+    pills, x = [], 5.45
+    for lab, w in [('100 % hors ligne', 1.7), ('Écran unique, sans scroll', 2.35), ('Sources OMS · HAS · ESC · FID', 2.75)]:
+        pills.append(chip(s, x, 6.47, lab, fill='1F4A86', colour='6EE7B7', size=12, w=w))
+        x += w + 0.12
+    assistant = group(s, [as_bg, as_ic, as_tag, as_h, as_d, *pills], 'Assistant')
     transition(s, 'fade')
-    animate(s, [t, phone, socle, *mods, band], step_ms=200)
+    animate(s, [t, phone, socle, *mods, assistant], step_ms=200)
     notes(s, """[1:10 – 1:55] — LA SOLUTION (45 s)
 
 « NeuroCare, c'est une seule application, pensée pour l'ergonomie d'un senior marocain.
@@ -410,11 +463,15 @@ Au centre, un socle d'observance vocale qui relie l'aidant et le senior : à l'h
 lit le rappel avec la VOIX d'un proche — sa fille, son fils. Le senior n'a qu'un seul gros bouton : « C'est fait ».
 Et l'aidant le voit en temps réel sur son téléphone.
 
-Autour de ce socle, cinq pôles cliniques de pré-dépistage : saturation en oxygène, santé mentale, diabète,
-tension artérielle et mémoire. Ces cinq pôles sont 100 % autonomes : pas de compte, pas de réseau,
-les données restent sur le téléphone. Ils fonctionnent même dans un douar sans 4G. »
+Autour de ce socle, cinq pôles cliniques de pré-dépistage : saturation en oxygène, santé mentale, diabète —
+le FINDRISC sur 26 plus 7 signes d'alerte —, tension artérielle, et mémoire avec un repérage direct des 4 A.
+Ces pôles sont 100 % autonomes : pas de compte, pas de réseau, les données restent sur le téléphone.
 
-Timing : socle 1:10-1:35 · 5 pôles + hors ligne 1:35-1:55.""")
+Et c'est nouveau : un Assistant Santé vocal, accessible dès l'accueil, en français, en arabe et en darija.
+On lui parle, il répond sur un seul écran sans défilement, avec ses sources — OMS, HAS, ESC, FID —
+et il lit sa réponse à voix haute. Lui aussi fonctionne sans réseau. Il informe et oriente, il ne diagnostique jamais. »
+
+Timing : socle 1:10-1:28 · 5 pôles 1:28-1:40 · assistant 1:40-1:55.""")
 
 
 def slide_4_demo():
@@ -424,16 +481,16 @@ def slide_4_demo():
     frame = box(s, 0.6, 1.65, 8.25, 4.64 + 0.0, fill=NAVY, radius=0.04, name='CadreVideo')
     shadow(frame, blur=30, dist=8, alpha=22)
     poster = PITCH / 'build' / 'poster.png'
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-ss', '11.2', '-i', str(VIDEO), '-frames:v', '1', str(poster)], check=True)
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-ss', '13.9', '-i', str(VIDEO), '-frames:v', '1', str(poster)], check=True)
     movie = s.shapes.add_movie(str(VIDEO), Inches(0.68), Inches(1.73), Inches(8.09), Inches(4.48), poster_frame_image=str(poster), mime_type='video/mp4')
     movie.name = 'VideoDemo'
     hint = text(s, 0.6, 6.42, 8.25, 0.4, 'Cliquer sur la vidéo pour la lancer · NeuroCare_Demo_45s.mp4 (1080p, 60 i/s, musique originale)', size=12, colour=MUTED,
                 align=PP_ALIGN.CENTER, name='Consigne')
     points = [
-        ('language', 'Français ⇄ العربية', 'bascule instantanée, RTL'),
-        ('mic', 'Rappel vocal', 'la voix d’un proche'),
-        ('checkmark-circle', '« C’est fait »', 'un seul bouton, aidant prévenu'),
-        ('heart', 'Guides d’appareils', 'tensiomètre, oxymètre'),
+        ('language', f'FR ⇄ العربية{LRM} ⇄ الدارجة{LRM}', 'bascule instantanée, RTL'),
+        ('chatbubble-ellipses', 'Assistant Santé vocal', 'sans scroll, 18 sujets OMS/HAS'),
+        ('mic', 'Rappel vocal familial', '« C’est fait », aidant prévenu'),
+        ('water', 'Bilans guidés', 'FINDRISC + 7 signes, 4 A directs'),
         ('document-text', 'PDF horodaté', 'rapport nominatif au médecin'),
     ]
     items = []
@@ -441,8 +498,8 @@ def slide_4_demo():
     for i, (ic, h, d) in enumerate(points):
         y = 2.1 + i * 0.86
         b = icon_badge(s, ic, 9.25, y, 0.62, SOFTBLUE)
-        a = text(s, 10.0, y - 0.02, 2.9, 0.38, h, size=17, colour=NAVY, bold=True)
-        c = text(s, 10.0, y + 0.33, 2.9, 0.34, d, size=13, colour=MUTED)
+        a = text(s, 10.0, y - 0.02, 3.0, 0.38, h, size=17, colour=NAVY, bold=True)
+        c = text(s, 10.0, y + 0.33, 3.0, 0.34, d, size=13, colour=MUTED)
         items.append(group(s, [b, a, c], f'Point{i + 1}'))
     footer_logo(s)
     transition(s, 'fade')
@@ -456,7 +513,7 @@ def slide_5_different():
     cols = [
         ('home-fr.png', 'grid', 'Zéro surcharge cognitive', 'Une grille d’icônes façon lanceur d’apps, gros textes, gros boutons.'),
         ('cardio-guide.png', 'medical', 'L’appareil dessiné', 'Tensiomètre, oxymètre, glucomètre : quel chiffre recopier, conseil pharmacie, à jeun / au repos.'),
-        ('home-ar.png', 'language', 'Bilingue FR | AR natif', 'Français et arabe : bascule instantanée, droite-à-gauche, sans redémarrage.'),
+        ('assistant-dj.png', 'language', 'Trilingue FR | AR | Darija', 'Reconnaissance et lecture vocales adaptées aux seniors (débit ralenti), écran sans scroll, droite-à-gauche.'),
     ]
     cards = []
     for i, (img, ic, head, body) in enumerate(cols):
@@ -479,7 +536,8 @@ gros textes, gros boutons, aucun menu caché.
 Deux : l'appareil est dessiné. Le senior voit son tensiomètre, son oxymètre, son lecteur de glycémie, et le code couleur
 lui dit quel chiffre recopier dans quel champ. Pas d'appareil ? L'application l'oriente vers la pharmacie de proximité,
 avec les bonnes conditions : au repos, à jeun.
-Trois : le français et l'arabe sont natifs. Un toucher, et toute l'application passe de droite à gauche, sans redémarrer. »
+Trois : le trilingue. Français, arabe et darija : l'application passe de droite à gauche en un toucher, et l'Assistant Santé
+comprend la darija parlée — « nsit dwa » — et répond à voix haute, lentement, sur un seul écran sans défilement. »
 
 Timing : 3 atouts × ~11 s.""")
 
@@ -493,7 +551,7 @@ def slide_6_architecture():
     mob_b = icon_badge(s, 'phone-portrait', 0.85, 1.92, 0.62, SOFTBLUE)
     mob_h = text(s, 1.6, 1.9, 4.0, 0.7, [[('Application mobile', {'bold': True, 'colour': NAVY, 'size': 20})], [('React Native · Expo SDK 58 · TypeScript', {'colour': MUTED, 'size': 13})]])
     m1 = box(s, 0.85, 2.85, 4.7, 1.25, fill=SOFTGREEN, radius=0.1, soft_shadow=False)
-    m1t = text(s, 1.05, 2.95, 4.35, 1.1, [[('5 pôles autonomes', {'bold': True, 'colour': '065F46', 'size': 16})],
+    m1t = text(s, 1.05, 2.95, 4.35, 1.1, [[('5 pôles + Assistant Santé autonomes', {'bold': True, 'colour': '065F46', 'size': 16})],
                                           [('Règles cliniques pures + AsyncStorage : 100 % hors ligne, PDF générés sur le téléphone', {'colour': '065F46', 'size': 13})]])
     m2 = box(s, 0.85, 4.3, 4.7, 1.25, fill=SOFTBLUE, radius=0.1, soft_shadow=False)
     m2t = text(s, 1.05, 4.4, 4.35, 1.1, [[('Module 1 — Rappels & Suivi', {'bold': True, 'colour': '1E40AF', 'size': 16})],
@@ -506,19 +564,23 @@ def slide_6_architecture():
     # Backend
     back = box(s, 7.25, 1.7, 5.45, 4.1)
     back_b = icon_badge(s, 'server', 7.5, 1.92, 0.62, 'E8EDF5')
-    back_h = text(s, 8.25, 1.9, 4.3, 0.7, [[('Supervision temps réel', {'bold': True, 'colour': NAVY, 'size': 20})], [('Spring Boot 3.5 · Java 21 · Docker', {'colour': MUTED, 'size': 13})]])
+    back_h = text(s, 8.25, 1.9, 4.3, 0.7, [[('Backend Docker', {'bold': True, 'colour': NAVY, 'size': 20})], [('Microservices Spring Boot 3.5 · Java 21', {'colour': MUTED, 'size': 13})]])
     techs = [('PostgreSQL 16', 'Flyway V1 → V10'), ('Spring Security', 'JWT aidant + jeton senior'), ('WebSocket STOMP', 'tableau de bord live'),
              ('MinIO', 'voix des proches'), ('FastAPI', 'service audio'), ('OpenPDF', 'rapport hebdomadaire')]
     tiles = []
     for i, (h, d) in enumerate(techs):
         x = 7.5 + (i % 2) * 2.55
-        y = 2.85 + (i // 2) * 0.93
-        tb = box(s, x, y, 2.4, 0.8, fill='F5F8FC', radius=0.12, soft_shadow=False, line=BORDER)
-        tt = text(s, x + 0.15, y + 0.08, 2.15, 0.7, [[(h, {'bold': True, 'colour': NAVY, 'size': 14})], [(d, {'colour': MUTED, 'size': 11.5})]])
+        y = 2.72 + (i // 2) * 0.74
+        tb = box(s, x, y, 2.4, 0.66, fill='F5F8FC', radius=0.12, soft_shadow=False, line=BORDER)
+        tt = text(s, x + 0.15, y + 0.06, 2.15, 0.58, [[(h, {'bold': True, 'colour': NAVY, 'size': 13})], [(d, {'colour': MUTED, 'size': 11})]])
         tiles.extend([tb, tt])
-    backend = group(s, [back, back_b, back_h, *tiles], 'Backend')
+    # Nouveau microservice indépendant de l'Assistant Santé.
+    asv = box(s, 7.5, 4.97, 4.95, 0.72, fill=SOFTGREEN, radius=0.12, soft_shadow=False, line='A7F3D0')
+    asv_t = text(s, 7.65, 5.0, 4.7, 0.66, [[('assistant-service', {'bold': True, 'colour': '065F46', 'size': 13, 'font': 'Consolas'}), ('  ·  port 8089', {'bold': True, 'colour': '065F46', 'size': 13})],
+                                         [('Base médicale versionnée (OMS · HAS · ESC · FID), sync hors-ligne', {'colour': '065F46', 'size': 11})]], anchor=MSO_ANCHOR.MIDDLE)
+    backend = group(s, [back, back_b, back_h, *tiles, asv, asv_t], 'Backend')
     # Qualité
-    stats = [('162', 'tests mobile automatisés'), ('245', 'tests backend (164 unitaires + 81 intégration)'), ('0', 'diagnostic : mentions vérifiées par EthicsTest')]
+    stats = [('256', 'tests mobile automatisés'), ('255', 'tests backend (245 + 10 assistant-service)'), ('0', 'diagnostic : mentions vérifiées par EthicsTest')]
     qs = []
     for i, (big, lab) in enumerate(stats):
         x = 0.6 + i * 4.1
@@ -533,11 +595,14 @@ def slide_6_architecture():
 « Côté technique, deux mondes qui ne se gênent pas.
 À gauche, l'application mobile en React Native et Expo SDK 58. Les cinq pôles cliniques sont des règles pures,
 stockées localement avec AsyncStorage : ils marchent sans réseau et génèrent leur PDF sur le téléphone.
-À droite, le backend Spring Boot en Java 21, PostgreSQL versionné avec Flyway, déployé avec Docker : il ne sert qu'au
-socle aidant–senior, avec un tableau de bord en temps réel par WebSocket.
+À droite, les microservices Spring Boot en Java 21, déployés avec Docker : le backend du socle aidant–senior
+(PostgreSQL versionné avec Flyway, tableau de bord en temps réel par WebSocket), et un nouveau microservice indépendant,
+assistant-service, sur le port 8089 : il sert la base médicale versionnée de l'Assistant Santé (OMS, HAS, ESC, FID),
+que le téléphone synchronise puis garde pour fonctionner hors ligne.
 
-Et la qualité est mesurée : 162 tests automatisés côté mobile, 245 côté serveur, dont un test d'éthique qui vérifie
-que chaque écran, chaque API et chaque PDF rappelle que ce n'est pas un diagnostic. »
+Et la qualité est mesurée : 256 tests automatisés côté mobile, 255 côté serveur (245 pour le backend, 10 pour
+assistant-service), dont un test d'éthique qui vérifie que chaque écran, chaque API et chaque PDF rappelle que ce n'est
+pas un diagnostic. »
 
 Timing : mobile 3:15-3:28 · backend 3:28-3:40 · tests 3:40-3:50.""")
 
@@ -558,7 +623,7 @@ def slide_7_clinical():
     duo_g = group(s, [duo, *duo_items, plus], 'Binome')
     # Trois piliers seulement, lisibles en 3 secondes ; les détails techniques sont dans les notes.
     pillars = [
-        ('medkit', SOFTBLUE, 'Échelles médicales validées', 'GDS-15 · FINDRISC · HTA 3 j · SpO₂ · 4 A'),
+        ('medkit', SOFTBLUE, 'Échelles médicales validées', 'FINDRISC + 7 signes · GDS-15 · HTA 3 j · SpO₂ · 4 A · 18 fiches OMS/HAS'),
         ('shield-checkmark', SOFTGREEN, 'Aide à la décision, jamais de diagnostic', 'Oriente vers le médecin, zéro verdict'),
         ('call', 'FEE2E2', 'Sécurité & urgences intégrées', 'Appel 15 / 141 en un geste, consentement'),
     ]
@@ -568,7 +633,7 @@ def slide_7_clinical():
         c = box(s, 4.9, y, 7.8, 1.5)
         b = icon_badge(s, ic, 5.2, y + 0.3, 0.9, tint)
         h = text(s, 6.4, y + 0.27, 6.1, 0.55, head, size=24, colour=NAVY, bold=True)
-        d = text(s, 6.4, y + 0.85, 6.1, 0.45, sub, size=16, colour=MUTED)
+        d = text(s, 6.4, y + 0.85, 6.2, 0.45, sub, size=15, colour=MUTED)
         cards.append(group(s, [c, b, h, d], f'Pilier{i + 1}'))
     transition(s, 'push')
     animate(s, [t, duo_g, *cards], step_ms=350)
@@ -577,7 +642,8 @@ def slide_7_clinical():
 
 « Notre force, c'est le binôme médecine–ingénierie. Trois piliers :
 
-1. Des échelles médicales validées. Nous n'avons rien inventé côté clinique.
+1. Des échelles médicales validées. Nous n'avons rien inventé côté clinique : FINDRISC et ses 7 signes d'alerte, GDS-15,
+   automesure HTA, SpO₂, les 4 A, et 18 fiches de l'Assistant Santé tirées de l'OMS et de la HAS.
 2. De l'aide à la décision, jamais de diagnostic : NeuroCare oriente vers le médecin, il ne rend aucun verdict.
 3. La sécurité d'abord : en cas d'alerte rouge, l'appel au 15 ou au 141 est à un geste, et rien ne se fait sans consentement. »
 
@@ -585,11 +651,15 @@ Timing : binôme 3:50-3:58 · pilier 1 3:58-4:06 · pilier 2 4:06-4:13 · pilier
 
 DÉTAILS TECHNIQUES (pour les questions du jury, pas à lire) :
 - Santé mentale : Mini-GDS (4 questions) ; si une réponse le justifie, GDS-15 complète (16 questions au total), score /15.
-- Diabète : FINDRISC, 8 critères, score /26, IMC calculé, risque estimé de diabète de type 2 à 10 ans.
+- Diabète : FINDRISC, 8 critères, score /26, IMC calculé, risque estimé de diabète de type 2 à 10 ans ; partie 2 hors score :
+  7 signes cardinaux d'hyperglycémie (urines fréquentes, soif intense, fatigue, bouche sèche, vision floue, faim, amaigrissement)
+  → alerte dès 1 signe, prioritaire dès 2 signes ou pour la triade urines + soif + amaigrissement.
+- Assistant Santé : 18 fiches sourcées (OMS, HAS, ESC, FID), français / arabe / darija, jamais de diagnostic ;
+  signes de gravité → appel 15 / 141.
 - Tension : automesure 3 jours × 18 mesures (3 le matin, 3 le soir), moyenne ; urgence ≥ 180/110, vigilance 135-179 / 85-109,
   normale < 135/85, hypotension TAS < 100.
 - SpO₂ : profil standard 95-100 % ; profil BPCO / insuffisance respiratoire 88-92 % ; alertes orange et rouge.
-- Alzheimer & Mémoire : observation des 4 A (amnésie, aphasie, apraxie, agnosie) + jeu des 4 mots ; aucun score Alzheimer,
+- Alzheimer & Mémoire : 8 questions directes à la 2e personne sur les 4 A (amnésie, aphasie, apraxie, agnosie) + jeu des 4 mots ; aucun score Alzheimer,
   seulement un indice de vigilance à 2 issues (rassurant / signes à signaler au médecin).
 - Barème recalculé : le serveur recalcule toujours le score, il ne reprend jamais celui envoyé par l'application.
 - Formulations « indicateurs compatibles avec… » ; chaque écran, réponse d'API et PDF porte la mention de non-diagnostic
@@ -647,7 +717,7 @@ Timing : canaux 4:20-4:32 · modèle 4:32-4:45.""")
 def slide_9_team():
     s = prs.slides.add_slide(BLANK)
     background(s, NAVY)
-    card = box(s, 0.75, 0.8, 7.3, 3.55, fill=WHITE, radius=0.08)
+    card = box(s, 0.75, 0.8, 7.3, 4.2, fill=WHITE, radius=0.08)
     team_t = text(s, 1.15, 1.1, 6.6, 0.5, 'Équipe NeuroCare', size=28, colour=NAVY, bold=True)
     members = []
     for i in range(5):
@@ -660,8 +730,10 @@ def slide_9_team():
                                           [('5ᵉ année Informatique & Gestion — EHEIM Oujda', {'colour': MUTED, 'size': 13})]])
     lab2 = text(s, 5.05, 3.2, 2.8, 1.2, [[('2 étudiantes', {'bold': True, 'colour': '065F46', 'size': 17})],
                                           [('6ᵉ année de Médecine Générale', {'colour': MUTED, 'size': 13})]])
-    team = group(s, [card, team_t, *members, lab1, lab2], 'Equipe')
-    closing = text(s, 0.75, 4.85, 7.6, 1.9, [
+    names = text(s, 1.15, 4.08, 6.6, 0.75, ['Loubna RAHHAOUI  ·  Hanae QANDOUSSI  ·  Ziad EL YAZIDI', 'Fahd BENBALI  ·  Mehdi EL MAHI'],
+                 size=13.5, colour=NAVY, bold=True)
+    team = group(s, [card, team_t, *members, lab1, lab2, names], 'Equipe')
+    closing = text(s, 0.75, 5.25, 7.6, 1.6, [
         [('Aucun parent ne devrait affronter seul ses médicaments.', {'colour': WHITE, 'bold': True, 'size': 26})],
         [('Équipe NeuroCare — laissez NeuroCare veiller sur ceux que vous aimez.', {'colour': '6EE7B7', 'size': 18, 'italic': True})],
     ], spacing=8, name='Cloture')
@@ -676,8 +748,8 @@ def slide_9_team():
     animate(s, [team, qr_g, closing], step_ms=550)
     notes(s, """[4:45 – 5:00] — ÉQUIPE & CLOSING (15 s)
 
-« Nous sommes l'Équipe NeuroCare : trois élèves-ingénieurs en 5e année Informatique et Gestion à l'EHEIM Oujda,
-et deux étudiantes en 6e année de Médecine Générale.
+« Nous sommes l'Équipe NeuroCare — Loubna Rahhaoui, Hanae Qandoussi, Ziad El Yazidi, Fahd Benbali et Mehdi El Mahi :
+trois élèves-ingénieurs en 5e année Informatique et Gestion à l'EHEIM Oujda, et deux étudiantes en 6e année de Médecine Générale.
 Nous croyons qu'aucun parent ne devrait affronter seul ses médicaments.
 Laissez NeuroCare veiller sur ceux que vous aimez.
 Merci. Le code et la démo sont derrière ce QR code. »
@@ -688,6 +760,7 @@ Merci. Le code et la démo sont derrière ce QR code. »
 
 # ------------------------------------------------------------------ assemblage
 slide_1_hook()
+slide_plan()
 slide_2_problem()
 slide_3_solution()
 demo_slide, demo_shapes = slide_4_demo()
@@ -718,11 +791,12 @@ notes(demo_slide, """[1:55 – 2:40] — DÉMONSTRATION (45 s)
 Cliquer sur la vidéo pour la lancer (45 s). Elle a une musique instrumentale originale (« NeuroCare Launch Theme ») :
 vérifier le son de la salle avant le passage ; parler par-dessus pendant la vidéo, la musique est mixée à un niveau standard (-14 LUFS).
 Repères pour commenter :
- 0-8 s  « Voici l'accueil : six modules, une grille d'icônes. »
- 8-15 s « Un toucher… et toute l'application passe en arabe, de droite à gauche. »
- 15-25 s « 8 h : le rappel arrive avec la voix de Salma, sa fille. Un seul bouton : C'est fait. Et sur le téléphone de Salma, la pastille devient verte, en temps réel. »
- 25-37 s « Dans le module Tension, le tensiomètre est dessiné : SYS, DIA, PUL, avec leur couleur. 185/100 : alerte rouge et appel du 15 en un geste. Oxymètre, puis les 4 A d'Alzheimer : un indice de vigilance, jamais un diagnostic. »
- 37-45 s « Et pour le médecin : un rapport PDF nominatif, horodaté, nommé automatiquement. »
+ 0-6 s   « L'accueil : six modules en grille d'icônes, et le bouton bleu Assistant Santé. Un toucher : tout passe en arabe, de droite à gauche. »
+ 6-15 s  « L'Assistant Santé : on choisit la darija, on appuie sur le micro… "nsit dwa". Une seule carte, sans défilement, la source OMS · HAS, et il lit sa réponse à voix haute. Même chose en français. »
+ 15-24 s « Diabète : l'IMC se calcule tout seul, score FINDRISC sur 26. Soif intense et urines fréquentes : deux signes cardinaux, donc alerte clinique prioritaire vers le médecin. »
+ 24-33 s « Alzheimer : des questions directes — "Oubliez-vous… ?" — puis le jeu des 4 mots. Et dans Tension, le tensiomètre est dessiné : quel chiffre recopier. »
+ 33-41 s « Module 1, en mode démo : 8 h, Hajja Zahra entend la voix de Salma, sa fille — Metformine 850 mg. Un seul bouton : C'est fait. Chez Salma, la pastille passe au vert, en temps réel. »
+ 41-45 s « Et pour le médecin : un rapport PDF nominatif, horodaté, nommé automatiquement. »
 
 Plan B (pas de vidéo) : montrer l'application en direct sur le téléphone, même ordre.""")
 
