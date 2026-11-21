@@ -1,6 +1,6 @@
 """Compose « NeuroCare Launch Theme » : une musique instrumentale originale de 45 s, style « corporate launch »,
 synthétisée entièrement en Python (numpy). Aucun échantillon externe : pas de question de droits d'auteur.
-Le morceau est calé sur les scènes de la démo, puis mixé dans pitch/NeuroCare_Demo_45s.mp4 (vidéo copiée telle quelle).
+Le morceau est calé sur les scènes de la démo, puis mixé dans pitch/NeuroCare_Demo_Modules_45s.mp4 (vidéo copiée telle quelle).
 
 Forme (120 BPM, do majeur, 1 mesure = 2 s) :
   0-3 s    intro : nappe qui monte, arpège de cloches sur le logo
@@ -27,7 +27,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 PITCH = ROOT / 'pitch'
-VIDEO = PITCH / 'NeuroCare_Demo_45s.mp4'
+VIDEO = PITCH / 'NeuroCare_Demo_Modules_45s.mp4'
 MUSIC_DIR = PITCH / 'assets' / 'music'
 WAV = PITCH / 'build' / 'neurocare-launch-theme.wav'
 M4A = MUSIC_DIR / 'neurocare-launch-theme.m4a'
@@ -371,7 +371,7 @@ fades = 'afade=t=in:d=0.02,afade=t=out:st=41:d=4,' if args.track else ''
 subprocess.run([ff, '-y', '-loglevel', 'error', '-i', source, *extra, '-af', fades + 'loudnorm=I=-14:TP=-1.5:LRA=9',
                 '-ar', '48000', '-c:a', 'aac', '-b:a', '256k', str(M4A)], check=True)
 # Mixage dans la vidéo : la piste vidéo est copiée sans réencodage ; une ancienne piste audio est remplacée.
-tmp = VIDEO.with_name('NeuroCare_Demo_45s.tmp.mp4')
+tmp = VIDEO.with_name('NeuroCare_Demo_Modules_45s.tmp.mp4')
 subprocess.run([ff, '-y', '-loglevel', 'error', '-i', str(VIDEO), '-i', str(M4A), '-map', '0:v:0', '-map', '1:a:0',
                 '-c:v', 'copy', '-c:a', 'copy', '-shortest', '-movflags', '+faststart',
                 '-metadata:s:a:0', 'title=NeuroCare Launch Theme (original)', str(tmp)], check=True)

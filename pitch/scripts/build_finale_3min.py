@@ -5,11 +5,12 @@ chronométrées (total 2 min 50 s, 10 s de marge). Le script oral de chaque slid
 
 - python-pptx pour les formes, images, tableau, vidéo et notes ;
 - OpenXML injecté pour les ombres douces, les transitions et les apparitions automatiques (sans clic) ;
-- vidéo : montage de 26 s tiré de NeuroCare_Demo_45s.mp4, dans l'ordre du pitch
-  (Assistant vocal → Rappel vocal & « C'est fait » → Bilan guidé → PDF horodaté), sans musique (on parle dessus) ;
+- vidéo : NeuroCare_Demo_45s.mp4 (démo « la voix de sa fille », voix et musique incluses : on se tait pendant la lecture) ;
+- page de garde : illustration pitch/lmra.jpeg (liseré gris de la capture rogné, fond blanc fondu dans une carte) ;
 - PDF : export par Microsoft PowerPoint (COM, via PowerShell). Option --no-pdf pour l'ignorer.
 
-Prérequis : python pitch/scripts/prepare_assets.py (icônes, logo détouré, QR code) et la vidéo de démo 45 s.
+Prérequis : python pitch/scripts/prepare_assets.py (icônes, logo détouré, QR code), puis la vidéo de démo
+(render_video.py --scene voix et compose_voix_audio.py).
 Usage : python pitch/scripts/build_finale_3min.py [--no-pdf] [--png DOSSIER]
 """
 import argparse
@@ -19,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 import imageio_ffmpeg
+from PIL import Image
 from lxml import etree
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -32,8 +34,9 @@ PITCH = ROOT / 'pitch'
 A = PITCH / 'assets'
 ICONS = A / 'icons'
 BUILD = PITCH / 'build'
-SOURCE_VIDEO = PITCH / 'NeuroCare_Demo_45s.mp4'
-CUT_VIDEO = PITCH / 'NeuroCare_Demo_Finale_26s.mp4'
+VIDEO = PITCH / 'NeuroCare_Demo_45s.mp4'
+ILLUSTRATION = PITCH / 'lmra.jpeg'
+VIDEO_SECONDS = 45
 OUT = Path(os.environ.get('NEUROCARE_FINALE_OUT', PITCH / 'NeuroCare_Finale_3min.pptx'))
 
 # Charte NeuroCare
@@ -184,11 +187,12 @@ def title(slide, label, kicker):
 TIMELINE = []
 
 
-def notes(slide, start, end, label, spoken, stage=''):
-    """Notes présentateur : créneau, script parlé (mots / débit), indications de jeu."""
+def notes(slide, start, end, label, spoken, stage='', media=0.0):
+    """Notes présentateur : créneau, script parlé (mots / débit), indications de jeu.
+    `media` : durée d'une vidéo pendant laquelle on se tait (le texte doit tenir dans le temps restant)."""
     seconds = end - start
     words = len(re.findall(r"[\wÀ-ÿ’'-]+", spoken))
-    rate = words / seconds
+    rate = words / (seconds - media)
     assert rate <= 2.7, f'{label} : {words} mots en {seconds} s ({rate:.2f} mots/s) — trop rapide pour être dit'
     TIMELINE.append((label, start, end, words))
     fmt = lambda s: f'{s // 60}:{s % 60:02d}'
@@ -285,44 +289,51 @@ def animate(slide, shapes, step_ms=140, dur_ms=400, start_ms=100, extra_nodes=()
     (tr if tr is not None else sld.find(qn('p:clrMapOvr'))).addnext(timing)
 
 
-# ------------------------------------------------------------------ vidéo de démo (montage 26 s)
-# Repères de NeuroCare_Demo_45s.mp4 : assistant 6-15 s, diabète 15-24 s, tension 24-32 s, rappel 32-40 s, PDF 41-44 s.
-SEGMENTS = [(6.5, 14.5), (32.0, 40.0), (15.0, 22.0), (40.6, 43.9)]  # ordre du pitch : 1 assistant, 2 rappel, 3 bilan + PDF
-
-
-def cut_demo():
-    if CUT_VIDEO.exists() and CUT_VIDEO.stat().st_mtime > SOURCE_VIDEO.stat().st_mtime:
-        return
-    parts = []
-    for i, (a, b) in enumerate(SEGMENTS):
-        d = b - a
-        parts.append(f'[0:v]trim={a}:{b},setpts=PTS-STARTPTS,fade=t=in:st=0:d=0.2,fade=t=out:st={d - 0.2:.2f}:d=0.2[v{i}]')
-    graph = ';'.join(parts) + ';' + ''.join(f'[v{i}]' for i in range(len(SEGMENTS))) + f'concat=n={len(SEGMENTS)}:v=1:a=0[out]'
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-i', str(SOURCE_VIDEO), '-filter_complex', graph,
-                    '-map', '[out]', '-r', '30', '-c:v', 'libx264', '-crf', '22', '-preset', 'slow', '-pix_fmt', 'yuv420p',
-                    '-movflags', '+faststart', str(CUT_VIDEO)], check=True)
+# ------------------------------------------------------------------ illustration de la page de garde
+def illustration():
+    """lmra.jpeg est une capture : on rogne son liseré gris et on blanchit le fond presque blanc pour qu'il se fonde dans la carte."""
+    out = BUILD / 'lmra-illustration.png'
+    im = Image.open(ILLUSTRATION).convert('RGB')
+    w, h = im.size
+    im = im.crop((10, 10, w - 10, h - 10))
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b = px[x, y]
+            if min(r, g, b) > 236:
+                px[x, y] = (255, 255, 255)
+    im.save(out)
+    return out, im.width / im.height
 
 
 # ------------------------------------------------------------------ slides
 def slide_1_cover():
+    """La solution (à gauche) face au problème humain (à droite, l'illustration)."""
     s = prs.slides.add_slide(BLANK)
     background(s, NAVY)
     dot = circle(s, 0.75, 0.66, 0.13, EMERALD)
-    kick_t = text(s, 1.02, 0.55, 8.5, 0.36, 'FINALE NEXUS HEALTHTECH  •  AMPHI 2 · FEG OUJDA', size=14, colour=ICE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    kick_t = text(s, 1.02, 0.55, 6.8, 0.36, 'AMPHI 2 · FEG OUJDA', size=14, colour=ICE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
     kick = group(s, [dot, kick_t], 'Surtitre')
-    name = text(s, 0.75, 1.35, 7.2, 1.25, 'NeuroCare', size=80, colour=WHITE, bold=True, name='Nom')
-    slogan = text(s, 0.75, 2.75, 7.1, 1.9, [[('« L’alliance de la ', {}), ('voix familiale', {'colour': '7FB0FF'}), (', de l’', {}),
+    tile = box(s, 0.75, 1.3, 1.35, 1.35, fill=WHITE, radius=0.18)
+    mark = image(s, A / 'neurocare-logo-transparent.png', 0.83, 1.38 + (1.19 - 1.19 * 818 / 984) / 2, w=1.19)
+    name = text(s, 2.35, 1.3, 5.6, 1.35, 'NeuroCare', size=72, colour=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+    brand = group(s, [tile, mark, name], 'Logo')
+    slogan = text(s, 0.75, 2.95, 7.0, 1.9, [[('« L’alliance de la ', {}), ('voix familiale', {'colour': '7FB0FF'}), (', de l’', {}),
                                              ('IA vocale trilingue', {'colour': ICE}), (' et du ', {}),
                                              ('pré-dépistage autonome', {'colour': MINT}), ('. »', {})]],
-                  size=26, colour=WHITE, bold=True, name='Slogan')
-    b1 = chip(s, 0.75, 4.85, 'FINALE  ·  PROTOTYPE OPÉRATIONNEL', fill=EMERALD, colour=WHITE, size=15, w=4.3, h=0.5)
-    b2 = chip(s, 0.75, 5.5, '3 Ingénieurs (Info, Gestion & Marketing)  ×  2 Étudiantes en Médecine (6ᵉ année)',
-              fill=NAVY2, colour=WHITE, size=14, w=7.2, h=0.5)
+                  size=25, colour=WHITE, bold=True, name='Slogan')
+    b1 = chip(s, 0.75, 4.95, 'FINALE NEXUS HEALTHTECH  ·  PROTOTYPE OPÉRATIONNEL', fill=EMERALD, colour=WHITE, size=14, w=6.1, h=0.5)
+    b2 = chip(s, 0.75, 5.6, '3 Ingénieurs (Info, Gestion & Marketing)  ×  2 Étudiantes en Médecine (6ᵉ année)',
+              fill=NAVY2, colour=WHITE, size=13.5, w=7.0, h=0.5)
     badges = group(s, b1 + b2, 'Badges')
-    card = box(s, 8.25, 1.35, 4.33, 4.65, fill=BG, radius=0.08, name='CarteLogo')
+    path, ratio = illustration()
+    card = box(s, 8.15, 0.6, 4.43, 5.55, fill=WHITE, radius=0.07, name='CarteIllustration')
     shadow(card, blur=30, dist=8, alpha=30)
-    logo_w = 3.4
-    logo = image(s, A / 'neurocare-logo-transparent.png', 8.25 + (4.33 - logo_w) / 2, 1.35 + (4.65 - logo_w * 818 / 984) / 2, w=logo_w, name='Logo')
+    ih = 4.25
+    pic = image(s, path, 8.15 + (4.43 - ih * ratio) / 2, 0.78, h=ih, name='Illustration')
+    cap = text(s, 8.4, 5.12, 3.93, 0.9, '« À domicile, l’oubli et la confusion isolent nos aînés face à leurs traitements. »',
+               size=13.5, colour=MUTED, italic=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    illus = group(s, [card, pic, cap], 'Probleme')
     line = box(s, 0.75, 6.44, 11.83, 0.015, fill='1E3A6E', radius=0, soft_shadow=False)
     team = text(s, 0.75, 6.62, 4, 0.45, 'Équipe NeuroCare', size=17, colour=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
     langs = text(s, 6.5, 6.62, 6.08, 0.45, [[('FR', {'bold': True, 'colour': WHITE}), ('   ·   ', {'colour': '5B7CB0'}), (AR, {'colour': 'E2E8F0'}),
@@ -330,12 +341,11 @@ def slide_1_cover():
                  size=16, align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
     sig = group(s, [line, team, langs], 'Signature')
     transition(s, 'fade', 'med')
-    animate(s, [kick, name, slogan, badges, card, logo, sig])
-    notes(s, 0, 15, 'PAGE DE GARDE — accroche',
-          'Oujda, huit heures. Hajja Zahra, 74 ans, vit seule face à six boîtes de médicaments. '
-          'À Casablanca, sa fille ne sait pas si elle les a pris. '
-          'Nous sommes NeuroCare : trois ingénieurs et deux futures médecins.',
-          '(Une seconde de silence avant de commencer, regarder le jury. Hajja Zahra est un personnage illustratif.)')
+    animate(s, [kick, illus, brand, slogan, badges, sig], step_ms=180)
+    notes(s, 0, 13, 'PAGE DE GARDE — accroche',
+          'Oujda, vingt heures. Hajja Zahra, 74 ans, seule dans son fauteuil, face à ses boîtes de médicaments. '
+          'Elle oublie. Sa fille est loin. Nous sommes NeuroCare.',
+          '(Montrer l’illustration en disant « seule dans son fauteuil ». Hajja Zahra est un personnage illustratif.)')
 
 
 def slide_2_problem():
@@ -383,11 +393,10 @@ def slide_2_problem():
                size=10, colour=MUTED, name='Sources')
     transition(s, 'push')
     animate(s, [t, *cards, target, *rows, src])
-    notes(s, 15, 37, 'CRITÈRE 1 — PROBLÈME & BESOIN',
-          'Notre cible : les personnes âgées, et toutes celles qui oublient leur traitement ou leur suivi. '
-          'Le Maroc compte 5 millions de seniors. 29 % des adultes sont hypertendus, un sur dix seulement est contrôlé, '
-          'et la moitié des traitements sont mal suivis. '
-          'Résultat : des oublis, la barrière de la langue, des applications trop complexes, et des complications vues trop tard.',
+    notes(s, 13, 32, 'CRITÈRE 1 — PROBLÈME & BESOIN',
+          'Notre cible : les personnes âgées, et tous ceux qui oublient leur traitement. '
+          '5 millions de seniors au Maroc, 29 % d’adultes hypertendus, un sur dix contrôlé, un traitement sur deux mal suivi. '
+          'Résultat : oublis, barrière de la langue, applications trop complexes, complications vues trop tard.',
           'Sources (si question) : HCP RGPH 2024 (5 M, 13,8 %) ; STEPS 2017-2018 (29,3 %) ; OMS (contrôle ≈ 10 % des 30-79 ans) ; OMS 2003 (≈ 50 %).')
 
 
@@ -495,13 +504,11 @@ def slide_3_value():
     bench_src = text(s, 6.95, 6.72, 5.78, 0.3, 'D’après les fonctionnalités publiques déclarées par chaque solution.', size=10, colour=MUTED, name='BenchSource')
     transition(s, 'push')
     animate(s, [t, *vals, *ps, bench_k, tbl_shape, bench_src])
-    notes(s, 37, 67, 'CRITÈRES 2 & 3 — VALEUR, INNOVATION & DIFFÉRENCIATION',
+    notes(s, 32, 59, 'CRITÈRES 2 & 3 — VALEUR, INNOVATION & DIFFÉRENCIATION',
           'NeuroCare n’est pas une simple application : c’est un compagnon de santé autonome. '
-          'Sans réseau, sans défilement, avec de gros boutons, en français, en arabe et en darija. '
-          'Et les données restent sur le téléphone du patient. '
-          'Trois pôles : l’observance vocale, la voix d’un proche et un seul bouton « C’est fait » ; '
-          'cinq bilans cliniques validés, avec un PDF horodaté ; et un assistant santé vocal trilingue. '
-          'Face à Medisafe, MyTherapy ou un chatbot générique, aucun ne réunit darija, hors-ligne et échelles validées.',
+          'Sans réseau, sans défilement, en français, en arabe et en darija, et les données restent sur le téléphone. '
+          'Trois pôles : l’observance vocale, avec la voix d’un proche ; cinq bilans cliniques validés, avec PDF horodaté ; '
+          'un assistant santé vocal trilingue. Ni Medisafe, ni MyTherapy, ni un chatbot ne réunissent darija, hors-ligne et échelles validées.',
           'Si question : l’interface bascule FR ⇄ arabe (droite-à-gauche) ; la darija est comprise et parlée par l’Assistant Santé. '
           'Les 5 pôles de bilans et l’assistant n’ont besoin ni de compte ni de réseau ; seul le suivi aidant ↔ senior synchronise via le serveur.')
 
@@ -513,10 +520,10 @@ def slide_4_demo():
     frame = box(s, 0.6, 1.65, 7.3, 4.18, fill=NAVY, radius=0.04, name='CadreVideo')
     shadow(frame, blur=30, dist=8, alpha=22)
     poster = BUILD / 'poster_finale.png'
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-ss', '7.5', '-i', str(CUT_VIDEO), '-frames:v', '1', str(poster)], check=True)
-    movie = s.shapes.add_movie(str(CUT_VIDEO), Inches(0.68), Inches(1.73), Inches(7.14), Inches(4.02), poster_frame_image=str(poster), mime_type='video/mp4')
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), '-y', '-loglevel', 'error', '-ss', '6', '-i', str(VIDEO), '-frames:v', '1', str(poster)], check=True)
+    movie = s.shapes.add_movie(str(VIDEO), Inches(0.68), Inches(1.73), Inches(7.14), Inches(4.02), poster_frame_image=str(poster), mime_type='video/mp4')
     movie.name = 'VideoDemo'
-    steps = [('Assistant vocal darija, sans scroll', BLUE), ('Rappel voix du proche & « C’est fait »', EMERALD), ('Bilan guidé & PDF horodaté', NAVY)]
+    steps = [('La voix de sa fille, à 20:00', BLUE), ('Espace senior : « C’est fait »', EMERALD), ('Aidante rassurée, en temps réel', NAVY)]
     marks = []
     for i, (lab, col) in enumerate(steps):
         x = 0.6 + i * 2.47
@@ -592,12 +599,10 @@ def slide_5_ethics():
     summary = group(s, [c, *b, h, d], 'Synthese')
     transition(s, 'push')
     animate(s, [t, *cards, summary])
-    notes(s, 102, 125, 'CRITÈRE 5 — SÉCURITÉ, ÉTHIQUE & DONNÉES',
-          'Un : Loi 09-08, les données restent sur le téléphone, les flux sont sécurisés. '
-          'Deux : une tension ou une saturation impossible est refusée. '
-          'Trois : aucun diagnostic, le médecin garde la décision grâce au PDF. '
-          'Quatre : en cas de panne, tout fonctionne hors-ligne, et le 15 ou le 141 est à un clic. '
-          'Cinq : des seuils internationaux, et un profil BPCO dédié.',
+    notes(s, 107, 127, 'CRITÈRE 5 — SÉCURITÉ, ÉTHIQUE & DONNÉES',
+          'Un : Loi 09-08, données sur le téléphone, flux sécurisés. Deux : une mesure impossible est refusée. '
+          'Trois : aucun diagnostic, le médecin garde la décision. '
+          'Quatre : en cas de panne, tout fonctionne hors-ligne, 15 et 141 à un clic. Cinq : seuils internationaux, profil BPCO dédié.',
           'Idéalement porté par une des deux étudiantes en médecine.\n'
           'Précision si question : les données de santé des bilans restent dans le stockage de l’application sur le téléphone ; '
           'les identifiants (jetons) sont dans le coffre chiffré du système (expo-secure-store). Le serveur recalcule toujours '
@@ -607,60 +612,65 @@ def slide_5_ethics():
 def slide_6_business():
     s = prs.slides.add_slide(BLANK)
     background(s, BG)
-    t = title(s, 'Un lancement ultra-léger, des revenus clairs', 'Critère 6 · Modèle économique, coûts & déploiement')
-    cost = box(s, 0.6, 1.65, 3.95, 3.6, fill=NAVY, radius=0.08)
-    cost_k = text(s, 0.88, 1.85, 3.4, 0.32, 'COÛT DE LANCEMENT', size=13, colour=MINT, bold=True)
-    lines = [('25 $', '(~250 MAD) Google Play, frais unique à vie'),
-             ('150-250 MAD', 'par mois d’infrastructure cloud (< 3 800 MAD / an)'),
-             ('< 0,60 MAD', 'par patient et par an*')]
-    cl = []
-    for i, (big, lab) in enumerate(lines):
-        y = 2.25 + i * 0.95
-        cl.append(text(s, 0.88, y, 3.5, 0.5, big, size=26, colour=WHITE, bold=True))
-        cl.append(text(s, 0.88, y + 0.48, 3.5, 0.4, lab, size=12, colour='C9D6E8'))
-    cost_g = group(s, [cost, cost_k, *cl], 'Couts')
-    foot = text(s, 0.6, 5.3, 3.95, 0.3, '* base ≈ 6 500 utilisateurs, traitement sur le téléphone.', size=10, colour=MUTED, name='NoteCout')
+    t = title(s, '0 MAD pour les seniors, un modèle solidaire', 'Critère 6 · Modèle économique, coûts & déploiement')
 
-    def offer(x, fill, chip_fill, chip_col, chip_lab, chip_w, head, head_col, body, body_col, name):
-        c = box(s, x, 1.65, 3.95, 3.6, fill=fill, radius=0.08)
-        ch = chip(s, x + 0.28, 1.85, chip_lab, fill=chip_fill, colour=chip_col, size=12, w=chip_w)
-        h = text(s, x + 0.28, 2.38, 3.45, 0.5, head, size=19, colour=head_col, bold=True)
-        d = text(s, x + 0.28, 3.0, 3.45, 2.15, body, size=13, colour=body_col, spacing=5)
-        return group(s, [c, *ch, h, d], name)
+    def offer(x, w, fill, chip_fill, chip_col, chip_lab, chip_w, big, big_col, head, head_col, body, body_col, name):
+        c = box(s, x, 1.65, w, 2.95, fill=fill, radius=0.08)
+        ch = chip(s, x + 0.25, 1.83, chip_lab, fill=chip_fill, colour=chip_col, size=12, w=chip_w)
+        b = text(s, x + 0.25, 2.3, w - 0.5, 0.62, big, size=30, colour=big_col, bold=True)
+        h = text(s, x + 0.25, 2.92, w - 0.5, 0.35, head, size=14, colour=head_col, bold=True)
+        d = text(s, x + 0.25, 3.3, w - 0.5, 1.25, body, size=12.5, colour=body_col, spacing=3)
+        return group(s, [c, *ch, b, h, d], name)
 
-    b2c = offer(4.7, WHITE, SOFTBLUE, BLUE, 'B2C · FREEMIUM', 1.75, 'Familles : 29 MAD / mois', NAVY, [
-        [('Gratuit : ', {'bold': True, 'colour': NAVY}), ('les 5 bilans et l’assistant hors-ligne.', {})],
-        [('Abonnement Famille : ', {'bold': True, 'colour': NAVY}), ('synchronisation aidant ↔ senior en temps réel, voix illimitées, historique cloud.', {})],
-    ], TEXT, 'B2C')
-    b2b = offer(8.78, WHITE, SOFTGREEN, DEEPGREEN, 'B2B2C · LICENCES', 1.95, '300 à 1 500 MAD / mois', NAVY, [
-        [('Pour : ', {'bold': True, 'colour': NAVY}), ('pharmacies, cliniques, mutuelles / AMO.', {})],
-        [('Pharmacies : ', {'bold': True, 'colour': NAVY}), ('fidélisent leurs patients chroniques avec des bilans PDF fiables.', {})],
-        [('Cliniques & mutuelles : ', {'bold': True, 'colour': NAVY}), ('moins d’hospitalisations évitables.', {})],
+    senior = offer(0.6, 3.95, NAVY, EMERALD, WHITE, 'SENIORS · GRATUIT À VIE', 2.55, '0 MAD', MINT, 'Toutes les fonctions vitales', WHITE,
+                   'Rappels vocaux familiaux, 5 bilans cliniques hors-ligne, Assistant Santé FR · AR · darija, export PDF médecin.', 'C9D6E8', 'Seniors')
+    family = offer(4.7, 3.95, WHITE, SOFTBLUE, BLUE, 'AIDANTS · OPTIONNEL', 2.15, '5 à 9\u00a0MAD\u00a0/\u00a0mois', BLUE, 'ou 50 MAD / an, contribution symbolique', NAVY, [
+        [('Pour : ', {'bold': True, 'colour': NAVY}), ('suivi cloud multi-patients en temps réel.', {})],
+        [('0 MAD : ', {'bold': True, 'colour': DEEPGREEN}), ('retraités à faible revenu, bénéficiaires AMO Tadamon.', {})],
+    ], TEXT, 'Aidants')
+    b2b = offer(8.8, 3.93, WHITE, SOFTGREEN, DEEPGREEN, 'B2B2C · FINANCEMENT PRINCIPAL', 3.1, '250 à 1\u00a0000\u00a0MAD', DEEPGREEN, 'par mois et par structure', NAVY, [
+        [('Mutuelles / AMO, cliniques, pharmacies, associations : ', {'bold': True, 'colour': NAVY}),
+         ('moins d’hospitalisations évitables, patients chroniques fidélisés.', {})],
     ], TEXT, 'B2B2C')
-    miles = [('M1 – M2', 'Play Store + pilote à Oujda : 200 seniors, associations & pharmacies'),
-             ('M3 – M6', 'Validation clinique, partenariats cliniques & mutuelles'),
-             ('M6 – M12', 'Déploiement régional (Oriental) puis national')]
+    cost = box(s, 0.6, 4.8, 8.13, 1.05, fill=WHITE, radius=0.12)
+    cost_k = text(s, 0.85, 4.88, 2.0, 0.3, 'LANCEMENT', size=11, colour=BLUE, bold=True)
+    stats = []
+    for i, (big, lab) in enumerate([('25 $', '≈ 250 MAD, Play Store, à vie'), ('~150 MAD', 'par mois de serveur léger'), ('< 0,50 MAD', 'par patient et par an*')]):
+        x = 0.85 + i * 2.62
+        stats.append(text(s, x, 5.12, 2.5, 0.4, big, size=20, colour=NAVY, bold=True))
+        stats.append(text(s, x, 5.5, 2.5, 0.3, lab, size=11.5, colour=MUTED))
+    cost_g = group(s, [cost, cost_k, *stats], 'Couts')
+    legal = box(s, 8.88, 4.8, 3.85, 1.05, fill=SOFTGREEN, radius=0.12, soft_shadow=False)
+    legal_b = icon_badge(s, 'shield-checkmark', 9.03, 5.04, 0.56, WHITE)
+    legal_t = text(s, 9.72, 4.8, 2.9, 1.05, [[('Loi 09-08 · Loi 31-08', {'bold': True, 'size': 14})],
+                                             [('zéro publicité, zéro revente des données de santé', {'size': 11.5})]], colour=DEEPGREEN, anchor=MSO_ANCHOR.MIDDLE)
+    legal_g = group(s, [legal, *legal_b, legal_t], 'CadreLegal')
+    miles = [('M1 – M2', 'Play Store + pilote Oujda, 200 seniors'), ('M3 – M6', 'Validation clinique, mutuelles & cliniques'),
+             ('M6 – M12', 'Déploiement Oriental, puis national')]
     ms = []
     for i, (when, what) in enumerate(miles):
         x = 0.6 + i * 4.09
-        c = box(s, x, 5.7, 3.85, 1.12, fill=WHITE)
-        n = text(s, x + 0.25, 5.8, 1.6, 0.4, when, size=17, colour=BLUE, bold=True)
-        d = text(s, x + 0.25, 6.2, 3.4, 0.6, what, size=12.5, colour=TEXT)
+        c = box(s, x, 6.02, 3.85, 0.78, fill=WHITE)
+        n = text(s, x + 0.22, 6.02, 1.05, 0.78, when, size=14, colour=BLUE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
+        d = text(s, x + 1.3, 6.02, 2.45, 0.78, what, size=12, colour=TEXT, anchor=MSO_ANCHOR.MIDDLE)
         parts = [c, n, d]
         if i < 2:
-            arrow = s.shapes.add_shape(MSO_SHAPE.CHEVRON, Inches(x + 3.9), Inches(6.12), Inches(0.18), Inches(0.28))
+            arrow = s.shapes.add_shape(MSO_SHAPE.CHEVRON, Inches(x + 3.9), Inches(6.27), Inches(0.18), Inches(0.28))
             arrow.fill.solid(); arrow.fill.fore_color.rgb = rgb(BLUE); arrow.line.fill.background(); drop_style(arrow)
             parts.append(arrow)
         ms.append(group(s, parts, f'Jalon{i + 1}'))
+    foot = text(s, 0.6, 6.88, 12.1, 0.25, '* 150 MAD × 12 + 250 MAD ≈ 2 050 MAD la 1re année, sur une base d’environ 5 000 utilisateurs (traitement 100 % local).',
+                size=10, colour=MUTED, name='NoteCout')
     transition(s, 'fade')
-    animate(s, [t, cost_g, foot, b2c, b2b, *ms])
-    notes(s, 125, 147, 'CRITÈRE 6 — MODÈLE ÉCONOMIQUE & DÉPLOIEMENT',
-          'Tout tourne sur le téléphone : 25 dollars de Play Store, '
-          'moins de 250 dirhams de serveur par mois, moins de 60 centimes par patient et par an. '
-          'Qui paie ? Les familles, 29 dirhams par mois pour le suivi en temps réel ; '
-          'pharmacies, cliniques et mutuelles, par licence. Pilote à Oujda, 200 seniors, national en 12 mois.',
-          'Calcul (si question) : ≤ 250 MAD × 12 + 250 MAD Play Store ≈ 3 250 MAD la 1re année ; / 6 500 utilisateurs ≈ 0,50 MAD. '
-          'Pendant le pilote (200 seniors), le coût est d’environ 16 MAD par senior et par an.')
+    animate(s, [t, senior, family, b2b, cost_g, legal_g, *ms, foot])
+    notes(s, 127, 148, 'CRITÈRE 6 — MODÈLE ÉCONOMIQUE & DÉPLOIEMENT',
+          'Pour les seniors, NeuroCare est gratuit, à vie : rappels, bilans, assistant et PDF. '
+          'Les familles qui veulent le suivi en temps réel donnent 5 à 9 dirhams par mois, zéro avec l’AMO Tadamon. '
+          'Mutuelles, cliniques et pharmacies financent le service. Lancement : 250 dirhams, puis 150 par mois.',
+          'Calcul (si question) : 150 MAD × 12 + 250 MAD ≈ 2 050 MAD la 1re année ; / 5 000 utilisateurs ≈ 0,41 MAD par patient. '
+          'Pendant le pilote (200 seniors), ≈ 10 MAD par senior et par an, couverts par une première structure partenaire.\n'
+          'Cadre : Loi 09-08 (données personnelles ; déclaration à la CNDP avant le déploiement), Loi 31-08 (protection du consommateur : '
+          'prix affichés, résiliation libre) ; aucune publicité, aucune revente de données de santé.')
 
 
 def slide_7_team():
@@ -699,9 +709,9 @@ def slide_7_team():
     quote = group(s, [q, qt], 'Message')
     transition(s, 'push')
     animate(s, [t, eng_g, med_g, quote], step_ms=220)
-    notes(s, 147, 160, 'CRITÈRE 7 — ÉQUIPE',
-          'Ziad, Fahd et Mehdi : ingénierie, gestion et marketing. Loubna et Hanae, en sixième année de médecine, '
-          'valident chaque seuil clinique. NeuroCare est entre de bonnes mains.')
+    notes(s, 148, 160, 'CRITÈRE 7 — ÉQUIPE',
+          'Ziad, Fahd et Mehdi, ingénieurs en informatique, gestion et marketing. '
+          'Loubna et Hanae, en sixième année de médecine. NeuroCare est entre de bonnes mains.')
 
 
 def slide_8_close():
@@ -710,7 +720,7 @@ def slide_8_close():
     dot = circle(s, 0.75, 0.66, 0.13, EMERALD)
     kick_t = text(s, 1.02, 0.55, 8, 0.36, 'EN 10 SECONDES', size=14, colour=ICE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
     kick = group(s, [dot, kick_t], 'Surtitre')
-    stats = [('0,60 MAD', 'par patient et par an'), ('100 %', 'hors-ligne & Loi 09-08'), ('511', 'tests automatisés')]
+    stats = [('0 MAD', 'pour les seniors, à vie'), ('100 %', 'hors-ligne & Loi 09-08'), ('511', 'tests automatisés')]
     cards = []
     for i, (big, lab) in enumerate(stats):
         x = 0.75 + i * 4.0
@@ -741,7 +751,6 @@ def slide_8_close():
 # ------------------------------------------------------------------ assemblage
 def build():
     BUILD.mkdir(exist_ok=True)
-    cut_demo()
     slide_1_cover()
     slide_2_problem()
     slide_3_value()
@@ -758,17 +767,17 @@ def build():
     if media is not None:
         video_nodes = [n for n in media.find('.//' + qn('p:cTn')).find(qn('p:childTnLst')) if n.tag == qn('p:video')]
     animate(demo_slide, demo_shapes, extra_nodes=video_nodes)
-    notes(demo_slide, 67, 102, 'CRITÈRE 4 — FAISABILITÉ & DÉMO LIVE',
-          'Ce n’est pas une maquette : une application React Native, deux microservices Spring Boot, et 511 tests automatisés. Regardez. '
-          'En darija, « nsit dwa » : une seule carte, lue à voix haute. '
-          'Huit heures : Hajja Zahra entend la voix de sa fille. Un bouton, « C’est fait », et l’aidante le voit en direct. '
-          'Bilan diabète : deux signes d’alerte, orientation vers le médecin. Et le PDF horodaté.',
-          'Cliquer sur la vidéo après « Regardez » (≈ 1:13). Montage muet de 26 s : parler par-dessus, au rythme des repères :\n'
-          ' 0-8 s   Assistant Santé en darija, écran unique sans défilement (repère 1)\n'
-          ' 8-16 s  Rappel avec la voix de Salma, « C’est fait », la pastille passe au vert chez l’aidante (repère 2)\n'
-          ' 16-23 s Diabète FINDRISC + 7 signes : alerte prioritaire (repère 3)\n'
-          ' 23-26 s PDF horodaté pour le médecin (repère 3)\n'
-          'Plan B (vidéo bloquée) : montrer l’application sur le téléphone, même ordre, mode démo hors-ligne.')
+    notes(demo_slide, 59, 107, 'CRITÈRE 4 — FAISABILITÉ & DÉMO LIVE',
+          'Pas une maquette : notre prototype. Écoutez.',
+          'Dire la phrase (≈ 2 s), cliquer sur la vidéo, puis SE TAIRE pendant 45 s : la vidéo porte sa propre voix '
+          '(Salma, la fille) et sa musique. Vérifier le son de la salle avant le passage.\n'
+          ' 0-12 s   20:00, notification sur le téléphone de Mama : la voix de Salma (repère 1)\n'
+          ' 12-26 s  Espace senior : « Réécouter », puis « C’est fait » (repère 2)\n'
+          ' 26-36 s  Téléphone de Salma : « Confirmé à 20:02 », mot doux de Salma (repère 3)\n'
+          ' 36-45 s  Assistant Santé en darija, PDF horodaté, logo\n'
+          'Voix de synthèse (edge-tts) : dans l’application, c’est la vraie voix enregistrée par le proche.\n'
+          'Plan B (vidéo bloquée) : montrer l’application sur le téléphone en mode démo hors-ligne, même ordre.',
+          media=float(VIDEO_SECONDS))
     TIMELINE.sort(key=lambda r: r[1])
 
     prs.save(OUT)

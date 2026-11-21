@@ -26,7 +26,7 @@ PITCH = ROOT / 'pitch'
 A = PITCH / 'assets'
 SCREENS = A / 'screens'
 ICONS = A / 'icons'
-VIDEO = PITCH / 'NeuroCare_Demo_45s.mp4'
+VIDEO = PITCH / 'NeuroCare_Demo_Modules_45s.mp4'
 OUT = Path(os.environ.get('NEUROCARE_PPTX_OUT', PITCH / 'NeuroCare_Pitch_Hackathon.pptx'))  # autre sortie : utile si le deck est ouvert
 
 BG = 'F5F8FC'; WHITE = 'FFFFFF'; BLUE = '246BFD'; NAVY = '112950'; EMERALD = '10B981'
