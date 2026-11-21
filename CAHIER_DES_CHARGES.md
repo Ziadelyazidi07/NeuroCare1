@@ -308,11 +308,12 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
 - **Accès** : bouton flottant « Assistant Santé » / « المساعد الصحي » en bas à droite de l'accueil (à gauche en
   arabe), bleu `#246BFD`, icône bulle + micro, hauteur 68 dp ; la grille garde une marge basse de 128 dp pour ne
   jamais être masquée. Route `/assistant`, sans compte ni réseau.
-- **Base de connaissances** (`knowledge-base.json`, version `2026.11.1`) : 18 fiches couvrant observance et oubli
+- **Base de connaissances** (`knowledge-base.json`, version `2026.11.2`) : 18 fiches couvrant observance et oubli
   de médicament, tension (élevée, mesure, vertiges / hypotension), diabète (glycémie élevée, hypoglycémie,
   prévention), SpO₂ (valeur basse, mesure), mémoire (oublis, prévention), santé mentale (sommeil, moral) et
-  urgences (AVC, douleur thoracique, détresse, numéros 15 / 141). Chaque fiche : titre et réponse en français et
-  en arabe, **source** (OMS, HAS, ESC, FID, avec la référence), mots-clés français / arabes / darija, actions
+  urgences (AVC, douleur thoracique, détresse, numéros 15 / 141). Chaque fiche : titre (45 caractères au plus),
+  **résumé** (220 caractères au plus, affiché à l'écran) et explication complète (lue à voix haute), en français
+  et en arabe, **source** (OMS, HAS, ESC, FID, avec la référence), mots-clés français / arabes / darija, actions
   (appel 15 / 141, ouverture d'un module). La même base est servie par le microservice et embarquée dans
   l'application (test d'égalité des deux copies).
 - **Moteur local 100 % hors ligne** : normalisation (accents, hamza, tâ marbûta, voyelles courtes, article
@@ -321,15 +322,29 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
   correspondante, l'assistant le dit et repropose des questions (aucune réponse inventée). Une question écrite
   en lettres arabes (arabe ou darija, ex. « نسيت الدوا », « طونسيو طالع », « السكر », « عندي الدوخة ») reçoit
   une réponse en arabe.
-- **Chaque réponse** : explication bienveillante adaptée aux seniors, ligne « Source : OMS · HAS — … » (dans la
-  langue de la réponse), boutons pertinents (« Appeler le 15 / 141 » pour les signes de gravité, « Ouvrir
-  Tension / Diabète / SpO₂ / Rappels… »), fiches voisines en puces, encadré rouge pour les urgences.
-- **Voix** : lecture automatique des réponses (`expo-speech`, débit 0,85, interrupteur) et grand bouton
-  « Écouter / Réécouter » ; dictée par un grand bouton micro (`expo-speech-recognition`, français `fr-FR`, arabe
-  `ar-SA` ou darija `ar-MA`, hors ligne si le pack de langue est installé) ; puces de questions fréquentes FR /
-  AR / darija dès l'ouverture. Sur un build sans ces modules natifs, l'assistant reste utilisable au clavier.
-- **Éthique** : bandeau permanent « informe et oriente, ne pose aucun diagnostic, ne remplace jamais une
-  consultation » ; aucune donnée de santé n'est envoyée (seule la base de connaissances est téléchargée).
+- **Ergonomie « Senior-First », écran unique sans défilement** (aucune liste défilante, `flex: 1`) :
+  - *zone haute compacte* : grand bouton « Retour », interrupteur « Son activé / Son coupé », langue en 3 gros
+    boutons `FR` | `العربية` | `الدارجة` (l'écran passe en arabe de droite à gauche pour l'arabe et la darija) ;
+  - *zone centrale, une seule vue à la fois* : à l'ouverture, consigne rassurante (« Appuyez sur le micro et posez
+    votre question, ou choisissez un sujet ci-dessous ») et 4 gros sujets (≥ 56 dp, 18 pt, 4 thèmes différents) ;
+    après une question, **une seule carte de réponse** remplace l'accueil (jamais d'historique de discussion) :
+    titre (rouge avec pictogramme pour une urgence), résumé en 18 pt, un seul bouton d'action utile (« Appeler le
+    15 » et « Appeler le 141 » en rouge pour une urgence, sinon « Ouvrir » le module concerné), gros boutons
+    « Écouter / Réécouter » (lecture automatique, débit 0,85) et « Poser une autre question », mention discrète
+    « Source : OMS · HAS » ;
+  - *mini-bandeau éthique d'une ligne* toujours visible (« Informe et oriente, ne remplace pas le médecin »,
+    texte complet pour les lecteurs d'écran) ;
+  - *zone basse ancrée* : très grand micro central (80 dp, bleu `#246BFD`, halo qui pulse pendant l'écoute,
+    libellé « Parler » / « تكلّم », transcription affichée en direct) et bouton « Écrire » qui n'ouvre le champ
+    texte qu'à la demande.
+- **Voix** : dictée `expo-speech-recognition` (français `fr-FR`, arabe `ar-SA`, darija `ar-MA`, hors ligne si le
+  pack de langue est installé), lecture `expo-speech`. Sur un build sans ces modules natifs, l'assistant reste
+  utilisable avec « Écrire ».
+- **Vérification de l'écran unique** : rendu web de l'application dans Edge à 360 × 800 dp et à 360 × 720 dp
+  (hauteur restante après les barres système), accueil et les 18 fiches + réponse « je ne sais pas », en
+  français et en arabe (80 états) : aucun défilement, aucun texte coupé, aucun bouton superposé ni hors écran,
+  micro ≥ 76 dp ; marge libre minimale 65 dp à 800 et 25 dp à 720.
+- **Éthique** : aucune donnée de santé n'est envoyée (seule la base de connaissances est téléchargée).
 - **Synchronisation facultative** : à l'ouverture, `GET http://<hôte du serveur>:8089/api/v1/assistant/knowledge`
   (`If-None-Match` = version, délai 4 s) ; une base plus récente et bien formée est gardée sur le téléphone
   (`neurocare.assistant.knowledge`), sinon la copie embarquée reste utilisée.
@@ -464,8 +479,8 @@ elle est invalide. Image Docker multi-étapes avec sonde de santé.
 | Contrôle | Portée |
 |---|---|
 | Tests backend | Tests unitaires (barèmes, sécurité, services) et tests d'intégration sur PostgreSQL (Testcontainers), dont `EthicsTest` (mentions de non-diagnostic) — 164 tests unitaires et 81 tests d'intégration au dernier passage |
-| Tests assistant-service | 9 tests (MockMvc : santé, base sourcée et traduite, ETag / 304 ; validateur : sources, urgences, traductions, absence de diagnostic) |
-| Tests mobile | **250 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, mode démo hors ligne du Module 1 (serveur local, connexion en échec, adresse du serveur), Assistant Santé (recherche trilingue et darija, chaque puce, urgences, sources, synchronisation, voix, bouton flottant et RTL, égalité des deux copies de la base), bascule de langue et RTL, indépendance des modules |
+| Tests assistant-service | 10 tests (MockMvc : santé, base sourcée et traduite, ETag / 304 ; validateur : sources, urgences, traductions, longueur des résumés, absence de diagnostic) |
+| Tests mobile | **256 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, mode démo hors ligne du Module 1 (serveur local, connexion en échec, adresse du serveur), Assistant Santé (recherche trilingue et darija, chaque puce, urgences, sources, synchronisation, voix, écran unique : une seule carte, son coupé, langues, micro, saisie à la demande, bouton flottant et RTL, égalité des deux copies de la base), bascule de langue et RTL, indépendance des modules |
 | Typage et style | `tsc --noEmit`, `expo lint` |
 | Bundle | `expo export` (Android) |
 | Livraison | EAS Build (APK `preview`) et EAS Update (OTA, sans réinstallation tant qu'aucun module natif n'est ajouté) |

@@ -48,6 +48,13 @@ class KnowledgeBaseValidatorTest {
     }
 
     @Test
+    void exigeUnResumeCourtPourLEcranSansDefilement() throws Exception {
+        JsonNode kb = base();
+        ((ObjectNode) kb.path("topics").get(2).path("summary")).put("fr", "x".repeat(KnowledgeBaseValidator.MAX_SUMMARY_LENGTH + 1));
+        assertThat(KnowledgeBaseValidator.validate(kb)).anyMatch(e -> e.contains("résumé fr trop long"));
+    }
+
+    @Test
     void lesReponsesNePosentJamaisDeDiagnostic() throws Exception {
         for (JsonNode topic : base().path("topics")) {
             assertThat(topic.path("answer").path("fr").asText()).doesNotContainIgnoringCase("vous avez un").doesNotContainIgnoringCase("vous êtes atteint");

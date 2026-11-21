@@ -17,13 +17,18 @@ const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'wav'];
 /** Attente maximale d'un téléchargement en cours avant de jouer la tonalité à la place de la voix. */
 const DOWNLOAD_WAIT_MS = 2000;
 
-const audioDir = new Directory(Paths.cache, 'rappels-audio');
+// Dossier créé à la première utilisation : rien n'est construit au chargement du module.
+let directory: Directory | null = null;
+function audioDir(): Directory {
+  directory ??= new Directory(Paths.cache, 'rappels-audio');
+  return directory;
+}
 let player: AudioPlayer | null = null;
 let downloads: Promise<void> = Promise.resolve();
 
 function localFile(medicationId: string, extension: string): File {
   // Extension explicite : le lecteur iOS s'appuie dessus pour un fichier local.
-  return new File(audioDir, `${medicationId}.${extension}`);
+  return new File(audioDir(), `${medicationId}.${extension}`);
 }
 
 function localFiles(medicationId: string): File[] {
@@ -38,7 +43,7 @@ function deleteLocalFiles(medicationId: string, keep?: File): void {
 
 async function downloadVoice(medicationId: string): Promise<void> {
   // Fichier temporaire : sur Android, un téléchargement interrompu laisserait un audio tronqué.
-  const temporary = new File(audioDir, `${medicationId}.tmp`);
+  const temporary = new File(audioDir(), `${medicationId}.tmp`);
   try {
     const { url, extension } = await seniorApi.medicationAudio(medicationId);
     const target = localFile(medicationId, AUDIO_EXTENSIONS.includes(extension) ? extension : 'mp3');
@@ -59,7 +64,7 @@ async function downloadVoice(medicationId: string): Promise<void> {
 export function prefetchReminderAudio(doses: DoseDto[]): Promise<void> {
   const medicationIds = [...new Set(doses.map((d) => d.medicationId).filter((id): id is string => !!id))];
   downloads = downloads.then(async () => {
-    audioDir.create({ intermediates: true, idempotent: true });
+    audioDir().create({ intermediates: true, idempotent: true });
     for (const medicationId of medicationIds) await downloadVoice(medicationId);
   });
   return downloads;
@@ -97,7 +102,7 @@ export async function playReminder(dose: DoseDto | null): Promise<void> {
 export function clearReminderAudio(): void {
   stopAudio();
   try {
-    if (audioDir.exists) audioDir.delete();
+    if (audioDir().exists) audioDir().delete();
   } catch (error) {
     console.warn('Effacement des voix impossible', error);
   }

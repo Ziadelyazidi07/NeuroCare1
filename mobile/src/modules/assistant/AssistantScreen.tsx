@@ -1,29 +1,39 @@
 /**
- * Assistant Santé & Orientation : chatbot vocal 100 % hors ligne. Questions en français, arabe ou darija
- * (micro, clavier ou puces), réponses sourcées lues à voix haute, boutons d'action (15 / 141, modules
- * NeuroCare) et bandeau éthique permanent. Aucune donnée de santé n'est envoyée : seule la base de
- * connaissances peut être mise à jour depuis le microservice, si le téléphone l'atteint.
+ * Assistant Santé & Orientation, ergonomie « Senior-First » sur un écran unique, sans aucun défilement :
+ * - zone haute : grand bouton Retour, son activé / coupé, langue en 3 gros boutons (FR | العربية | الدارجة) ;
+ * - zone centrale : une seule vue à la fois (consigne + 4 sujets, ou une seule carte de réponse, ou la saisie) ;
+ * - zone basse ancrée : très grand micro « Parler » (pulsation pendant l'écoute) et bouton « Écrire ».
+ * Chatbot 100 % hors ligne : aucune donnée de santé envoyée, seule la base de connaissances peut être mise
+ * à jour depuis le microservice si le téléphone l'atteint.
  */
-import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Animated, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { dictionaryFor, useLanguage } from '../../i18n';
-import { MIN_TOUCH, ModuleHeader, Row, Text, colours as c, radius, shadow, styles as ui } from '../../theme';
-import { HomeButton } from '../../ui/HomeButton';
+import { Text, colours as c, radius, shadow } from '../../theme';
+import { goToModules } from '../../ui/HomeButton';
 import type { ModuleId } from '../types';
-import { EmergencyButtons } from '../ui';
-import { loadKnowledge, syncKnowledge, type SyncStatus } from './assistantStore';
+import { EMERGENCY_NUMBERS } from '../ui';
+import { loadKnowledge, syncKnowledge } from './assistantStore';
 import { search, type SearchResult } from './engine';
-import { EMBEDDED_KB, sourceLine, type KbLanguage, type KnowledgeBase } from './knowledge';
+import { EMBEDDED_KB, sourceOrgs, type KbLanguage, type KnowledgeBase } from './knowledge';
 import { dictationAvailable, speak, startDictation, stopSpeaking, type SpokenLanguage } from './voice';
 
 const ACCENT = '#246BFD';
 const ACCENT_SOFT = '#EBF2FF';
+/** Diamètre du bouton micro (≥ 76 dp). */
+export const MIC_SIZE = 80;
+/** Hauteur minimale des boutons de l'écran (≥ 56 dp). */
+export const BUTTON_HEIGHT = 56;
+/** Nombre de sujets proposés sur l'écran d'accueil de l'assistant. */
+export const HOME_TOPICS = 4;
+/** La police système agrandie reste lisible sans faire déborder l'écran unique. */
+const MAX_SCALE = 1.25;
 
-/** Écrans ouverts par les boutons d'action des réponses. */
+/** Écrans ouverts par le bouton d'action d'une réponse. */
 export const MODULE_ROUTES: Record<ModuleId, Href> = {
   observance: '/observance-role',
   saturation: '/modules/saturation',
@@ -33,31 +43,37 @@ export const MODULE_ROUTES: Record<ModuleId, Href> = {
   alzheimer: '/modules/alzheimer',
 };
 
-type Message = { id: number; role: 'user'; text: string } | { id: number; role: 'bot'; result: SearchResult };
+/** Les 3 langues, chacune écrite dans sa propre langue. */
+const MODES: readonly { value: SpokenLanguage; label: string }[] = [
+  { value: 'fr', label: 'FR' },
+  { value: 'ar', label: 'العربية' },
+  { value: 'darija', label: 'الدارجة' },
+];
 
-/** Texte lu à voix haute pour une réponse. */
+/** Texte lu à voix haute : titre et explication complète (la carte n'affiche que le résumé). */
 export function spokenText(kb: KnowledgeBase, result: SearchResult): string {
   return result.kind === 'answer' ? `${result.topic.title[result.lang]}. ${result.topic.answer[result.lang]}` : kb.fallback[result.lang];
 }
 
+type CenterView = { kind: 'home' } | { kind: 'write' } | { kind: 'answer'; result: SearchResult };
+
 export default function AssistantScreen({ loadApiBase }: { loadApiBase?: () => Promise<string> }) {
-  const { t, language, row } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const a = t.assistant;
   const [kb, setKb] = useState<KnowledgeBase>(EMBEDDED_KB);
-  const [status, setStatus] = useState<SyncStatus>('embarquee');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [mode, setMode] = useState<SpokenLanguage>(language === 'ar' ? 'darija' : 'fr');
+  const [view, setView] = useState<CenterView>({ kind: 'home' });
   const [input, setInput] = useState('');
-  const [autoRead, setAutoRead] = useState(true);
-  const [speakingId, setSpeakingId] = useState<number | null>(null);
-  const [heard, setHeard] = useState<ReadonlySet<number>>(new Set());
+  const [soundOn, setSoundOn] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
+  const [heard, setHeard] = useState(false);
   const [listening, setListening] = useState(false);
-  const [spoken, setSpoken] = useState<SpokenLanguage>(language === 'ar' ? 'darija' : 'fr');
+  const [partial, setPartial] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
-  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  const nextId = useRef(1);
   const stopDictation = useRef<(() => void) | null>(null);
   const kbRef = useRef(kb);
-  const uiLanguage: KbLanguage = language === 'ar' ? 'ar' : 'fr';
+  const answerLanguage: KbLanguage = mode === 'fr' ? 'fr' : 'ar';
+  const rtl = t.meta.dir === 'rtl';
 
   useFocusEffect(
     useCallback(() => {
@@ -72,7 +88,6 @@ export default function AssistantScreen({ loadApiBase }: { loadApiBase?: () => P
         if (cancelled) return;
         kbRef.current = synced.kb;
         setKb(synced.kb);
-        setStatus(synced.status);
       })();
       return () => {
         cancelled = true;
@@ -90,27 +105,46 @@ export default function AssistantScreen({ loadApiBase }: { loadApiBase?: () => P
   );
 
   const read = useCallback(
-    (id: number, result: SearchResult) => {
+    (result: SearchResult) => {
       setNotice(null);
-      const started = speak(spokenText(kbRef.current, result), result.lang, () => setSpeakingId((current) => (current === id ? null : current)));
-      if (started) {
-        setSpeakingId(id);
-        setHeard((ids) => new Set(ids).add(id));
-      } else setNotice(a.noVoice);
+      const started = speak(spokenText(kbRef.current, result), result.lang, () => setSpeaking(false));
+      setSpeaking(started);
+      if (started) setHeard(true);
+      else setNotice(a.noVoice);
     },
     [a.noVoice],
   );
 
+  const silence = () => {
+    stopSpeaking();
+    setSpeaking(false);
+  };
+
   const ask = (question: string) => {
     const text = question.trim();
     if (!text) return;
-    const result = search(kbRef.current, text, uiLanguage);
-    const userId = nextId.current++;
-    const botId = nextId.current++;
-    setMessages((list) => [...list, { id: userId, role: 'user', text }, { id: botId, role: 'bot', result }]);
+    const result = search(kbRef.current, text, answerLanguage);
+    setView({ kind: 'answer', result });
     setInput('');
-    if (autoRead) read(botId, result);
-    setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+    setHeard(false);
+    if (soundOn) read(result);
+    else silence();
+  };
+
+  const backHome = () => {
+    silence();
+    setNotice(null);
+    setView({ kind: 'home' });
+  };
+
+  const chooseMode = (next: SpokenLanguage) => {
+    setMode(next);
+    setLanguage(next === 'fr' ? 'fr' : 'ar');
+  };
+
+  const toggleSound = () => {
+    if (soundOn) silence();
+    setSoundOn(!soundOn);
   };
 
   const toggleMic = async () => {
@@ -119,19 +153,20 @@ export default function AssistantScreen({ loadApiBase }: { loadApiBase?: () => P
       stopDictation.current?.();
       return;
     }
-    stopSpeaking();
-    setSpeakingId(null);
-    let heard = '';
-    const stop = await startDictation(spoken, {
+    silence();
+    let said = '';
+    setPartial('');
+    const stop = await startDictation(mode, {
       onText: (text, isFinal) => {
-        heard = text;
-        setInput(text);
+        said = text;
+        setPartial(text);
         if (isFinal) stopDictation.current?.();
       },
       onEnd: () => {
         setListening(false);
+        setPartial('');
         stopDictation.current = null;
-        if (heard.trim()) ask(heard);
+        if (said.trim()) ask(said);
       },
       onError: (error) => {
         setListening(false);
@@ -142,235 +177,420 @@ export default function AssistantScreen({ loadApiBase }: { loadApiBase?: () => P
     setListening(stop !== null);
   };
 
-  const suggestions = [...kb.suggestions[uiLanguage]];
+  const writing = view.kind === 'write';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.top}>
-        <HomeButton />
-        <ModuleHeader title={a.title} subtitle={a.subtitle} icon="chatbubble-ellipses" colour={ACCENT} tint={ACCENT_SOFT} />
-        <Row style={styles.banner} accessibilityRole="text">
-          <Ionicons name="shield-checkmark" size={22} color={c.warning} />
-          <Text style={styles.bannerText}>{a.disclaimer}</Text>
-        </Row>
+    <SafeAreaView style={styles.screen} testID="assistant-screen">
+      {/* Zone haute compacte */}
+      <View style={styles.top} testID="assistant-top">
+        <View style={[styles.topRow, rtl && styles.rowRtl]}>
+          <BigPill icon={rtl ? 'arrow-forward' : 'arrow-back'} label={a.back} onPress={goToModules} />
+          <BigPill
+            icon={soundOn ? 'volume-high' : 'volume-mute'}
+            label={soundOn ? a.soundOn : a.soundOff}
+            onPress={toggleSound}
+            selected={soundOn}
+            a11yRole="switch"
+          />
+        </View>
+        {writing ? null : (
+          <View style={[styles.modes, rtl && styles.rowRtl]} accessibilityRole="radiogroup" accessibilityLabel={a.languageA11y}>
+            {MODES.map((m) => (
+              <Pressable
+                key={m.value}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: mode === m.value }}
+                onPress={() => chooseMode(m.value)}
+                style={[styles.mode, mode === m.value && styles.modeOn]}
+              >
+                <Text maxFontSizeMultiplier={MAX_SCALE} style={[styles.modeText, mode === m.value && styles.onText]}>
+                  {m.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
-      <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={styles.chat} keyboardShouldPersistTaps="handled">
-        <View style={[styles.bubble, styles.botBubble]}>
-          <Text style={ui.text}>{a.welcome}</Text>
-        </View>
-        <Chips title={a.suggestions} items={suggestions} onPick={ask} />
-        <Chips title={a.suggestionsDarija} items={kb.suggestions.darija} onPick={ask} rtl />
-
-        {messages.map((m) =>
-          m.role === 'user' ? (
-            <View key={m.id} style={[styles.bubble, styles.userBubble, { alignSelf: 'flex-end' }]} accessibilityLabel={`${a.you} : ${m.text}`}>
-              <Text style={styles.userText}>{m.text}</Text>
-            </View>
-          ) : (
-            <Answer
-              key={m.id}
-              kb={kb}
-              result={m.result}
-              speaking={speakingId === m.id}
-              heard={heard.has(m.id)}
-              onListen={() => (speakingId === m.id ? (stopSpeaking(), setSpeakingId(null)) : read(m.id, m.result))}
-              onPick={ask}
-            />
-          ),
-        )}
-        <Text style={styles.status}>{a.knowledge(kb.version, a.status[status])}</Text>
-      </ScrollView>
-
-      <View style={styles.bottom}>
+      {/* Zone centrale : une seule vue à la fois */}
+      <View style={styles.center} testID="assistant-center">
         {notice ? (
-          <Text style={styles.notice} accessibilityRole="alert">
+          <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={3} style={styles.notice} accessibilityRole="alert">
             {notice}
           </Text>
         ) : null}
-        <Row style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder={a.placeholder}
-            placeholderTextColor={c.muted}
-            accessibilityLabel={a.inputLabel}
-            onSubmitEditing={() => ask(input)}
-            returnKeyType="send"
+        {listening ? (
+          <View style={styles.listening}>
+            <Text maxFontSizeMultiplier={MAX_SCALE} style={styles.instruction}>
+              {a.micListening}
+            </Text>
+            {partial ? (
+              <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={3} style={styles.partial}>
+                {a.heardYou(partial)}
+              </Text>
+            ) : null}
+          </View>
+        ) : view.kind === 'home' ? (
+          <View style={styles.home}>
+            <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={3} style={styles.instruction}>
+              {a.instruction}
+            </Text>
+            {kb.suggestions[mode].slice(0, HOME_TOPICS).map((question) => (
+              <Pressable
+                key={question}
+                accessibilityRole="button"
+                onPress={() => ask(question)}
+                style={({ pressed }) => [styles.topic, mode !== 'fr' && styles.rowRtl, pressed && styles.pressed]}
+              >
+                <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={2} style={[styles.topicText, mode !== 'fr' ? styles.rtl : styles.ltr]}>
+                  {question}
+                </Text>
+                <Ionicons name={mode !== 'fr' ? 'chevron-back' : 'chevron-forward'} size={24} color={ACCENT} />
+              </Pressable>
+            ))}
+          </View>
+        ) : view.kind === 'write' ? (
+          <View style={styles.home}>
+            <TextInput
+              style={[styles.input, answerLanguage === 'ar' ? styles.rtl : styles.ltr]}
+              value={input}
+              onChangeText={setInput}
+              placeholder={a.placeholder}
+              placeholderTextColor={c.muted}
+              accessibilityLabel={a.inputLabel}
+              onSubmitEditing={() => ask(input)}
+              returnKeyType="send"
+              maxFontSizeMultiplier={MAX_SCALE}
+              autoFocus
+            />
+            <View style={styles.pair}>
+              <Wide icon="send" label={a.send} onPress={() => ask(input)} disabled={!input.trim()} primary />
+              <Wide icon="close" label={a.cancel} onPress={backHome} />
+            </View>
+          </View>
+        ) : (
+          <AnswerCard
+            kb={kb}
+            result={view.result}
+            speaking={speaking}
+            heard={heard}
+            onListen={() => (speaking ? silence() : read(view.result))}
+            onAnother={backHome}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={a.send}
-            onPress={() => ask(input)}
-            disabled={!input.trim()}
-            style={({ pressed }) => [styles.send, (!input.trim() || pressed) && { opacity: 0.5 }]}
-          >
-            <Ionicons name="send" size={24} color="#FFFFFF" />
-          </Pressable>
-        </Row>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={a.micA11y}
-          accessibilityState={{ busy: listening }}
-          onPress={() => void toggleMic()}
-          style={({ pressed }) => [styles.mic, row, listening && styles.micListening, pressed && { opacity: 0.85 }, !dictationAvailable() && { opacity: 0.6 }]}
-        >
-          <Ionicons name={listening ? 'stop-circle' : 'mic'} size={32} color="#FFFFFF" />
-          <Text style={styles.micText}>{listening ? a.micListening : a.mic}</Text>
-        </Pressable>
-        <Row style={styles.spokenRow}>
-          <Text style={styles.spokenLabel}>{a.spokenLanguage}</Text>
-          {(['fr', 'ar', 'darija'] as const).map((lang) => (
-            <Pressable
-              key={lang}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: spoken === lang }}
-              onPress={() => setSpoken(lang)}
-              style={[styles.spoken, spoken === lang && styles.spokenOn]}
-            >
-              <Text style={[styles.spokenText, spoken === lang && { color: '#FFFFFF' }]}>{a.spoken[lang]}</Text>
-            </Pressable>
-          ))}
-        </Row>
-        <Row style={styles.autoRow}>
-          <Text style={styles.spokenLabel}>{a.autoRead}</Text>
-          <Switch value={autoRead} onValueChange={setAutoRead} accessibilityLabel={a.autoRead} trackColor={{ true: ACCENT, false: c.border }} />
-        </Row>
+        )}
       </View>
+
+      {/* Mini-bandeau éthique d'une seule ligne (texte complet pour les lecteurs d'écran) */}
+      <View style={styles.ethics} accessible accessibilityLabel={a.disclaimer} testID="assistant-ethics">
+        <Ionicons name="shield-checkmark" size={16} color={c.warning} />
+        <Text maxFontSizeMultiplier={1} numberOfLines={1} style={styles.ethicsText}>
+          {a.ethicsShort}
+        </Text>
+      </View>
+
+      {/* Zone basse ancrée : micro central et « Écrire » (masquée pendant la saisie au clavier) */}
+      {writing ? null : (
+        <View style={[styles.bottom, rtl && styles.rowRtl]} testID="assistant-bottom">
+          <View style={[styles.side, { alignItems: rtl ? 'flex-end' : 'flex-start' }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                silence();
+                setNotice(null);
+                setView({ kind: 'write' });
+              }}
+              style={({ pressed }) => [styles.write, rtl && styles.rowRtl, pressed && styles.pressed]}
+            >
+              <Ionicons name="create" size={24} color={ACCENT} />
+              <Text maxFontSizeMultiplier={MAX_SCALE} style={styles.writeText}>
+                {a.write}
+              </Text>
+            </Pressable>
+          </View>
+          <MicButton listening={listening} label={listening ? a.stopTalk : a.talk} a11y={a.micA11y} dimmed={!dictationAvailable()} onPress={() => void toggleMic()} />
+          <View style={styles.side} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
-function Chips({ title, items, onPick, rtl = false }: { title: string; items: string[]; onPick: (q: string) => void; rtl?: boolean }) {
-  const { row } = useLanguage();
+/** Très grand micro rond, avec un halo qui pulse pendant l'écoute. */
+function MicButton({ listening, label, a11y, dimmed, onPress }: { listening: boolean; label: string; a11y: string; dimmed: boolean; onPress: () => void }) {
+  const [pulse] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (!listening) {
+      pulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: true }));
+    loop.start();
+    return () => loop.stop();
+  }, [listening, pulse]);
+  const halo = {
+    opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
+    transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.45] }) }],
+  };
   return (
-    <View style={{ gap: 8 }}>
-      <Text style={styles.chipsTitle}>{title}</Text>
-      <View style={[styles.chips, row]}>
-        {items.map((item) => (
-          <Pressable key={item} accessibilityRole="button" onPress={() => onPick(item)} style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}>
-            <Text style={[styles.chipText, rtl && styles.rtl]}>{item}</Text>
-          </Pressable>
-        ))}
+    <View style={styles.micColumn}>
+      <View style={styles.micBox}>
+        {listening ? <Animated.View pointerEvents="none" style={[styles.halo, halo]} testID="mic-pulse" /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={a11y}
+          accessibilityState={{ busy: listening }}
+          onPress={onPress}
+          style={({ pressed }) => [styles.mic, listening && styles.micOn, dimmed && { opacity: 0.6 }, pressed && styles.pressed]}
+          testID="assistant-mic"
+        >
+          <Ionicons name={listening ? 'stop' : 'mic'} size={40} color="#FFFFFF" />
+        </Pressable>
       </View>
+      <Text maxFontSizeMultiplier={MAX_SCALE} style={styles.micLabel}>
+        {label}
+      </Text>
     </View>
   );
 }
 
-function Answer({
+function AnswerCard({
   kb,
   result,
   speaking,
   heard,
   onListen,
-  onPick,
+  onAnother,
 }: {
   kb: KnowledgeBase;
   result: SearchResult;
   speaking: boolean;
   heard: boolean;
   onListen: () => void;
-  onPick: (q: string) => void;
+  onAnother: () => void;
 }) {
-  const { t, row } = useLanguage();
+  const { t } = useLanguage();
   const a = t.assistant;
-  // Libellés liés au contenu (source, urgence) dans la langue de la réponse.
+  // Contenu (source, urgence, appels) dans la langue de la réponse ; boutons dans celle de l'écran.
   const content = dictionaryFor(result.lang).assistant;
   const dir = result.lang === 'ar' ? styles.rtl : styles.ltr;
-  const listenButton = (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onListen}
-      style={({ pressed }) => [styles.listen, row, pressed && { opacity: 0.7 }]}
-    >
-      <Ionicons name={speaking ? 'stop' : 'volume-high'} size={24} color={ACCENT} />
-      <Text style={styles.listenText}>{speaking ? a.stopListening : heard ? a.relisten : a.listen}</Text>
-    </Pressable>
-  );
+  const topic = result.kind === 'answer' ? result.topic : null;
+  const calls = topic?.actions.some((x) => x.type === 'call') ?? false;
+  const module = topic?.actions.find((x) => x.type === 'module');
+  // Un seul bouton d'action : les appels si c'est urgent (ou sans module associé), sinon le module concerné.
+  const showCalls = !!topic && calls && (topic.urgent || !module);
 
-  if (result.kind === 'fallback') {
-    return (
-      <View style={[styles.bubble, styles.botBubble]}>
-        <Text style={[ui.text, dir]}>{kb.fallback[result.lang]}</Text>
-        {listenButton}
-        <Chips title={a.suggestions} items={result.suggestions} onPick={onPick} />
-      </View>
-    );
-  }
-
-  const { topic, lang, related } = result;
-  const calls = topic.actions.some((action) => action.type === 'call');
-  const modules = topic.actions.flatMap((action) => (action.type === 'module' ? [action.module] : []));
   return (
-    <View style={[styles.bubble, styles.botBubble, topic.urgent && styles.urgentBubble]} accessibilityLiveRegion="polite">
-      {topic.urgent ? (
-        <Row style={{ gap: 8 }}>
-          <Ionicons name="warning" size={24} color={c.danger} />
-          <Text style={[styles.urgentText, dir]}>{content.urgent}</Text>
-        </Row>
+    <View style={[styles.card, topic?.urgent && styles.cardUrgent]} accessibilityLiveRegion="polite" testID="assistant-card">
+      {topic ? (
+        <View style={[styles.titleRow, result.lang === 'ar' && styles.rowRtl]}>
+          {topic.urgent ? <Ionicons name="warning" size={28} color={c.danger} /> : null}
+          <Text
+            maxFontSizeMultiplier={MAX_SCALE}
+            numberOfLines={2}
+            style={[styles.answerTitle, topic.urgent && styles.urgentTitle, dir]}
+            accessibilityRole="header"
+            accessibilityLabel={topic.urgent ? `${content.urgent} ${topic.title[result.lang]}` : undefined}
+          >
+            {topic.title[result.lang]}
+          </Text>
+        </View>
       ) : null}
-      <Text style={[styles.answerTitle, dir]} accessibilityRole="header">
-        {topic.title[lang]}
+      <Text
+        maxFontSizeMultiplier={MAX_SCALE}
+        numberOfLines={8}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        style={[styles.summary, dir]}
+        testID="assistant-summary"
+      >
+        {topic ? topic.summary[result.lang] : kb.fallback[result.lang]}
       </Text>
-      <Text style={[styles.answer, dir]}>{topic.answer[lang]}</Text>
-      <Text style={[styles.source, dir]}>{content.source(sourceLine(kb, topic, lang))}</Text>
-      {listenButton}
-      {calls ? <EmergencyButtons emphasis={topic.urgent} /> : null}
-      {modules.map((id) => (
-        <Pressable
-          key={id}
-          accessibilityRole="button"
-          onPress={() => router.push(MODULE_ROUTES[id])}
-          style={({ pressed }) => [styles.moduleButton, row, pressed && { opacity: 0.7 }]}
-        >
-          <Ionicons name="open-outline" size={22} color={ACCENT} />
-          <Text style={styles.moduleText}>{a.openModule(t.home.modules[id].title)}</Text>
-        </Pressable>
-      ))}
-      {related.length ? <Chips title={a.related} items={related.map((r) => r.title[lang])} onPick={onPick} /> : null}
+
+      {showCalls ? (
+        <View style={[styles.pair, result.lang === 'ar' && styles.rowRtl]}>
+          {EMERGENCY_NUMBERS.map((n) => (
+            <Pressable
+              key={n}
+              accessibilityRole="button"
+              onPress={() => void Linking.openURL(`tel:${n}`)}
+              style={({ pressed }) => [styles.call, pressed && styles.pressed]}
+            >
+              <Ionicons name="call" size={24} color="#FFFFFF" />
+              <Text maxFontSizeMultiplier={MAX_SCALE} style={styles.callText}>
+                {content.call(n)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : module?.type === 'module' ? (
+        <View style={styles.pair}>
+          <Wide icon="open-outline" label={a.openModule(t.home.modules[module.module].title)} onPress={() => router.push(MODULE_ROUTES[module.module])} />
+        </View>
+      ) : null}
+
+      <View style={[styles.pair, t.meta.dir === 'rtl' && styles.rowRtl]}>
+        <Wide icon={speaking ? 'stop' : 'volume-high'} label={speaking ? a.stopListening : heard ? a.relisten : a.listen} onPress={onListen} primary />
+        <Wide label={a.another} onPress={onAnother} grow={1.3} />
+      </View>
+
+      {topic ? (
+        <Text maxFontSizeMultiplier={1.1} numberOfLines={1} style={[styles.source, dir]}>
+          {content.source(sourceOrgs(kb, topic, result.lang))}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
+function BigPill({
+  icon,
+  label,
+  onPress,
+  selected = false,
+  a11yRole = 'button',
+}: {
+  icon: 'arrow-back' | 'arrow-forward' | 'volume-high' | 'volume-mute';
+  label: string;
+  onPress: () => void;
+  selected?: boolean;
+  a11yRole?: 'button' | 'switch';
+}) {
+  return (
+    <Pressable
+      accessibilityRole={a11yRole}
+      accessibilityState={a11yRole === 'switch' ? { checked: selected } : undefined}
+      onPress={onPress}
+      style={({ pressed }) => [styles.pill, selected && styles.pillOn, pressed && styles.pressed]}
+    >
+      <Ionicons name={icon} size={24} color={selected ? '#FFFFFF' : ACCENT} />
+      <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1} style={[styles.pillText, selected && styles.onText]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Wide({
+  icon,
+  label,
+  onPress,
+  primary = false,
+  disabled = false,
+  grow = 1,
+}: {
+  icon?: 'send' | 'close' | 'stop' | 'volume-high' | 'open-outline';
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+  disabled?: boolean;
+  /** Part de la largeur de la rangée (1 par défaut). */
+  grow?: number;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.wide, { flex: grow }, primary && styles.widePrimary, (pressed || disabled) && styles.pressed]}
+    >
+      {icon ? <Ionicons name={icon} size={22} color={primary ? '#FFFFFF' : ACCENT} /> : null}
+      <Text maxFontSizeMultiplier={MAX_SCALE} numberOfLines={2} style={[styles.wideText, primary && styles.onText]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.background },
-  top: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
-  banner: { gap: 10, alignItems: 'flex-start', backgroundColor: c.warningSoft, borderRadius: radius.card, padding: 12 },
-  bannerText: { flex: 1, fontSize: 16, lineHeight: 22, color: c.title, fontWeight: '600' },
-  chat: { padding: 16, gap: 12, paddingBottom: 24 },
-  bubble: { borderRadius: radius.card, padding: 14, gap: 10, maxWidth: '100%' },
-  botBubble: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, ...shadow },
-  urgentBubble: { borderColor: c.danger, borderWidth: 2, backgroundColor: c.dangerSoft },
-  userBubble: { backgroundColor: ACCENT, maxWidth: '85%' },
-  userText: { color: '#FFFFFF', fontSize: 18, lineHeight: 25 },
-  urgentText: { flex: 1, fontSize: 18, fontWeight: '800', color: c.danger },
-  answerTitle: { fontSize: 21, fontWeight: '800', color: c.title },
-  answer: { fontSize: 18, lineHeight: 27, color: c.text },
-  source: { fontSize: 15, fontStyle: 'italic', color: c.muted },
+  screen: { flex: 1, backgroundColor: c.background },
+  pressed: { opacity: 0.7 },
+  onText: { color: '#FFFFFF' },
   rtl: { writingDirection: 'rtl', textAlign: 'right' },
   ltr: { writingDirection: 'ltr', textAlign: 'left' },
-  listen: { minHeight: MIN_TOUCH, alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.pill, borderWidth: 2, borderColor: ACCENT, backgroundColor: ACCENT_SOFT },
-  listenText: { fontSize: 18, fontWeight: '800', color: ACCENT },
-  moduleButton: { minHeight: MIN_TOUCH, alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: radius.control, backgroundColor: ACCENT_SOFT },
-  moduleText: { flex: 1, fontSize: 17, fontWeight: '700', color: c.title },
-  chipsTitle: { fontSize: 16, fontWeight: '700', color: c.muted },
-  chips: { flexWrap: 'wrap', gap: 8 },
-  chip: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1.5, borderColor: ACCENT, backgroundColor: c.card },
-  chipText: { fontSize: 17, fontWeight: '600', color: ACCENT },
-  status: { fontSize: 14, color: c.muted, textAlign: 'center' },
-  bottom: { padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card },
-  notice: { fontSize: 16, color: c.warning, fontWeight: '600' },
-  inputRow: { gap: 8, alignItems: 'center' },
-  input: { flex: 1, minHeight: 52, borderRadius: radius.control, borderWidth: 1.5, borderColor: c.inputBorder, paddingHorizontal: 14, fontSize: 18, color: c.title, backgroundColor: c.background },
-  send: { width: 52, height: 52, borderRadius: 26, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center' },
-  mic: { minHeight: 68, borderRadius: radius.pill, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  micListening: { backgroundColor: c.danger },
-  micText: { fontSize: 21, fontWeight: '800', color: '#FFFFFF' },
-  spokenRow: { gap: 6, alignItems: 'center', flexWrap: 'wrap' },
-  spokenLabel: { fontSize: 16, color: c.muted, flexShrink: 1 },
-  spoken: { minHeight: 40, paddingHorizontal: 12, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1.5, borderColor: ACCENT },
-  spokenOn: { backgroundColor: ACCENT },
-  spokenText: { fontSize: 16, fontWeight: '700', color: ACCENT },
-  autoRow: { justifyContent: 'space-between', alignItems: 'center' },
+  rowRtl: { flexDirection: 'row-reverse' },
+
+  top: { paddingHorizontal: 12, paddingTop: 8, gap: 8 },
+  topRow: { flexDirection: 'row', gap: 8 },
+  pill: {
+    flex: 1,
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: ACCENT,
+    backgroundColor: ACCENT_SOFT,
+  },
+  pillOn: { backgroundColor: ACCENT },
+  pillText: { fontSize: 17, fontWeight: '800', color: ACCENT, flexShrink: 1 },
+  modes: { flexDirection: 'row', gap: 8 },
+  mode: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.control, borderWidth: 2, borderColor: ACCENT, backgroundColor: c.card },
+  modeOn: { backgroundColor: ACCENT },
+  modeText: { fontSize: 18, fontWeight: '800', color: ACCENT, textAlign: 'center' },
+
+  center: { flex: 1, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center', gap: 8 },
+  notice: { fontSize: 16, fontWeight: '700', color: c.warning, textAlign: 'center' },
+  home: { gap: 10 },
+  instruction: { fontSize: 18, lineHeight: 25, fontWeight: '600', color: c.title, textAlign: 'center' },
+  topic: {
+    minHeight: BUTTON_HEIGHT + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.card,
+    borderWidth: 2,
+    borderColor: ACCENT,
+    backgroundColor: c.card,
+    ...shadow,
+  },
+  topicText: { flex: 1, fontSize: 18, fontWeight: '700', color: c.title },
+  listening: { gap: 12, alignItems: 'center' },
+  partial: { fontSize: 20, fontWeight: '700', color: ACCENT, textAlign: 'center' },
+  input: { minHeight: BUTTON_HEIGHT, borderRadius: radius.control, borderWidth: 2, borderColor: ACCENT, paddingHorizontal: 14, fontSize: 18, color: c.title, backgroundColor: c.card },
+
+  card: { flexShrink: 1, gap: 10, padding: 14, borderRadius: radius.card + 4, backgroundColor: c.card, borderWidth: 1, borderColor: c.border, ...shadow },
+  cardUrgent: { borderColor: c.danger, borderWidth: 2, backgroundColor: c.dangerSoft },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  answerTitle: { flex: 1, fontSize: 20, fontWeight: '800', color: c.title },
+  urgentTitle: { color: c.danger },
+  summary: { fontSize: 18, lineHeight: 26, color: c.text, flexShrink: 1 },
+  source: { fontSize: 13, fontStyle: 'italic', color: c.muted },
+  pair: { flexDirection: 'row', gap: 8 },
+  call: { flex: 1, minHeight: BUTTON_HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.control, backgroundColor: c.danger },
+  callText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
+  wide: {
+    flex: 1,
+    minHeight: BUTTON_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    borderRadius: radius.control,
+    borderWidth: 2,
+    borderColor: ACCENT,
+    backgroundColor: ACCENT_SOFT,
+  },
+  widePrimary: { backgroundColor: ACCENT },
+  wideText: { flexShrink: 1, fontSize: 16, fontWeight: '800', color: ACCENT, textAlign: 'center' },
+
+  ethics: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 4 },
+  ethicsText: { flexShrink: 1, fontSize: 13, color: c.muted },
+
+  bottom: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card },
+  side: { flex: 1 },
+  write: { minHeight: BUTTON_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 2, borderColor: ACCENT, backgroundColor: ACCENT_SOFT },
+  writeText: { fontSize: 17, fontWeight: '800', color: ACCENT },
+  micColumn: { alignItems: 'center', gap: 2 },
+  micBox: { width: MIC_SIZE, height: MIC_SIZE, alignItems: 'center', justifyContent: 'center' },
+  halo: { position: 'absolute', width: MIC_SIZE, height: MIC_SIZE, borderRadius: MIC_SIZE / 2, backgroundColor: c.danger },
+  mic: { width: MIC_SIZE, height: MIC_SIZE, borderRadius: MIC_SIZE / 2, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', ...shadow },
+  micOn: { backgroundColor: c.danger },
+  micLabel: { fontSize: 18, fontWeight: '800', color: c.title },
 });

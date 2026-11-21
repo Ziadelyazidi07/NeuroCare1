@@ -50,6 +50,7 @@ function AppStack() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="observance-role" options={{ headerShown: false }} />
+      <Stack.Screen name="assistant" options={{ headerShown: false }} />
       <Stack.Screen name="modules/saturation" options={{ headerShown: false }} />
       <Stack.Screen name="modules/mental" options={{ headerShown: false }} />
       <Stack.Screen name="modules/metabolic" options={{ headerShown: false }} />

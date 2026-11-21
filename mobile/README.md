@@ -120,8 +120,11 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   mots-clés, faute de frappe, urgences en tête, aucune réponse inventée) ; `assistantStore.ts` (mise à jour
   facultative depuis `http://<hôte>:8089/api/v1/assistant/knowledge`) ; `voice.ts` (`expo-speech` débit 0,85,
   `expo-speech-recognition` fr-FR / ar-SA / ar-MA, chargés à la demande).
-- Réponse : titre, explication, « Source : … », boutons 15 / 141 et ouverture du module concerné, « Écouter /
-  Réécouter », fiches voisines ; bandeau éthique permanent. **Modules natifs ajoutés : nouveau build EAS requis**
+- Écran unique sans défilement (`AssistantScreen.tsx`) : en haut « Retour », « Son activé / coupé » et langue
+  `FR` | `العربية` | `الدارجة` ; au centre une seule vue (consigne + 4 sujets, ou une seule carte : titre, résumé
+  ≤ 220 caractères, appel 15 / 141 en rouge si urgent sinon « Ouvrir » le module, « Écouter / Réécouter »,
+  « Poser une autre question », « Source : OMS · HAS ») ; bandeau éthique d'une ligne ; en bas micro de 80 dp
+  avec halo pendant l'écoute et « Écrire » (champ texte à la demande). Vérifié à 360 × 800 et 360 × 720 dp. **Modules natifs ajoutés : nouveau build EAS requis**
   (`eas build --profile preview`) ; sur l'ancien APK, l'assistant marche au clavier, sans voix.
 
 **Grille des modules** (`src/app/index.tsx`)

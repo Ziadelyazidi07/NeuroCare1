@@ -17,6 +17,10 @@ public final class KnowledgeBaseValidator {
     public static final Set<String> ALLOWED_SOURCES = Set.of("OMS", "HAS", "ESC", "FID");
     public static final Set<String> MODULES = Set.of("observance", "saturation", "mental", "metabolic", "cardio", "alzheimer");
     private static final List<String> LANGUAGES = List.of("fr", "ar");
+    /** Résumé affiché sur l'écran unique (sans défilement) de l'application : texte court obligatoire. */
+    public static final int MAX_SUMMARY_LENGTH = 220;
+    /** Titre sur deux lignes au plus. */
+    public static final int MAX_TITLE_LENGTH = 45;
 
     private KnowledgeBaseValidator() {
     }
@@ -43,8 +47,13 @@ public final class KnowledgeBaseValidator {
             String id = topic.path("id").asText();
             if (id.isBlank() || !ids.add(id)) errors.add("identifiant absent ou en double : '" + id + "'");
             for (String lang : LANGUAGES) {
-                if (topic.path("title").path(lang).asText().isBlank()) errors.add(id + " : titre " + lang + " manquant");
+                String title = topic.path("title").path(lang).asText();
+                if (title.isBlank()) errors.add(id + " : titre " + lang + " manquant");
+                if (title.length() > MAX_TITLE_LENGTH) errors.add(id + " : titre " + lang + " trop long");
                 if (topic.path("answer").path(lang).asText().isBlank()) errors.add(id + " : réponse " + lang + " manquante");
+                String summary = topic.path("summary").path(lang).asText();
+                if (summary.isBlank()) errors.add(id + " : résumé " + lang + " manquant");
+                if (summary.length() > MAX_SUMMARY_LENGTH) errors.add(id + " : résumé " + lang + " trop long (" + summary.length() + " > " + MAX_SUMMARY_LENGTH + ")");
                 if (topic.path("source").path("reference").path(lang).asText().isBlank()) errors.add(id + " : référence " + lang + " manquante");
             }
             JsonNode orgs = topic.path("source").path("orgs");

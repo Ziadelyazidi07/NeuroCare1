@@ -22,6 +22,8 @@ export interface Topic {
   keywords: { fr: string[]; ar: string[]; darija: string[] };
   title: Translated;
   answer: Translated;
+  /** Résumé court (220 caractères au plus) affiché sur l'écran unique ; la réponse complète est lue à voix haute. */
+  summary: Translated;
   source: { orgs: SourceOrg[]; reference: Translated };
   actions: KbAction[];
 }
@@ -37,6 +39,9 @@ export interface KnowledgeBase {
 }
 
 export const EMBEDDED_KB = EMBEDDED_JSON as KnowledgeBase;
+
+/** Longueur maximale d'un résumé (même règle que le microservice). */
+export const MAX_SUMMARY_LENGTH = 220;
 
 const MODULE_IDS: readonly string[] = ['observance', 'saturation', 'mental', 'metabolic', 'cardio', 'alzheimer'];
 const ORGS: readonly string[] = ['OMS', 'HAS', 'ESC', 'FID'];
@@ -56,6 +61,9 @@ export function isKnowledgeBase(value: unknown): value is KnowledgeBase {
       isText(t?.id) &&
       isTranslated(t.title) &&
       isTranslated(t.answer) &&
+      isTranslated(t.summary) &&
+      t.summary.fr.length <= MAX_SUMMARY_LENGTH &&
+      t.summary.ar.length <= MAX_SUMMARY_LENGTH &&
       isTranslated(t.source?.reference) &&
       Array.isArray(t.source?.orgs) &&
       t.source.orgs.length > 0 &&
@@ -77,6 +85,11 @@ export function compareVersions(a: string, b: string): number {
     if (diff) return diff;
   }
   return 0;
+}
+
+/** Sigles des organismes (« OMS · HAS »), en toutes lettres en arabe. */
+export function sourceOrgs(kb: KnowledgeBase, topic: Topic, lang: KbLanguage): string {
+  return topic.source.orgs.map((o) => (lang === 'ar' ? (kb.sources[o]?.ar ?? o) : o)).join(' · ');
 }
 
 /** « Source : OMS · HAS — référence » : sigles des organismes et référence dans la langue de la réponse. */

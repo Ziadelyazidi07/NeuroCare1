@@ -62,10 +62,10 @@ describe('recherche locale trilingue', () => {
   });
 
   it.each([
-    ['fr', 0, 'oubli-medicament'], ['fr', 1, 'hta-elevee'], ['fr', 2, 'hta-mesure'], ['fr', 3, 'vertiges'],
-    ['fr', 4, 'hypoglycemie'], ['fr', 5, 'spo2-basse'], ['fr', 6, 'memoire-oublis'], ['fr', 7, 'sommeil'],
-    ['ar', 0, 'oubli-medicament'], ['ar', 1, 'hta-elevee'], ['ar', 2, 'hta-mesure'], ['ar', 3, 'vertiges'],
-    ['ar', 4, 'hypoglycemie'], ['ar', 5, 'spo2-basse'], ['ar', 6, 'memoire-oublis'], ['ar', 7, 'sommeil'],
+    ['fr', 0, 'oubli-medicament'], ['fr', 1, 'hta-elevee'], ['fr', 2, 'hypoglycemie'], ['fr', 3, 'memoire-oublis'],
+    ['fr', 4, 'hta-mesure'], ['fr', 5, 'vertiges'], ['fr', 6, 'spo2-basse'], ['fr', 7, 'sommeil'],
+    ['ar', 0, 'oubli-medicament'], ['ar', 1, 'hta-elevee'], ['ar', 2, 'hypoglycemie'], ['ar', 3, 'memoire-oublis'],
+    ['ar', 4, 'hta-mesure'], ['ar', 5, 'vertiges'], ['ar', 6, 'spo2-basse'], ['ar', 7, 'sommeil'],
     ['darija', 0, 'oubli-medicament'], ['darija', 1, 'hta-elevee'], ['darija', 2, 'glycemie-elevee'], ['darija', 3, 'vertiges'],
     ['darija', 4, 'sommeil'], ['darija', 5, 'urgence-douleur-poitrine'],
   ] as const)('puce %s n°%i → %s', (group, index, id) => {

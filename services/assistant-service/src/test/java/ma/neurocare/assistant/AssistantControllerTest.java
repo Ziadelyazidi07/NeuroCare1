@@ -39,7 +39,7 @@ class AssistantControllerTest {
     void knowledgeEstSourceeEtTraduite() throws Exception {
         mvc.perform(get("/api/v1/assistant/knowledge"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("ETag", "\"2026.11.1\""))
+                .andExpect(header().string("ETag", "\"2026.11.2\""))
                 .andExpect(jsonPath("$.disclaimer.fr", not(blankOrNullString())))
                 .andExpect(jsonPath("$.disclaimer.ar", not(blankOrNullString())))
                 .andExpect(jsonPath("$.topics[*].source.orgs[*]", everyItem(in(new String[] {"OMS", "HAS", "ESC", "FID"}))))
@@ -49,7 +49,7 @@ class AssistantControllerTest {
 
     @Test
     void knowledgeRepond304SiLaVersionEstDejaConnue() throws Exception {
-        mvc.perform(get("/api/v1/assistant/knowledge").header("If-None-Match", "\"2026.11.1\"")).andExpect(status().isNotModified());
+        mvc.perform(get("/api/v1/assistant/knowledge").header("If-None-Match", "\"2026.11.2\"")).andExpect(status().isNotModified());
     }
 
     @Test
