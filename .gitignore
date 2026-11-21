@@ -38,3 +38,4 @@ mobile/ios/
 
 # Pitch : fichiers intermédiaires (aperçus, rendus de contrôle)
 pitch/build/
+services/assistant-service/target/

@@ -65,6 +65,17 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "NeuroCare utilise le micro pour enregistrer la voix de l'aidant et pour poser vos questions à l'Assistant Santé.",
+          "speechRecognitionPermission": "NeuroCare transforme votre question parlée en texte pour l'Assistant Santé.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.as"
+          ]
+        }
       ]
     ],
     "extra": {

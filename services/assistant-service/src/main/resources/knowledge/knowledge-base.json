@@ -1,0 +1,1164 @@
+{
+  "version": "2026.11.1",
+  "updatedAt": "2026-11-21",
+  "disclaimer": {
+    "fr": "L'Assistant Santé informe et oriente. Il ne pose aucun diagnostic et ne remplace jamais une consultation médicale. En cas de signe grave, appelez le 15 ou le 141.",
+    "ar": "المساعد الصحي يُخبر ويُوجّه فقط. لا يضع أي تشخيص ولا يعوّض أبدًا استشارة الطبيب. عند ظهور علامة خطيرة، اتصل بالرقم 15 أو 141."
+  },
+  "sources": {
+    "OMS": {
+      "fr": "OMS",
+      "ar": "منظمة الصحة العالمية",
+      "name": "Organisation mondiale de la Santé"
+    },
+    "HAS": {
+      "fr": "HAS",
+      "ar": "الهيئة العليا للصحة",
+      "name": "Haute Autorité de Santé"
+    },
+    "ESC": {
+      "fr": "ESC",
+      "ar": "الجمعية الأوروبية لأمراض القلب",
+      "name": "Société européenne de cardiologie"
+    },
+    "FID": {
+      "fr": "FID",
+      "ar": "الاتحاد الدولي للسكري",
+      "name": "Fédération internationale du diabète"
+    }
+  },
+  "suggestions": {
+    "fr": [
+      "J'ai oublié mon médicament",
+      "Ma tension est élevée",
+      "Comment mesurer ma tension ?",
+      "J'ai des vertiges",
+      "Mon sucre est trop bas",
+      "Ma saturation est basse",
+      "J'oublie souvent des choses",
+      "Je dors mal"
+    ],
+    "ar": [
+      "نسيت تناول دوائي",
+      "ضغط دمي مرتفع",
+      "كيف أقيس ضغط الدم؟",
+      "أشعر بالدوار",
+      "السكر منخفض عندي",
+      "نسبة الأكسجين منخفضة",
+      "أنسى الأشياء كثيرًا",
+      "لا أستطيع النوم"
+    ],
+    "darija": [
+      "نسيت الدوا",
+      "الطونسيو طالع",
+      "السكر طالع",
+      "عندي الدوخة",
+      "ماكنعسش مزيان",
+      "الصدر كيضرني"
+    ]
+  },
+  "fallback": {
+    "fr": "Je n'ai pas trouvé de réponse précise à votre question. Essayez avec d'autres mots, ou touchez une des questions proposées. Pour toute inquiétude sur votre santé, parlez-en à votre médecin ou à votre pharmacien.",
+    "ar": "لم أجد جوابًا دقيقًا على سؤالك. جرّب كلمات أخرى، أو المس أحد الأسئلة المقترحة. لأي قلق بخصوص صحتك، تحدّث مع طبيبك أو الصيدلي."
+  },
+  "topics": [
+    {
+      "id": "urgence-avc",
+      "category": "urgence",
+      "urgent": true,
+      "keywords": {
+        "fr": [
+          "avc",
+          "accident vasculaire",
+          "attaque cerebrale",
+          "paralysie",
+          "paralyse",
+          "bouche tordue",
+          "visage deforme",
+          "bras faible",
+          "bras lourd",
+          "n'arrive plus a parler",
+          "parole difficile",
+          "trouble de la parole"
+        ],
+        "ar": [
+          "جلطة دماغية",
+          "سكتة دماغية",
+          "شلل",
+          "الوجه مائل",
+          "لا أستطيع الكلام",
+          "صعوبة في الكلام",
+          "ثقل في اليد"
+        ],
+        "darija": [
+          "الفم تعوج",
+          "فمو تعوج",
+          "ماقادرش نهدر",
+          "ماقدرش يهدر",
+          "يدي ثقيلة",
+          "يدو ثقيلة",
+          "الجلطة",
+          "fem t3waj",
+          "ma9adrch nhder"
+        ]
+      },
+      "title": {
+        "fr": "Signes possibles d'AVC : urgence",
+        "ar": "علامات محتملة لجلطة دماغية: حالة مستعجلة"
+      },
+      "answer": {
+        "fr": "Un visage qui se déforme, un bras ou une jambe qui devient faible, une parole difficile ou incompréhensible, ou une vue qui se trouble brutalement peuvent être les signes d'un AVC. Appelez immédiatement les urgences (15 ou 141) et notez l'heure du début des signes. N'attendez pas que cela passe, et ne donnez rien à boire ni à manger.",
+        "ar": "وجه يميل، ذراع أو ساق تضعف، كلام صعب أو غير مفهوم، أو رؤية تضطرب فجأة: قد تكون هذه علامات جلطة دماغية. اتصل فورًا بالإسعاف (15 أو 141) وسجّل ساعة بداية العلامات. لا تنتظر أن تمرّ، ولا تُعطِ المريض شيئًا يشربه أو يأكله."
+      },
+      "source": {
+        "orgs": [
+          "OMS",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "HAS, AVC : prise en charge précoce ; OMS, fiche AVC",
+          "ar": "الهيئة العليا للصحة: التكفل المبكر بالجلطة الدماغية؛ منظمة الصحة العالمية"
+        }
+      },
+      "actions": [
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "urgence-douleur-poitrine",
+      "category": "urgence",
+      "urgent": true,
+      "keywords": {
+        "fr": [
+          "douleur poitrine",
+          "douleur dans la poitrine",
+          "mal a la poitrine",
+          "poitrine serree",
+          "oppression",
+          "infarctus",
+          "crise cardiaque",
+          "douleur thoracique",
+          "thorax"
+        ],
+        "ar": [
+          "ألم في الصدر",
+          "ألم الصدر",
+          "ضيق في الصدر",
+          "نوبة قلبية",
+          "ذبحة صدرية",
+          "جلطة قلبية"
+        ],
+        "darija": [
+          "الصدر كيضرني",
+          "صدري كيضرني",
+          "الصدر مزير",
+          "قلبي كيضرني",
+          "sder kaydrni",
+          "9albi kaydrni"
+        ]
+      },
+      "title": {
+        "fr": "Douleur dans la poitrine : urgence",
+        "ar": "ألم في الصدر: حالة مستعجلة"
+      },
+      "answer": {
+        "fr": "Une douleur ou une sensation de serrement dans la poitrine qui dure plus de quelques minutes, surtout si elle s'étend au bras, à la mâchoire ou au dos, ou s'accompagne de sueurs, d'essoufflement ou de nausées, peut venir du cœur. Appelez immédiatement les urgences (15 ou 141). Asseyez-vous, restez au calme, ne conduisez pas et ne restez pas seul.",
+        "ar": "ألم أو إحساس بالضغط في الصدر يدوم أكثر من بضع دقائق، خاصة إذا امتد إلى الذراع أو الفك أو الظهر، أو رافقه عرق أو ضيق تنفس أو غثيان، قد يكون مصدره القلب. اتصل فورًا بالإسعاف (15 أو 141). اجلس، ابقَ هادئًا، لا تَقُد السيارة ولا تبقَ وحدك."
+      },
+      "source": {
+        "orgs": [
+          "ESC"
+        ],
+        "reference": {
+          "fr": "ESC, recommandations 2023 sur les syndromes coronariens aigus",
+          "ar": "الجمعية الأوروبية لأمراض القلب: توصيات 2023 حول المتلازمات التاجية الحادة"
+        }
+      },
+      "actions": [
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "urgence-detresse",
+      "category": "urgence",
+      "urgent": true,
+      "keywords": {
+        "fr": [
+          "suicide",
+          "me suicider",
+          "envie de mourir",
+          "mettre fin a mes jours",
+          "me tuer",
+          "me blesser volontairement",
+          "idees noires",
+          "plus envie de vivre"
+        ],
+        "ar": [
+          "انتحار",
+          "أريد أن أموت",
+          "أفكر في الموت",
+          "إيذاء نفسي"
+        ],
+        "darija": [
+          "بغيت نموت",
+          "نقتل راسي",
+          "نتحر",
+          "baghi nmout"
+        ]
+      },
+      "title": {
+        "fr": "Vous n'êtes pas seul : demandez de l'aide maintenant",
+        "ar": "لستَ وحدك: اطلب المساعدة الآن"
+      },
+      "answer": {
+        "fr": "Merci de l'avoir dit. Ce que vous ressentez est sérieux et peut être soulagé. Ne restez pas seul : appelez tout de suite les urgences (15 ou 141) ou demandez à un proche de rester avec vous. Parlez-en aussi à votre médecin dès que possible.",
+        "ar": "شكرًا لأنك قلت ذلك. ما تشعر به أمر جدّي ويمكن تخفيفه. لا تبقَ وحدك: اتصل فورًا بالإسعاف (15 أو 141) أو اطلب من أحد أقاربك أن يبقى معك. تحدّث أيضًا مع طبيبك في أقرب وقت."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, guide d'intervention mhGAP (2023)",
+          "ar": "منظمة الصحة العالمية: دليل التدخل mhGAP (2023)"
+        }
+      },
+      "actions": [
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "hypoglycemie",
+      "category": "diabete",
+      "urgent": true,
+      "keywords": {
+        "fr": [
+          "hypoglycemie",
+          "hypo",
+          "sucre bas",
+          "sucre trop bas",
+          "glycemie basse",
+          "tremble",
+          "tremblements",
+          "sueurs",
+          "malaise sucre"
+        ],
+        "ar": [
+          "انخفاض السكر",
+          "هبوط السكر",
+          "السكر منخفض",
+          "نقص السكر",
+          "رجفة",
+          "تعرق"
+        ],
+        "darija": [
+          "السكر هابط",
+          "السكر نازل",
+          "السكر طاح",
+          "كنترعد",
+          "كنعرق",
+          "sokar hbet",
+          "sokar nazel",
+          "kantr3ed"
+        ]
+      },
+      "title": {
+        "fr": "Sucre trop bas (hypoglycémie) : que faire ?",
+        "ar": "انخفاض السكر في الدم: ماذا أفعل؟"
+      },
+      "answer": {
+        "fr": "Chez une personne diabétique traitée, des tremblements, des sueurs, une faim brutale, un cœur qui bat vite ou une confusion peuvent signaler un sucre trop bas (moins de 0,70 g/L). Si la personne est bien réveillée : donnez 15 g de sucre rapide (3 morceaux de sucre, ou un demi-verre de jus de fruit), contrôlez à nouveau après 15 minutes et recommencez si besoin, puis prenez une collation. Si elle n'arrive plus à avaler, est très somnolente ou perd connaissance : ne lui donnez rien par la bouche, mettez-la sur le côté et appelez immédiatement les urgences.",
+        "ar": "عند مريض السكري المعالَج، قد تدل الرجفة والعرق والجوع المفاجئ وتسارع دقات القلب أو الارتباك على انخفاض السكر (أقل من 0,70 غ/ل). إذا كان الشخص واعيًا: أعطه 15 غرامًا من السكر السريع (3 قطع سكر، أو نصف كأس عصير فواكه)، ثم أعد القياس بعد 15 دقيقة وكرّر إذا لزم الأمر، ثم وجبة خفيفة. إذا لم يعد يستطيع البلع، أو كان شديد النعاس، أو فقد وعيه: لا تُعطه شيئًا عن طريق الفم، ضعه على جنبه واتصل فورًا بالإسعاف."
+      },
+      "source": {
+        "orgs": [
+          "FID",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "FID, recommandations sur l'hypoglycémie ; HAS, diabète de type 2",
+          "ar": "الاتحاد الدولي للسكري: توصيات انخفاض السكر؛ الهيئة العليا للصحة"
+        }
+      },
+      "actions": [
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        },
+        {
+          "type": "module",
+          "module": "metabolic"
+        }
+      ]
+    },
+    {
+      "id": "oubli-medicament",
+      "category": "observance",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "oublie",
+          "oublier",
+          "oubli",
+          "medicament",
+          "medicaments",
+          "cachet",
+          "comprime",
+          "pilule",
+          "dose",
+          "double dose",
+          "rattraper",
+          "pas pris",
+          "oublie medicament",
+          "oublie mon medicament",
+          "oublie cachet",
+          "oublie de prendre"
+        ],
+        "ar": [
+          "نسيت",
+          "نسيت الدواء",
+          "دواء",
+          "الدواء",
+          "دوائي",
+          "حبة",
+          "جرعة",
+          "جرعتين"
+        ],
+        "darija": [
+          "نسيت الدوا",
+          "الدوا",
+          "دوا",
+          "الكاشي",
+          "كاشي",
+          "ماخديتش الدوا",
+          "nsit",
+          "dwa",
+          "dawa",
+          "kachi"
+        ]
+      },
+      "title": {
+        "fr": "Un médicament oublié",
+        "ar": "نسيان الدواء"
+      },
+      "answer": {
+        "fr": "Pas d'inquiétude, cela arrive à tout le monde. Ne prenez jamais deux doses en même temps pour « rattraper » un oubli. La bonne conduite dépend du médicament : regardez la notice (rubrique « Si vous oubliez de prendre ») ou demandez à votre pharmacien ou à votre médecin. Pour éviter les prochains oublis, les rappels NeuroCare avec la voix d'un proche peuvent vous aider.",
+        "ar": "لا تقلق، هذا يحدث للجميع. لا تتناول أبدًا جرعتين في نفس الوقت لتعويض الجرعة المنسية. التصرف الصحيح يختلف حسب الدواء: راجع النشرة الداخلية (فقرة «إذا نسيت تناول») أو اسأل الصيدلي أو طبيبك. لتفادي النسيان مستقبلًا، يمكن لتذكيرات نوروكير بصوت أحد أقاربك أن تساعدك."
+      },
+      "source": {
+        "orgs": [
+          "OMS",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "OMS, L'observance des traitements au long cours (2003) ; HAS, bon usage du médicament",
+          "ar": "منظمة الصحة العالمية: الالتزام بالعلاجات طويلة الأمد (2003)؛ الهيئة العليا للصحة"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "observance"
+        }
+      ]
+    },
+    {
+      "id": "observance-conseils",
+      "category": "observance",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "rappel",
+          "rappels",
+          "pilulier",
+          "ne plus oublier",
+          "organiser",
+          "horaire",
+          "routine",
+          "penser a prendre"
+        ],
+        "ar": [
+          "تذكير",
+          "منظم الأدوية",
+          "علبة الأدوية",
+          "تنظيم الأدوية",
+          "موعد الدواء"
+        ],
+        "darija": [
+          "فكرني",
+          "نتفكر",
+          "باش مانساش",
+          "fakarni",
+          "bach mansach"
+        ]
+      },
+      "title": {
+        "fr": "Bien prendre son traitement chaque jour",
+        "ar": "تناول العلاج بانتظام كل يوم"
+      },
+      "answer": {
+        "fr": "Quelques astuces simples aident beaucoup : prenez vos médicaments toujours au même moment, en les associant à un geste quotidien (repas, brossage des dents) ; utilisez un pilulier préparé pour la semaine ; gardez une liste à jour de vos traitements. N'arrêtez jamais un traitement sans en parler à votre médecin. Dans NeuroCare, « Rappels & Suivi » vous prévient à l'heure avec la voix d'un proche, et un simple « C'est fait » rassure votre famille.",
+        "ar": "بعض النصائح البسيطة تساعد كثيرًا: تناول أدويتك دائمًا في نفس الوقت، واربطها بعادة يومية (الأكل، تنظيف الأسنان)؛ استعمل علبة أدوية مُحضّرة للأسبوع؛ واحتفظ بلائحة محيّنة لعلاجاتك. لا توقف أي علاج دون استشارة طبيبك. في نوروكير، تذكّرك «التذكيرات والمتابعة» في الوقت المحدد بصوت أحد أقاربك، وزر «تمّ» يطمئن عائلتك."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, L'observance des traitements au long cours (2003)",
+          "ar": "منظمة الصحة العالمية: الالتزام بالعلاجات طويلة الأمد (2003)"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "observance"
+        }
+      ]
+    },
+    {
+      "id": "hta-elevee",
+      "category": "hta",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "tension",
+          "tension elevee",
+          "tension haute",
+          "hypertension",
+          "hta",
+          "pression arterielle",
+          "tension forte"
+        ],
+        "ar": [
+          "ضغط الدم",
+          "ارتفاع الضغط",
+          "الضغط مرتفع",
+          "ارتفاع ضغط الدم",
+          "الضغط"
+        ],
+        "darija": [
+          "طونسيو",
+          "الطونسيو",
+          "طونسيون",
+          "الطونسيون",
+          "الضغط طالع",
+          "طالع",
+          "tansyo",
+          "tonsyo",
+          "tansion",
+          "tension tal3a"
+        ]
+      },
+      "title": {
+        "fr": "Tension élevée : comment réagir ?",
+        "ar": "ارتفاع ضغط الدم: كيف أتصرف؟"
+      },
+      "answer": {
+        "fr": "À la maison, une tension est considérée comme élevée à partir de 135/85 en moyenne. Une seule valeur haute ne suffit pas : reposez-vous 5 minutes au calme et mesurez à nouveau. Si elle reste élevée plusieurs jours, montrez votre relevé à votre médecin ; le protocole sur 3 jours de NeuroCare vous y aide. Si la tension dépasse 180/110 avec maux de tête violents, douleur dans la poitrine, essoufflement, trouble de la parole ou de la vue : appelez immédiatement les urgences.",
+        "ar": "في المنزل، يُعتبر الضغط مرتفعًا ابتداءً من معدل 135/85. قياس واحد مرتفع لا يكفي: استرح 5 دقائق في هدوء ثم أعد القياس. إذا بقي مرتفعًا لعدة أيام، اعرض قياساتك على طبيبك؛ بروتوكول الأيام الثلاثة في نوروكير يساعدك على ذلك. إذا تجاوز الضغط 180/110 مع صداع شديد أو ألم في الصدر أو ضيق تنفس أو اضطراب في الكلام أو الرؤية: اتصل فورًا بالإسعاف."
+      },
+      "source": {
+        "orgs": [
+          "ESC",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "ESC, recommandations 2024 sur l'hypertension artérielle ; HAS, automesure tensionnelle",
+          "ar": "الجمعية الأوروبية لأمراض القلب: توصيات 2024 حول ارتفاع ضغط الدم؛ الهيئة العليا للصحة: القياس الذاتي"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "cardio"
+        },
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "hta-mesure",
+      "category": "hta",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "mesurer ma tension",
+          "prendre ma tension",
+          "mesurer la tension",
+          "tensiometre",
+          "brassard",
+          "automesure",
+          "comment mesurer"
+        ],
+        "ar": [
+          "قياس الضغط",
+          "كيف أقيس الضغط",
+          "جهاز الضغط",
+          "جهاز قياس الضغط",
+          "أقيس",
+          "أقيس ضغط الدم"
+        ],
+        "darija": [
+          "نقيس الطونسيو",
+          "كيفاش نقيس",
+          "الماكينة ديال الطونسيو",
+          "n9is",
+          "kifach n9is"
+        ]
+      },
+      "title": {
+        "fr": "Bien mesurer sa tension à la maison",
+        "ar": "قياس ضغط الدم بشكل صحيح في المنزل"
+      },
+      "answer": {
+        "fr": "Asseyez-vous 5 minutes au calme, dos appuyé, pieds à plat, sans parler. Placez le brassard sur le bras nu, à hauteur du cœur. Évitez café, tabac et effort dans les 30 minutes avant. Faites 3 mesures à 1 minute d'intervalle, le matin avant le petit-déjeuner et les médicaments, et le soir avant le coucher, pendant 3 jours : c'est la « règle des 3 ». Notez chaque résultat : NeuroCare calcule la moyenne pour votre médecin.",
+        "ar": "اجلس 5 دقائق في هدوء، ظهرك مسنود وقدماك على الأرض، دون كلام. ضع الحزام على الذراع العارية في مستوى القلب. تجنّب القهوة والتدخين والمجهود خلال 30 دقيقة قبل القياس. قم بـ3 قياسات بفاصل دقيقة، صباحًا قبل الفطور والأدوية، ومساءً قبل النوم، لمدة 3 أيام: هذه «قاعدة الثلاثة». سجّل كل نتيجة: نوروكير يحسب المعدل لطبيبك."
+      },
+      "source": {
+        "orgs": [
+          "ESC",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "ESC 2024 ; HAS, automesure tensionnelle (règle des 3)",
+          "ar": "الجمعية الأوروبية لأمراض القلب 2024؛ الهيئة العليا للصحة: قاعدة الثلاثة"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "cardio"
+        }
+      ]
+    },
+    {
+      "id": "vertiges",
+      "category": "hta",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "vertige",
+          "vertiges",
+          "tete qui tourne",
+          "etourdissement",
+          "malaise",
+          "hypotension",
+          "tension basse",
+          "tomber",
+          "chute"
+        ],
+        "ar": [
+          "دوار",
+          "الدوار",
+          "دوخة",
+          "الدوخة",
+          "ضغط منخفض",
+          "هبوط الضغط",
+          "إغماء"
+        ],
+        "darija": [
+          "عندي الدوخة",
+          "دايخ",
+          "داخ",
+          "راسي كيدور",
+          "الطونسيو هابط",
+          "الطونسيو نازل",
+          "طحت",
+          "dokha",
+          "daykh",
+          "rassi kaydour"
+        ]
+      },
+      "title": {
+        "fr": "Vertiges ou tête qui tourne",
+        "ar": "الدوار أو الدوخة"
+      },
+      "answer": {
+        "fr": "Si la tête vous tourne, asseyez-vous ou allongez-vous tout de suite pour éviter une chute, puis buvez un verre d'eau. Relevez-vous ensuite lentement, en passant d'abord par la position assise. Les vertiges peuvent venir d'une tension trop basse (moins de 100 pour le grand chiffre), d'un manque d'eau, d'un médicament ou d'un sucre trop bas : parlez-en à votre médecin. Appelez les urgences si le malaise s'accompagne d'une perte de connaissance, d'une douleur dans la poitrine, d'une faiblesse d'un côté du corps ou d'un trouble de la parole.",
+        "ar": "إذا شعرت بالدوار، اجلس أو استلقِ فورًا لتفادي السقوط، ثم اشرب كأس ماء. انهض بعد ذلك ببطء، مرورًا بوضعية الجلوس أولًا. قد يأتي الدوار من انخفاض الضغط (أقل من 100 للرقم الكبير)، أو نقص الماء، أو دواء، أو انخفاض السكر: تحدّث مع طبيبك. اتصل بالإسعاف إذا رافق الدوار فقدان الوعي، أو ألم في الصدر، أو ضعف في جهة من الجسم، أو اضطراب في الكلام."
+      },
+      "source": {
+        "orgs": [
+          "HAS",
+          "ESC"
+        ],
+        "reference": {
+          "fr": "HAS, prévention des chutes chez la personne âgée ; ESC, syncope",
+          "ar": "الهيئة العليا للصحة: الوقاية من السقوط عند المسنين؛ الجمعية الأوروبية لأمراض القلب: الإغماء"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "cardio"
+        },
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "glycemie-elevee",
+      "category": "diabete",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "diabete",
+          "diabetique",
+          "sucre",
+          "glycemie",
+          "hyperglycemie",
+          "sucre eleve",
+          "hba1c",
+          "glycemie elevee"
+        ],
+        "ar": [
+          "السكري",
+          "مرض السكر",
+          "سكر الدم",
+          "ارتفاع السكر",
+          "السكر مرتفع"
+        ],
+        "darija": [
+          "السكر",
+          "السكر طالع",
+          "عندي السكر",
+          "مريض بالسكر",
+          "sokar",
+          "sokkar",
+          "sukkar",
+          "sokar tal3"
+        ]
+      },
+      "title": {
+        "fr": "Sucre dans le sang (glycémie) élevé",
+        "ar": "ارتفاع السكر في الدم"
+      },
+      "answer": {
+        "fr": "Le sucre dans le sang se vérifie par une prise de sang à jeun ou par l'HbA1c. Chez l'adulte, une glycémie à jeun à partir de 1,26 g/L, confirmée par un second dosage, fait évoquer un diabète : seul le médecin peut poser ce diagnostic. Beaucoup uriner, avoir très soif, maigrir sans raison ou être très fatigué doit faire consulter rapidement. Si vous êtes diabétique et que votre lecteur affiche une valeur très élevée avec vomissements, somnolence ou respiration rapide : appelez les urgences.",
+        "ar": "يُراقَب السكر في الدم بتحليل صائم أو بتحليل الهيموغلوبين السكري HbA1c. عند البالغ، نسبة سكر صائم تبلغ 1,26 غ/ل أو أكثر، مؤكَّدة بتحليل ثانٍ، توحي بالسكري: الطبيب وحده يستطيع وضع هذا التشخيص. كثرة التبول، العطش الشديد، نقص الوزن دون سبب أو التعب الشديد تستوجب استشارة سريعة. إذا كنت مريضًا بالسكري وأظهر جهازك قيمة مرتفعة جدًا مع قيء أو نعاس أو تنفس سريع: اتصل بالإسعاف."
+      },
+      "source": {
+        "orgs": [
+          "OMS",
+          "FID"
+        ],
+        "reference": {
+          "fr": "OMS, définition et diagnostic du diabète ; FID, Atlas du diabète",
+          "ar": "منظمة الصحة العالمية: تعريف السكري وتشخيصه؛ الاتحاد الدولي للسكري"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "metabolic"
+        },
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "diabete-prevention",
+      "category": "diabete",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "prevenir le diabete",
+          "eviter le diabete",
+          "risque de diabete",
+          "findrisc",
+          "prevention diabete"
+        ],
+        "ar": [
+          "الوقاية من السكري",
+          "تجنب السكري",
+          "خطر السكري"
+        ],
+        "darija": [
+          "كيفاش نتفادى السكر",
+          "نتفادى السكر",
+          "ntfada sokar"
+        ]
+      },
+      "title": {
+        "fr": "Prévenir le diabète de type 2",
+        "ar": "الوقاية من السكري من النوع 2"
+      },
+      "answer": {
+        "fr": "Le diabète de type 2 peut souvent être retardé ou évité : bougez au moins 150 minutes par semaine (30 minutes de marche par jour), mangez des légumes et des fruits chaque jour, limitez les boissons sucrées et le pain blanc, et visez une perte de quelques kilos en cas de surpoids. Le questionnaire FINDRISC de NeuroCare estime votre risque à 10 ans en 2 minutes.",
+        "ar": "يمكن في الغالب تأخير السكري من النوع 2 أو تفاديه: تحرّك 150 دقيقة على الأقل في الأسبوع (30 دقيقة مشي يوميًا)، كُل الخضر والفواكه كل يوم، قلّل من المشروبات السكرية والخبز الأبيض، واسعَ لفقدان بعض الكيلوغرامات في حالة زيادة الوزن. استبيان FINDRISC في نوروكير يقدّر خطرك خلال 10 سنوات في دقيقتين."
+      },
+      "source": {
+        "orgs": [
+          "OMS",
+          "FID"
+        ],
+        "reference": {
+          "fr": "OMS, lignes directrices sur l'activité physique (2020) ; FID, prévention du diabète de type 2",
+          "ar": "منظمة الصحة العالمية: إرشادات النشاط البدني (2020)؛ الاتحاد الدولي للسكري"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "metabolic"
+        }
+      ]
+    },
+    {
+      "id": "spo2-basse",
+      "category": "spo2",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "saturation",
+          "saturation basse",
+          "oxygene",
+          "spo2",
+          "essouffle",
+          "essoufflement",
+          "respirer",
+          "souffle court",
+          "manque d'air"
+        ],
+        "ar": [
+          "الأكسجين",
+          "نسبة الأكسجين",
+          "تشبع الأكسجين",
+          "ضيق التنفس",
+          "صعوبة في التنفس"
+        ],
+        "darija": [
+          "الأوكسيجين",
+          "لوكسيجين",
+          "ماقادرش نتنفس",
+          "كنتخنق",
+          "النفس مقطوع",
+          "oxygene",
+          "ma9adrch ntnfs",
+          "kantkhne9"
+        ]
+      },
+      "title": {
+        "fr": "Saturation en oxygène (SpO₂) basse",
+        "ar": "انخفاض نسبة الأكسجين في الدم"
+      },
+      "answer": {
+        "fr": "La saturation (SpO₂) indique la quantité d'oxygène dans le sang. Chez la plupart des adultes, elle se situe entre 95 et 100 %. En cas de maladie respiratoire chronique (BPCO), le médecin peut fixer une cible plus basse, souvent entre 88 et 92 %. Une valeur sous 92 % (ou sous la cible de votre médecin) justifie d'appeler un médecin rapidement. En dessous de 90 %, ou avec un essoufflement important, des lèvres bleues, une confusion ou une douleur dans la poitrine : appelez les urgences.",
+        "ar": "نسبة التشبع (SpO₂) تدل على كمية الأكسجين في الدم. عند أغلب البالغين، تكون بين 95 و100 %. في حالة مرض تنفسي مزمن (الانسداد الرئوي المزمن)، قد يحدد الطبيب هدفًا أقل، غالبًا بين 88 و92 %. قيمة أقل من 92 % (أو أقل من الهدف الذي حدده طبيبك) تستوجب الاتصال بالطبيب بسرعة. أقل من 90 %، أو مع ضيق تنفس شديد أو شفاه زرقاء أو ارتباك أو ألم في الصدر: اتصل بالإسعاف."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, manuel d'oxymétrie de pouls (2011)",
+          "ar": "منظمة الصحة العالمية: دليل قياس التأكسج النبضي (2011)"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "saturation"
+        },
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "spo2-mesure",
+      "category": "spo2",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "oxymetre",
+          "mesurer la saturation",
+          "mesurer l'oxygene",
+          "doigt",
+          "vernis",
+          "comment mesurer la saturation"
+        ],
+        "ar": [
+          "جهاز الأكسجين",
+          "قياس الأكسجين",
+          "جهاز قياس الأكسجين",
+          "الإصبع"
+        ],
+        "darija": [
+          "نقيس الأوكسيجين",
+          "الماكينة ديال الأوكسيجين",
+          "n9is oxygene"
+        ]
+      },
+      "title": {
+        "fr": "Bien mesurer sa saturation",
+        "ar": "قياس نسبة الأكسجين بشكل صحيح"
+      },
+      "answer": {
+        "fr": "Reposez-vous 5 minutes assis. Réchauffez vos mains si elles sont froides, retirez le vernis ou les faux ongles, et placez l'oxymètre sur l'index ou le majeur, main posée au niveau du cœur. Restez immobile et attendez que le chiffre soit stable pendant au moins 30 secondes avant de le lire. Une valeur basse isolée se recontrôle tout de suite.",
+        "ar": "استرح 5 دقائق جالسًا. دفّئ يديك إذا كانتا باردتين، أزل طلاء الأظافر أو الأظافر الاصطناعية، وضع الجهاز على السبابة أو الوسطى، واليد في مستوى القلب. ابقَ دون حركة وانتظر أن يستقر الرقم 30 ثانية على الأقل قبل قراءته. القيمة المنخفضة المنفردة يُعاد قياسها فورًا."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, manuel d'oxymétrie de pouls (2011)",
+          "ar": "منظمة الصحة العالمية: دليل قياس التأكسج النبضي (2011)"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "saturation"
+        }
+      ]
+    },
+    {
+      "id": "memoire-oublis",
+      "category": "memoire",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "memoire",
+          "oublis",
+          "j'oublie",
+          "oublie tout",
+          "alzheimer",
+          "demence",
+          "perdu",
+          "confus",
+          "trou de memoire",
+          "oublie souvent",
+          "oublie des choses",
+          "choses"
+        ],
+        "ar": [
+          "الذاكرة",
+          "النسيان",
+          "الزهايمر",
+          "الخرف",
+          "أنسى",
+          "ضعف الذاكرة",
+          "أنسى كثيرا",
+          "أنسى الأشياء"
+        ],
+        "darija": [
+          "كننسى",
+          "ولّيت كننسى",
+          "ولّيت ننسى",
+          "الزهايمر",
+          "كنتلف",
+          "kansa",
+          "wellit kansa",
+          "alzheimer"
+        ]
+      },
+      "title": {
+        "fr": "Des oublis plus fréquents",
+        "ar": "نسيان متكرر"
+      },
+      "answer": {
+        "fr": "Oublier un nom ou ses clés de temps en temps est fréquent avec l'âge. Il est utile d'en parler à votre médecin si les oublis deviennent fréquents, gênent la vie de tous les jours, ou si vos proches les remarquent : questions répétées, difficulté à trouver ses mots, se perdre dans un lieu connu. Le médecin peut faire un test simple (MoCA ou MMSE) et rechercher des causes qui se soignent : manque de vitamine B12, thyroïde, sommeil, tristesse ou effet d'un médicament. Le bilan « Alzheimer & Mémoire » de NeuroCare peut préparer cette consultation.",
+        "ar": "نسيان اسم أو المفاتيح من حين لآخر أمر شائع مع التقدم في السن. من المفيد الحديث مع طبيبك إذا أصبح النسيان متكررًا، أو يعيق الحياة اليومية، أو لاحظه أقاربك: أسئلة متكررة، صعوبة في إيجاد الكلمات، التيه في مكان معروف. يمكن للطبيب إجراء اختبار بسيط (MoCA أو MMSE) والبحث عن أسباب قابلة للعلاج: نقص فيتامين B12، الغدة الدرقية، النوم، الحزن أو تأثير دواء. تقييم «الزهايمر والذاكرة» في نوروكير يمكن أن يحضّر لهذه الاستشارة."
+      },
+      "source": {
+        "orgs": [
+          "HAS",
+          "OMS"
+        ],
+        "reference": {
+          "fr": "HAS, maladie d'Alzheimer et maladies apparentées : diagnostic ; OMS, démence",
+          "ar": "الهيئة العليا للصحة: تشخيص مرض الزهايمر؛ منظمة الصحة العالمية: الخرف"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "alzheimer"
+        }
+      ]
+    },
+    {
+      "id": "memoire-prevention",
+      "category": "memoire",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "proteger ma memoire",
+          "entretenir ma memoire",
+          "prevenir alzheimer",
+          "cerveau",
+          "stimuler",
+          "exercices de memoire"
+        ],
+        "ar": [
+          "تقوية الذاكرة",
+          "الوقاية من الزهايمر",
+          "الدماغ",
+          "تمارين الذاكرة"
+        ],
+        "darija": [
+          "نقوي الذاكرة",
+          "نقوي الراس",
+          "n9wi dakira"
+        ]
+      },
+      "title": {
+        "fr": "Prendre soin de sa mémoire",
+        "ar": "العناية بالذاكرة"
+      },
+      "answer": {
+        "fr": "Une grande partie des risques de démence est liée à des facteurs sur lesquels on peut agir : contrôler la tension et le diabète, bouger 30 minutes par jour, dormir 7 à 8 heures, manger à la méditerranéenne (huile d'olive, légumes verts, poisson, noix), garder une vie sociale, stimuler son esprit (lecture, jeux, apprentissages) et faire contrôler l'audition et la vue. Le jeu des 4 mots de NeuroCare est une façon douce d'entretenir sa mémoire.",
+        "ar": "جزء كبير من خطر الخرف مرتبط بعوامل يمكن التأثير فيها: مراقبة الضغط والسكري، الحركة 30 دقيقة يوميًا، النوم من 7 إلى 8 ساعات، الأكل على الطريقة المتوسطية (زيت الزيتون، الخضر الورقية، السمك، الجوز)، الحفاظ على حياة اجتماعية، تنشيط العقل (القراءة، الألعاب، التعلّم) وفحص السمع والبصر. لعبة الكلمات الأربع في نوروكير طريقة لطيفة للعناية بالذاكرة."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, réduction du risque de déclin cognitif et de démence (2019) ; Commission Lancet (2024)",
+          "ar": "منظمة الصحة العالمية: الحد من خطر التدهور المعرفي والخرف (2019)؛ لجنة لانسيت (2024)"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "alzheimer"
+        }
+      ]
+    },
+    {
+      "id": "sommeil",
+      "category": "mental",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "sommeil",
+          "dormir",
+          "dors mal",
+          "insomnie",
+          "nuit",
+          "reveille",
+          "somnifere",
+          "fatigue le matin"
+        ],
+        "ar": [
+          "النوم",
+          "الأرق",
+          "لا أستطيع النوم",
+          "أستيقظ",
+          "منوم"
+        ],
+        "darija": [
+          "ماكنعسش",
+          "ماجانيش النعاس",
+          "النعاس",
+          "كنفيق",
+          "ماكنعسش مزيان",
+          "makan3sch",
+          "n3as"
+        ]
+      },
+      "title": {
+        "fr": "Mieux dormir",
+        "ar": "نوم أفضل"
+      },
+      "answer": {
+        "fr": "Pour mieux dormir : gardez des horaires réguliers, sortez à la lumière du jour, évitez le café et le thé après 14 heures, limitez la sieste à 30 minutes et éteignez les écrans une heure avant le coucher. Les somnifères ne se prennent pas sans avis médical : chez la personne âgée, ils augmentent le risque de chute. Parlez à votre médecin de ronflements avec pauses respiratoires, ou si le manque de sommeil dure plus de 3 semaines.",
+        "ar": "لنوم أفضل: حافظ على مواعيد منتظمة، اخرج إلى ضوء النهار، تجنّب القهوة والشاي بعد الساعة الثانية زوالًا، لا تتجاوز القيلولة 30 دقيقة، وأطفئ الشاشات ساعة قبل النوم. لا تُؤخذ المنوّمات دون رأي الطبيب: عند المسنين، تزيد من خطر السقوط. تحدّث مع طبيبك عن الشخير المصحوب بتوقف التنفس، أو إذا دامت قلة النوم أكثر من 3 أسابيع."
+      },
+      "source": {
+        "orgs": [
+          "HAS"
+        ],
+        "reference": {
+          "fr": "HAS, prise en charge du patient adulte se plaignant d'insomnie",
+          "ar": "الهيئة العليا للصحة: التكفل بالبالغ الذي يشكو من الأرق"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "mental"
+        }
+      ]
+    },
+    {
+      "id": "moral-tristesse",
+      "category": "mental",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "triste",
+          "tristesse",
+          "deprime",
+          "depression",
+          "moral",
+          "cafard",
+          "seul",
+          "solitude",
+          "angoisse",
+          "anxieux",
+          "stress"
+        ],
+        "ar": [
+          "حزين",
+          "الحزن",
+          "اكتئاب",
+          "القلق",
+          "وحيد",
+          "الوحدة"
+        ],
+        "darija": [
+          "مقلق",
+          "مضيوق",
+          "الضيقة",
+          "خاطري مقبوط",
+          "ماعنديش الخاطر",
+          "بوحدي",
+          "m9le9",
+          "mdi9",
+          "khatri m9bout"
+        ]
+      },
+      "title": {
+        "fr": "Moral bas, tristesse, solitude",
+        "ar": "معنويات منخفضة، حزن، وحدة"
+      },
+      "answer": {
+        "fr": "Se sentir triste, sans envie, fatigué ou inutile pendant plus de deux semaines n'est pas « normal avec l'âge » : cela se soigne. Parlez-en à votre médecin et à un proche de confiance, gardez des contacts (appels, visites, sorties) et une activité qui vous fait du bien. Le questionnaire de santé mentale (GDS) de NeuroCare peut aider à préparer la consultation. Si des idées de mort apparaissent, appelez tout de suite les urgences.",
+        "ar": "الشعور بالحزن أو فقدان الرغبة أو التعب أو عدم الجدوى لأكثر من أسبوعين ليس «أمرًا عاديًا مع التقدم في السن»: إنه قابل للعلاج. تحدّث مع طبيبك ومع شخص تثق به، وحافظ على علاقاتك (مكالمات، زيارات، خرجات) وعلى نشاط يريحك. استبيان الصحة النفسية (GDS) في نوروكير يساعد على التحضير للاستشارة. إذا ظهرت أفكار عن الموت، اتصل فورًا بالإسعاف."
+      },
+      "source": {
+        "orgs": [
+          "OMS",
+          "HAS"
+        ],
+        "reference": {
+          "fr": "OMS, guide mhGAP (2023) ; HAS, épisode dépressif caractérisé",
+          "ar": "منظمة الصحة العالمية: دليل mhGAP (2023)؛ الهيئة العليا للصحة: نوبة الاكتئاب"
+        }
+      },
+      "actions": [
+        {
+          "type": "module",
+          "module": "mental"
+        },
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    },
+    {
+      "id": "numeros-urgence",
+      "category": "urgence",
+      "urgent": false,
+      "keywords": {
+        "fr": [
+          "urgence",
+          "urgences",
+          "ambulance",
+          "samu",
+          "secours",
+          "numero d'urgence",
+          "appeler"
+        ],
+        "ar": [
+          "الإسعاف",
+          "الطوارئ",
+          "رقم الطوارئ",
+          "سيارة الإسعاف"
+        ],
+        "darija": [
+          "لابيلانص",
+          "لامبيلانس",
+          "عيط للإسعاف",
+          "lambulance",
+          "sa3af"
+        ]
+      },
+      "title": {
+        "fr": "Numéros d'urgence au Maroc",
+        "ar": "أرقام الطوارئ في المغرب"
+      },
+      "answer": {
+        "fr": "En cas d'urgence médicale, appelez le 15 ou le 141 (SAMU). Donnez votre nom, l'adresse exacte, ce qui se passe et depuis quand, puis restez joignable. Ne raccrochez pas avant qu'on vous le dise. Gardez près du téléphone la liste de vos médicaments.",
+        "ar": "في حالة طارئة طبية، اتصل بالرقم 15 أو 141 (المساعدة الطبية المستعجلة). أعطِ اسمك والعنوان الدقيق وما يحدث ومنذ متى، ثم ابقَ متاحًا. لا تُنهِ المكالمة قبل أن يُطلب منك ذلك. احتفظ قرب الهاتف بلائحة أدويتك."
+      },
+      "source": {
+        "orgs": [
+          "OMS"
+        ],
+        "reference": {
+          "fr": "OMS, soins d'urgence ; numéros d'urgence du Maroc",
+          "ar": "منظمة الصحة العالمية: الرعاية الطارئة؛ أرقام الطوارئ بالمغرب"
+        }
+      },
+      "actions": [
+        {
+          "type": "call",
+          "number": "15"
+        },
+        {
+          "type": "call",
+          "number": "141"
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,8 @@ Délais du profil `demo` : moteur toutes les **10 s**, relance à **+30 s**, `SA
   « URL de l'API », **Tester** puis **Enregistrer** (aucune recompilation).
 - Pare-feu Windows (réseau « Public ») : PowerShell **administrateur**
   `New-NetFirewallRule -DisplayName "NeuroCare API 8088" -Direction Inbound -Protocol TCP -LocalPort 8088 -Action Allow -Profile Any`.
+- Assistant Santé : fonctionne sans réseau ; pour montrer la synchronisation, ouvrir aussi le port 8089
+  (`New-NetFirewallRule -DisplayName "NeuroCare Assistant 8089" -Direction Inbound -Protocol TCP -LocalPort 8089 -Action Allow -Profile Any`).
 - Sans réseau du tout : « Entrer comme aidant (démo) » ou « Entrer comme senior (démo) » : données fictives sur le
   téléphone, Vitamine D3 à confirmer 2 min après l'entrée, rapport PDF généré localement.
 

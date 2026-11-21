@@ -6,7 +6,7 @@
 |---|---|
 | Version du document | 1.0 — état final du projet |
 | Date | 20 novembre 2026 |
-| Dépôt | `neurocare` (monorepo : `mobile/`, `backend/`, `audio-service/`, `infra/`, `docs/`) |
+| Dépôt | `neurocare` (monorepo : `mobile/`, `backend/`, `audio-service/`, `services/assistant-service/`, `infra/`, `docs/`) |
 | Langues de l'application | Français, Arabe (bascule instantanée, droite-à-gauche complet) |
 
 ---
@@ -303,6 +303,37 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
   restitution personnalisée complète, sources, historique, mention « outil de pré-dépistage et d'aide à la
   consultation »).
 
+## 11 bis. Assistant Santé & Orientation (chatbot vocal hors ligne)
+
+- **Accès** : bouton flottant « Assistant Santé » / « المساعد الصحي » en bas à droite de l'accueil (à gauche en
+  arabe), bleu `#246BFD`, icône bulle + micro, hauteur 68 dp ; la grille garde une marge basse de 128 dp pour ne
+  jamais être masquée. Route `/assistant`, sans compte ni réseau.
+- **Base de connaissances** (`knowledge-base.json`, version `2026.11.1`) : 18 fiches couvrant observance et oubli
+  de médicament, tension (élevée, mesure, vertiges / hypotension), diabète (glycémie élevée, hypoglycémie,
+  prévention), SpO₂ (valeur basse, mesure), mémoire (oublis, prévention), santé mentale (sommeil, moral) et
+  urgences (AVC, douleur thoracique, détresse, numéros 15 / 141). Chaque fiche : titre et réponse en français et
+  en arabe, **source** (OMS, HAS, ESC, FID, avec la référence), mots-clés français / arabes / darija, actions
+  (appel 15 / 141, ouverture d'un module). La même base est servie par le microservice et embarquée dans
+  l'application (test d'égalité des deux copies).
+- **Moteur local 100 % hors ligne** : normalisation (accents, hamza, tâ marbûta, voyelles courtes, article
+  « ال » et préfixes و ب ف ل, arabizi « 3 7 9 »), mots vides FR / AR / darija, mots-clés et synonymes, faute de
+  frappe tolérée (distance 1, inversion comprise). Les fiches urgentes passent en tête. Sans fiche
+  correspondante, l'assistant le dit et repropose des questions (aucune réponse inventée). Une question écrite
+  en lettres arabes (arabe ou darija, ex. « نسيت الدوا », « طونسيو طالع », « السكر », « عندي الدوخة ») reçoit
+  une réponse en arabe.
+- **Chaque réponse** : explication bienveillante adaptée aux seniors, ligne « Source : OMS · HAS — … » (dans la
+  langue de la réponse), boutons pertinents (« Appeler le 15 / 141 » pour les signes de gravité, « Ouvrir
+  Tension / Diabète / SpO₂ / Rappels… »), fiches voisines en puces, encadré rouge pour les urgences.
+- **Voix** : lecture automatique des réponses (`expo-speech`, débit 0,85, interrupteur) et grand bouton
+  « Écouter / Réécouter » ; dictée par un grand bouton micro (`expo-speech-recognition`, français `fr-FR`, arabe
+  `ar-SA` ou darija `ar-MA`, hors ligne si le pack de langue est installé) ; puces de questions fréquentes FR /
+  AR / darija dès l'ouverture. Sur un build sans ces modules natifs, l'assistant reste utilisable au clavier.
+- **Éthique** : bandeau permanent « informe et oriente, ne pose aucun diagnostic, ne remplace jamais une
+  consultation » ; aucune donnée de santé n'est envoyée (seule la base de connaissances est téléchargée).
+- **Synchronisation facultative** : à l'ouverture, `GET http://<hôte du serveur>:8089/api/v1/assistant/knowledge`
+  (`If-None-Match` = version, délai 4 s) ; une base plus récente et bien formée est gardée sur le téléphone
+  (`neurocare.assistant.knowledge`), sinon la copie embarquée reste utilisée.
+
 ## 12. Exigences transverses
 
 ### 12.1 Thème visuel « médical clean » (inspiration Dokterian)
@@ -365,6 +396,7 @@ score ni interprétation. Le résultat brut est transmis à l'aidant (si le cons
  └── Module 1 ──HTTPS REST /api/v1 + WebSocket STOMP──► Backend Spring Boot ──► PostgreSQL 16
                                                           │                    └► MinIO (fichiers voix)
                                                           └── HTTP interne ──► audio-service (FastAPI)
+ └── Assistant Santé (moteur local) ──GET facultatif /api/v1/assistant/knowledge──► assistant-service (port 8089)
 ```
 
 ### 13.2 Mobile (`mobile/`)
@@ -402,9 +434,18 @@ par l'application depuis le passage des modules 2 à 6 en stockage local.
 Python 3.11, FastAPI : microservice interne (non exposé à Internet), protégé par une clé partagée avec le
 backend, pour le traitement des voix.
 
+### 13.4 bis Microservice Assistant (`services/assistant-service/`)
+
+Spring Boot 3.5 / Java 21, autonome (aucune base de données, aucune donnée patient), port **8089** :
+`GET /api/v1/assistant/health` (statut, version de la base, nombre de fiches, sources) et
+`GET /api/v1/assistant/knowledge` (base complète, `ETag` = version, `304` si déjà à jour). La base est validée au
+démarrage (`KnowledgeBaseValidator` : version, avertissement FR / AR, fiches traduites, sources OMS / HAS / ESC /
+FID uniquement, modules connus, appel du 15 et du 141 sur toute fiche urgente) : le service refuse de démarrer si
+elle est invalide. Image Docker multi-étapes avec sonde de santé.
+
 ### 13.5 Infrastructure (`infra/`)
 
-**Docker** et **Docker Compose** : PostgreSQL 16, MinIO, backend, audio-service ; ports et secrets dans
+**Docker** et **Docker Compose** : PostgreSQL 16, MinIO, backend, audio-service, assistant-service (`ASSISTANT_PORT`, 8089) ; ports et secrets dans
 `infra/.env` (non versionné, modèle `infra/.env.example`).
 
 ## 14. Données, sécurité et confidentialité
@@ -423,7 +464,8 @@ backend, pour le traitement des voix.
 | Contrôle | Portée |
 |---|---|
 | Tests backend | Tests unitaires (barèmes, sécurité, services) et tests d'intégration sur PostgreSQL (Testcontainers), dont `EthicsTest` (mentions de non-diagnostic) — 164 tests unitaires et 81 tests d'intégration au dernier passage |
-| Tests mobile | **183 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, mode démo hors ligne du Module 1 (serveur local, connexion en échec, adresse du serveur), bascule de langue et RTL, indépendance des modules |
+| Tests assistant-service | 9 tests (MockMvc : santé, base sourcée et traduite, ETag / 304 ; validateur : sources, urgences, traductions, absence de diagnostic) |
+| Tests mobile | **250 tests** Jest / React Native Testing Library : barèmes et seuils de chaque module (dont les 7 signes d'hyperglycémie et la restitution personnalisée des 4 A), stockage local, PDF français et arabe (logo, nom de fichier horodaté), bandeaux d'aide à la mesure, parcours complets des écrans sur téléphone vierge, mode démo hors ligne du Module 1 (serveur local, connexion en échec, adresse du serveur), Assistant Santé (recherche trilingue et darija, chaque puce, urgences, sources, synchronisation, voix, bouton flottant et RTL, égalité des deux copies de la base), bascule de langue et RTL, indépendance des modules |
 | Typage et style | `tsc --noEmit`, `expo lint` |
 | Bundle | `expo export` (Android) |
 | Livraison | EAS Build (APK `preview`) et EAS Update (OTA, sans réinstallation tant qu'aucun module natif n'est ajouté) |
@@ -435,6 +477,8 @@ backend, pour le traitement des voix.
 - Les questions GDS-15 en arabe sont une traduction de travail : à remplacer par la version arabe validée pour
   un usage clinique.
 - Le questionnaire des 4 A et les seuils de l'indice de vigilance sont à faire valider par un clinicien.
+- Les fiches de l'Assistant Santé (et leurs traductions arabes) sont à relire par l'équipe médicale avant tout
+  usage réel ; la reconnaissance vocale de la darija dépend du service vocal du téléphone (Google, `ar-MA`).
 - Modules 2 à 6 : un seul historique par téléphone (pas de séparation par patient) ; aucune sauvegarde
   distante.
 - Évolutions possibles : export / sauvegarde chiffrée des historiques locaux, traduction des contenus serveur,

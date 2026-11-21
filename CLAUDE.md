@@ -8,8 +8,10 @@
 ## Stack Technique
 - `backend/` : Spring Boot 3.5, Java 21, Maven, PostgreSQL 16, Flyway (V1 à V10), Spring Security (JWT aidant + DeviceToken senior), WebSocket STOMP, ShedLock, Resilience4j, MapStruct, OpenPDF, MinIO, springdoc. API REST `/api/v1`.
 - `audio-service/` : Python 3.11, FastAPI (interne, clé `X-Internal-Key`).
+- `services/assistant-service/` : Spring Boot 3.5 autonome, port 8089, `GET /api/v1/assistant/health` et
+  `/knowledge` (base de connaissances de l'Assistant Santé, validée au démarrage). Tests : `services/assistant-service/mvnw test`.
 - `mobile/` : Expo SDK 58, React Native 0.88, React 19, TypeScript, Expo Router, AsyncStorage, expo-secure-store, expo-audio, expo-notifications, expo-print + expo-sharing (PDF), @stomp/stompjs, EAS Build / EAS Update (canal `preview`).
-- `infra/` : docker-compose.yml (PostgreSQL 16, MinIO, backend, audio-service), secrets dans `infra/.env` (non versionné).
+- `infra/` : docker-compose.yml (PostgreSQL 16, MinIO, backend, audio-service, assistant-service), secrets dans `infra/.env` (non versionné).
 
 ## Les 6 modules (grille d'accueil `mobile/src/app/index.tsx`)
 | # | Module | Dossier mobile | Données |
@@ -66,7 +68,7 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
 ## Règles de Travail
 - Code étape par étape, jamais tout d'un coup.
 - Après chaque étape backend, lance `backend/mvnw compile` ou `test` et corrige les erreurs avant de continuer.
-- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (183 tests au dernier passage),
+- Mobile, avant tout commit : `npx tsc --noEmit`, `npm run lint` (expo lint), `npx jest` (250 tests au dernier passage),
   et `npx expo export --platform android --output-dir <tmp>` pour valider le bundle.
 - Lint : `react-hooks/set-state-in-effect` → charger les données avec `useFocusEffect(useCallback(…))` ;
   `react-hooks/refs` interdit d'écrire un ref pendant le rendu.
@@ -76,6 +78,11 @@ Chaque module 2 à 6 : `<x>.ts` (règles pures, codes seulement), `<x>Store.ts` 
   Fais un commit à chaque étape validée. Ne jamais committer les modifications locales de `mobile/package.json`
   (scripts `android`/`ios` → `expo run:*` de l'utilisateur) : ne stager que ses propres lignes.
 - Ajout d'un module natif → nouveau build EAS ; sinon `eas update --channel preview` suffit.
+- Assistant Santé (`mobile/src/modules/assistant/`, hors grille, bouton flottant de l'accueil) : la base
+  `knowledge-base.json` existe en deux copies identiques (service et mobile, vérifié par un test) : modifier
+  `services/assistant-service/src/main/resources/knowledge/knowledge-base.json`, la recopier dans le mobile et
+  incrémenter `version`. Toute fiche : FR + AR, source OMS / HAS / ESC / FID, jamais de diagnostic ; fiche urgente
+  → appels 15 et 141. Le module n'importe ni `auth/` ni `api/` (l'adresse du serveur lui est passée par la route).
 - Mode démo hors ligne du Module 1 (`src/demo/`) : toute nouvelle route `/api/v1` utilisée par l'app doit aussi
   être servie par `demo/demoBackend.ts` (sinon 404 en démo).
 

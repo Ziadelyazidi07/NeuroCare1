@@ -38,6 +38,14 @@ services:
     volumes: ["audiodata:/data"]
     # non exposé à Internet : accessible uniquement depuis le réseau compose
 
+  # Microservice indépendant de l'Assistant Santé : base de connaissances médicale versionnée et sourcée,
+  # lue (facultativement) par le téléphone pour mettre à jour sa copie hors ligne. Aucune donnée patient.
+  assistant-service:
+    build: ../services/assistant-service
+    restart: unless-stopped
+    ports: ["${ASSISTANT_PORT:-8089}:8089"]
+    # Sonde /api/v1/assistant/health définie dans le Dockerfile (HEALTHCHECK).
+
   backend:
     build: ../backend
     restart: unless-stopped

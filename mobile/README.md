@@ -113,6 +113,17 @@ Pour déconnecter le téléphone du senior : bouton « Se déconnecter / Changer
   `ModuleHeader`, `Text` orienté. Texte courant ≥ 16, titres et boutons 20-24. L'espace senior garde son
   thème « contraste élevé » noir / jaune quand l'aidant l'a choisi.
 
+**Assistant Santé** (`src/modules/assistant/`, route `src/app/assistant.tsx`)
+- Bouton flottant « Assistant Santé » / « المساعد الصحي » en bas à droite de l'accueil (à gauche en arabe).
+- Chatbot 100 % hors ligne : `knowledge-base.json` (18 fiches sourcées OMS / HAS / ESC / FID, FR / AR, mots-clés
+  darija), copie identique à `services/assistant-service` ; `engine.ts` (normalisation arabe / darija / arabizi,
+  mots-clés, faute de frappe, urgences en tête, aucune réponse inventée) ; `assistantStore.ts` (mise à jour
+  facultative depuis `http://<hôte>:8089/api/v1/assistant/knowledge`) ; `voice.ts` (`expo-speech` débit 0,85,
+  `expo-speech-recognition` fr-FR / ar-SA / ar-MA, chargés à la demande).
+- Réponse : titre, explication, « Source : … », boutons 15 / 141 et ouverture du module concerné, « Écouter /
+  Réécouter », fiches voisines ; bandeau éthique permanent. **Modules natifs ajoutés : nouveau build EAS requis**
+  (`eas build --profile preview`) ; sur l'ancien APK, l'assistant marche au clavier, sans voix.
+
 **Grille des modules** (`src/app/index.tsx`)
 - Au démarrage, une grille de 6 tuiles : « Rappels & Suivi », « Saturation SpO₂ », « Santé Mentale »,
   « Diabète (FINDRISC) », « Tension (HTA) » et « Alzheimer & Mémoire », avec l'adresse du serveur et un rappel éthique (pré-dépistage
