@@ -43,3 +43,28 @@ libre de droits pour l'équipe. Un nouveau rendu de la vidéo efface la piste au
 Pour utiliser une autre musique, la déposer sous `pitch/neurocare-launch-music.mp3` (ou `.wav`) : `compose_music.py`
 la prend automatiquement (coupée à 45 s, fondu de sortie de 41 à 45 s, -14 LUFS).
 La patiente « Hajja Zahra », « Ahmed Benali » et « Salma » sont des personnages illustratifs.
+
+## Finale NEXUS HealthTech — pitch strict de 3 minutes
+
+| Livrable | Contenu |
+|---|---|
+| `NeuroCare_Finale_3min.pptx` / `.pdf` | 8 slides alignées sur les 7 critères du jury, script oral chronométré dans les notes (2 min 50 s + 10 s de marge) |
+| `NeuroCare_Demo_Finale_26s.mp4` | Montage muet de 26 s tiré de la démo 45 s, dans l'ordre du pitch : Assistant vocal → rappel « C'est fait » → bilan diabète → PDF |
+
+| Temps | Slide |
+|---|---|
+| 0:00 – 0:15 | 1. Page de garde (accroche Hajja Zahra) |
+| 0:15 – 0:37 | 2. Critère 1 : problème, cible, chiffres sourcés |
+| 0:37 – 1:07 | 3. Critères 2 & 3 : valeur, 3 pôles, benchmark |
+| 1:07 – 1:42 | 4. Critère 4 : prototype, architecture, tests, vidéo 26 s |
+| 1:42 – 2:05 | 5. Critère 5 : sécurité, éthique, Loi 09-08 |
+| 2:05 – 2:27 | 6. Critère 6 : coûts, revenus, jalons 6-12 mois |
+| 2:27 – 2:40 | 7. Critère 7 : équipe |
+| 2:40 – 2:50 | 8. Clôture |
+
+```bash
+python pitch/scripts/build_finale_3min.py            # deck + PDF (export par PowerPoint) + montage vidéo si absent
+python pitch/scripts/build_finale_3min.py --png DIR  # + une image PNG par slide pour la relecture
+```
+
+Le script refuse de générer le deck si un texte parlé dépasse 2,7 mots/s ou si le minutage ne fait pas exactement 2 min 50 s.
