@@ -1,0 +1,479 @@
+<!doctype html>
+<!--
+  NeuroCare — notification vocale (30 s) : pitch/NeuroCare_Notification_Vocale_30s.mp4.
+  Reconstitution HTML de l'interface (textes de i18n/fr/observance.ts, mode démo du Module 1, thème Dokterian,
+  icônes Ionicons), rendue image par image par pitch/scripts/render_video.py --scene notif30.
+  Voix, sons et ambiance : pitch/scripts/compose_notif30_audio.py (instants partagés : build/notif30/timeline.json).
+
+  0:00-0:09 notification de 20:00 sur le téléphone de Mama, message vocal de Salma
+  0:09-0:21 espace senior : « C'est fait » (clic), réponse de Salma
+  0:21-0:27 vue côte à côte : le tableau de bord de Salma passe au vert (Confirmé à 20:01)
+  0:27-0:30 logo NeuroCare et slogan
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: 'Ionicons'; src: url('../assets/Ionicons.ttf'); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'Segoe UI', 'Segoe UI Variable', Tahoma, Arial, sans-serif; color: #1C2B45; background: #F5F8FC; }
+  body.still { background: transparent; }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; }
+  .ion { font-family: 'Ionicons'; font-style: normal; line-height: 1; display: inline-block; }
+  .abs { position: absolute; }
+
+  /* Téléphone */
+  #phone { position: absolute; left: 420px; top: 110px; width: 420px; height: 860px; transform-origin: 0 0; }
+  .bezel { position: absolute; inset: 0; border-radius: 60px; background: #0F172A;
+           box-shadow: 0 40px 80px rgba(15, 61, 110, .28), 0 8px 20px rgba(15, 61, 110, .18), inset 0 0 0 2px #334155; }
+  .screen { position: absolute; left: 14px; top: 14px; width: 392px; height: 832px; border-radius: 46px; overflow: hidden; background: #F5F8FC; }
+  .island { position: absolute; left: 50%; top: 12px; width: 112px; height: 32px; margin-left: -56px; background: #0F172A; border-radius: 20px; z-index: 50; }
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 52px; z-index: 40; display: flex; align-items: center;
+            justify-content: space-between; padding: 8px 30px 0; font-size: 16px; font-weight: 700; color: #112950; background: #F5F8FC; }
+  .scr { position: absolute; inset: 0; background: #F5F8FC; display: none; }
+  .scroll { position: absolute; left: 0; top: 56px; width: 392px; padding: 0 14px 40px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: #fff; border: 1px solid #E6EEF8; border-radius: 20px; padding: 16px; box-shadow: 0 4px 12px rgba(15, 61, 110, .06); }
+  .row { display: flex; align-items: center; }
+  .muted { color: #55657E; }
+
+  /* Accueil */
+  .welcome { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .welcome img { width: 100%; height: 118px; object-fit: contain; background: #F0F6FD; border-radius: 18px; }
+  .brand { font-size: 26px; font-weight: 800; color: #112950; }
+  .hello { font-size: 15px; color: #55657E; }
+  .subtitle { font-size: 16px; line-height: 22px; }
+  .pills { display: flex; gap: 8px; direction: ltr; }
+  .pill { flex: 1; height: 46px; border-radius: 999px; border: 1.5px solid #C9D6E8; background: #F5F8FC; display: flex;
+          align-items: center; justify-content: center; gap: 6px; font-size: 16px; font-weight: 700; color: #112950; }
+  .pill b { color: #246BFD; font-size: 13px; }
+  .pill.on { background: #246BFD; border-color: #246BFD; color: #fff; }
+  .pill.on b { color: #fff; }
+  .grid { display: flex; flex-wrap: wrap; justify-content: space-between; row-gap: 10px; }
+  .tile { width: 176px; height: 140px; background: #fff; border: 1px solid #E6EEF8; border-radius: 20px; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 6px; padding: 8px; text-align: center; box-shadow: 0 4px 12px rgba(15, 61, 110, .06); }
+  .tile .ic { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+  .tile .t { font-size: 15px; font-weight: 800; color: #112950; line-height: 18px; }
+  .tile .s { font-size: 12px; color: #55657E; line-height: 15px; }
+  [dir=rtl] .card, [dir=rtl] .scroll { text-align: right; }
+  .fab { position: absolute; bottom: 30px; height: 66px; padding: 0 22px 0 14px; border-radius: 999px; background: #246BFD; color: #fff; z-index: 20;
+         display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; box-shadow: 0 10px 24px rgba(36, 107, 253, .38); }
+  .fab .fi { position: relative; width: 40px; height: 40px; }
+  .fab .fi .mb { position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 11px; background: #fff; display: flex;
+                 align-items: center; justify-content: center; }
+
+  /* Assistant Santé (écran unique, sans défilement) */
+  .as { position: absolute; left: 0; right: 0; top: 52px; bottom: 0; display: flex; flex-direction: column; }
+  .as-top { padding: 8px 12px 0; display: flex; flex-direction: column; gap: 10px; }
+  .as-row { display: flex; gap: 10px; }
+  .as-btn { flex: 1; height: 54px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; font-weight: 800; }
+  .as-btn.ghost { background: #EBF2FF; color: #246BFD; border: 2px solid #246BFD; }
+  .as-btn.solid { background: #246BFD; color: #fff; }
+  .as-lang { flex: 1; height: 54px; border-radius: 16px; border: 2px solid #246BFD; background: #fff; color: #246BFD; display: flex; align-items: center;
+             justify-content: center; font-size: 18px; font-weight: 800; }
+  .as-lang.on { background: #246BFD; color: #fff; }
+  .as-center { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 12px; gap: 10px; }
+  .as-ins { font-size: 18px; line-height: 25px; font-weight: 600; color: #112950; text-align: center; }
+  .as-chip { height: 60px; border-radius: 22px; border: 2px solid #246BFD; background: #fff; display: flex; align-items: center; justify-content: space-between;
+             padding: 0 18px; font-size: 18px; font-weight: 600; color: #112950; }
+  .as-card { background: #fff; border: 1px solid #E6EEF8; border-radius: 24px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+             box-shadow: 0 6px 16px rgba(15, 61, 110, .08); }
+  .as-card .tt { font-size: 19px; font-weight: 800; color: #112950; }
+  .as-card .sm { font-size: 18px; line-height: 26px; color: #1C2B45; }
+  .as-act { min-height: 58px; border-radius: 16px; border: 2px solid #246BFD; background: #EBF2FF; color: #246BFD; display: flex; align-items: center;
+            justify-content: center; gap: 8px; font-size: 16.5px; font-weight: 800; padding: 0 8px; text-align: center; }
+  .as-act.solid { background: #246BFD; color: #fff; }
+  .as-src { font-size: 13px; font-style: italic; color: #55657E; }
+  .as-eth { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #55657E; padding: 4px 12px 6px; }
+  .as-bottom { height: 132px; background: #fff; border-top: 1px solid #E6EEF8; position: relative; }
+  .as-write { position: absolute; top: 30px; height: 56px; padding: 0 16px; border-radius: 999px; border: 2px solid #246BFD; background: #EBF2FF; color: #246BFD;
+              display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; }
+  .as-mic { position: absolute; left: 156px; top: 6px; width: 80px; height: 80px; border-radius: 40px; background: #246BFD; display: flex; align-items: center;
+            justify-content: center; box-shadow: 0 8px 18px rgba(36, 107, 253, .35); z-index: 2; }
+  .as-halo { position: absolute; left: 156px; top: 6px; width: 80px; height: 80px; border-radius: 40px; background: #C62828; opacity: 0; z-index: 1; }
+  .as-mlab { position: absolute; left: 0; right: 0; top: 92px; text-align: center; font-size: 18px; font-weight: 800; color: #112950; }
+  .as-partial { font-size: 22px; font-weight: 800; color: #246BFD; text-align: center; min-height: 30px; }
+
+  /* En-tête de module */
+  .homebtn { align-self: flex-start; height: 38px; padding: 0 14px; border-radius: 999px; background: #EBF2FF; color: #246BFD; font-weight: 700;
+             font-size: 15px; display: flex; align-items: center; gap: 6px; }
+  .mhead { display: flex; align-items: center; gap: 12px; }
+  .mhead .ic { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+  .mhead .t { font-size: 22px; font-weight: 800; color: #112950; }
+  .mhead .s { font-size: 14px; color: #55657E; }
+  .ctitle { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; color: #112950; margin-bottom: 10px; line-height: 23px; }
+  .h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #112950; margin: 10px 0 6px; }
+  .p { font-size: 14px; line-height: 20px; }
+  .reading { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-top: 5px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .pharma { margin-top: 10px; background: #DCFCE7; border-radius: 14px; padding: 10px; display: flex; gap: 8px; font-size: 13.5px; line-height: 19px; }
+  .pharma b { color: #167A45; display: block; font-size: 14.5px; }
+  .cond { display: flex; gap: 6px; font-size: 13.5px; line-height: 19px; margin-top: 5px; }
+  .illus { border-radius: 18px; padding: 10px 0; display: flex; justify-content: center; }
+  .field { margin-top: 10px; }
+  .field label { font-size: 14px; font-weight: 700; color: #112950; line-height: 19px; display: block; }
+  .field .in { margin-top: 4px; height: 46px; border: 1.5px solid #C9D6E8; border-radius: 14px; background: #fff; display: flex; align-items: center;
+               padding: 0 12px; font-size: 18px; font-weight: 600; }
+  .field .in.focus { border-color: #246BFD; box-shadow: 0 0 0 3px #EBF2FF; }
+  .caret { width: 2px; height: 22px; background: #246BFD; margin-left: 2px; }
+  .imc { margin-top: 8px; font-size: 15px; color: #55657E; }
+  .imc.on { color: #112950; font-weight: 800; }
+  .yn { display: flex; gap: 10px; margin-top: 8px; }
+  .yn div { flex: 1; height: 46px; border-radius: 14px; border: 1.5px solid #C9D6E8; background: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 800; color: #112950; }
+  .yn div.on { background: #246BFD; border-color: #246BFD; color: #fff; }
+  .q { font-size: 14px; font-weight: 700; color: #112950; line-height: 19px; margin-top: 12px; }
+  .btn { height: 56px; border-radius: 14px; background: #246BFD; color: #fff; font-size: 17px; font-weight: 800; display: flex; align-items: center;
+         justify-content: center; gap: 8px; margin-top: 12px; text-align: center; padding: 0 10px; }
+  .btn.sec { background: #fff; color: #246BFD; border: 1.5px solid #246BFD; }
+  .res { border: 2px solid; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #fff; }
+  .res .rt { font-size: 19px; font-weight: 800; line-height: 24px; }
+  .res .p { font-size: 14.5px; line-height: 20px; }
+  .notice { background: #FFF8E6; border: 1px solid #F1C66B; border-radius: 16px; padding: 12px; font-size: 13px; line-height: 18px; color: #6B4500; }
+  .word { flex: 1 0 45%; height: 92px; border-radius: 18px; background: #D1FAE5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 2px; font-size: 21px; font-weight: 800; color: #065F46; }
+  .word span { font-family: 'Segoe UI Emoji', 'Segoe UI', sans-serif; font-size: 34px; line-height: 40px; }
+
+  /* Senior */
+  .notif { position: absolute; left: 10px; right: 10px; top: 54px; z-index: 30; background: rgba(255, 255, 255, .97); border-radius: 22px; padding: 12px 14px;
+           box-shadow: 0 12px 30px rgba(15, 61, 110, .25); display: flex; gap: 10px; }
+  .notif img { width: 40px; height: 40px; border-radius: 10px; background: #F0F6FD; object-fit: contain; }
+  .senior-title { font-size: 34px; font-weight: 800; color: #112950; line-height: 40px; }
+  .med { font-size: 26px; font-weight: 800; color: #112950; }
+  .voice { background: #EBF2FF; border-radius: 20px; padding: 14px; }
+  .wave { display: flex; align-items: center; gap: 4px; height: 44px; margin-top: 8px; }
+  .wave i { width: 6px; border-radius: 3px; background: #246BFD; display: block; }
+  .done { height: 120px; border-radius: 26px; background: #246BFD; color: #fff; font-size: 34px; font-weight: 900; display: flex; align-items: center;
+          justify-content: center; gap: 12px; box-shadow: 0 10px 24px rgba(36, 107, 253, .35); }
+
+  /* Aidant (2e téléphone) */
+  #phone2 { position: absolute; left: 1330px; top: 545px; width: 420px; height: 860px; transform-origin: 0 0; opacity: 0; }
+  #phone2 .scr { display: block; }
+  .dose { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #E6EEF8; }
+  .dot { width: 18px; height: 18px; border-radius: 9px; flex: none; }
+  .badge { padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+
+  /* Feuille de partage + PDF */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 35; background: #fff; border-radius: 26px 26px 0 0; padding: 18px 18px 40px;
+           box-shadow: 0 -12px 30px rgba(15, 61, 110, .2); }
+  .grab { width: 44px; height: 5px; border-radius: 3px; background: #C9D6E8; margin: 0 auto 14px; }
+  .file { display: flex; gap: 12px; align-items: center; background: #F5F8FC; border: 1px solid #E6EEF8; border-radius: 16px; padding: 12px; }
+  .pdfic { width: 46px; height: 56px; border-radius: 8px; background: #FEE2E2; color: #C62828; font-weight: 900; font-size: 13px; display: flex; align-items: flex-end;
+           justify-content: center; padding-bottom: 8px; flex: none; }
+  .fname { font-size: 13px; font-weight: 700; color: #112950; word-break: break-all; line-height: 18px; font-family: Consolas, 'Cascadia Mono', monospace; }
+  .apps { display: flex; justify-content: space-between; margin-top: 16px; }
+  .app { width: 68px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #55657E; }
+  .app span { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+  #pdf { position: absolute; left: 1010px; top: 55px; width: 640px; height: 905px; background: #fff; border-radius: 10px; transform-origin: 50% 50%; opacity: 0;
+         box-shadow: 0 30px 70px rgba(15, 61, 110, .28); padding: 44px 48px; font-family: Helvetica, Arial, sans-serif; color: #1C2B45; font-size: 16px; line-height: 1.35; }
+  #pdf .brandrow { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 2px solid #E6EEF8; }
+  #pdf .brandrow img { width: 70px; height: 60px; object-fit: contain; }
+  #pdf h1 { font-size: 27px; color: #112950; }
+  #pdf h2 { font-size: 19px; color: #112950; margin: 20px 0 9px; }
+  #pdf table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  #pdf td, #pdf th { border: 1px solid #E6EEF8; padding: 7px 8px; text-align: left; }
+  #pdf th { background: #EBF2FF; color: #112950; }
+  #pdf .box { border: 1px solid #E6EEF8; border-radius: 12px; padding: 12px; background: #F5F8FC; line-height: 20px; }
+  #pdf .ROUGE { color: #C62828; font-weight: bold; } #pdf .ORANGE { color: #8A4600; font-weight: bold; } #pdf .VERT { color: #14653A; font-weight: bold; }
+  #pdf .pnotice { margin-top: 18px; padding: 12px; border: 1px solid #F1C66B; background: #FFF8E6; border-radius: 12px; font-size: 14.5px; }
+
+  /* Sous-titres */
+  #caption { position: absolute; left: 1010px; top: 190px; width: 820px; }
+  .chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 999px; background: #EBF2FF; color: #246BFD;
+          font-weight: 800; font-size: 24px; letter-spacing: .5px; }
+  .headline { margin-top: 26px; font-size: 76px; line-height: 84px; font-weight: 900; color: #112950; letter-spacing: -1.5px; }
+  .headline em { font-style: normal; color: #246BFD; }
+  .sub { margin-top: 22px; font-size: 32px; line-height: 44px; color: #3B4B66; font-weight: 600; }
+  #fnchip { position: absolute; left: 960px; top: 990px; width: 740px; text-align: center; font-family: Consolas, 'Cascadia Mono', monospace; font-size: 21px; font-weight: 700;
+            color: #112950; background: #fff; border: 2px solid #246BFD; border-radius: 999px; padding: 10px 18px; opacity: 0; }
+
+  /* Onde vocale (hors téléphone) */
+  #vw { position: absolute; left: 1010px; top: 700px; height: 96px; padding: 0 30px 0 22px; border-radius: 999px; background: #fff; border: 2px solid #E6EEF8;
+        box-shadow: 0 14px 34px rgba(15, 61, 110, .12); display: flex; align-items: center; gap: 18px; opacity: 0; }
+  #vwIc { width: 60px; height: 60px; border-radius: 30px; background: #246BFD; display: flex; align-items: center; justify-content: center; }
+  #vwBars { display: flex; align-items: center; gap: 5px; height: 64px; }
+  #vwBars i { width: 7px; border-radius: 4px; background: #246BFD; display: block; }
+  #vwLab { font-size: 26px; font-weight: 800; color: #112950; white-space: nowrap; }
+
+  /* Curseur */
+  #cursor { position: absolute; z-index: 100; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(255, 255, 255, .55);
+            border: 3px solid #112950; box-shadow: 0 4px 12px rgba(0, 0, 0, .25); pointer-events: none; opacity: 0; }
+  #ripple { position: absolute; z-index: 99; border-radius: 50%; border: 4px solid #246BFD; pointer-events: none; opacity: 0; }
+
+  /* Ouverture / fermeture */
+  .full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #intro { background: radial-gradient(circle at 50% 40%, #FFFFFF 0%, #F5F8FC 60%, #E8F0FB 100%); z-index: 200; }
+  #outro { background: radial-gradient(circle at 50% 40%, #FFFFFF 0%, #F5F8FC 60%, #E8F0FB 100%); z-index: 210; }
+  .bigtag { font-size: 40px; font-weight: 700; color: #112950; margin-top: 18px; }
+  .team { margin-top: 40px; display: flex; gap: 22px; }
+  .tcard { background: #fff; border: 1px solid #E6EEF8; border-radius: 24px; padding: 20px 30px; box-shadow: 0 10px 30px rgba(15, 61, 110, .1); text-align: left; }
+  .tcard b { display: block; font-size: 30px; color: #112950; }
+  .tcard span { font-size: 22px; color: #55657E; }
+  /* --- Notification vocale 30 s --- */
+  #phone2 { left: 420px; top: 110px; opacity: 0; }
+  .lock { position: absolute; inset: 0; background: linear-gradient(165deg, #2B5BD7 0%, #163A8A 38%, #0F2342 75%, #0B1730 100%); }
+  .lock .ltime { position: absolute; left: 0; right: 0; top: 110px; text-align: center; color: #fff; font-size: 92px; font-weight: 300; letter-spacing: -2px; }
+  .lock .ldate { position: absolute; left: 0; right: 0; top: 84px; text-align: center; color: #DCE7FF; font-size: 20px; font-weight: 600; }
+  .lock .lhint { position: absolute; left: 0; right: 0; bottom: 34px; text-align: center; color: #B9CBF5; font-size: 15px; }
+  #lockNotif { top: 270px; }
+  .nplay { margin-top: 8px; height: 40px; border-radius: 12px; background: #EBF2FF; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+           font-size: 15px; font-weight: 800; color: #246BFD; }
+  .nwave { flex: 1; display: flex; align-items: center; gap: 3px; height: 26px; }
+  .nwave i { width: 4px; border-radius: 2px; background: #246BFD; display: block; }
+  .avatar { width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #F9A8D4, #F472B6); color: #fff; font-size: 26px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 4px 10px rgba(244, 114, 182, .35); }
+  .plabel { position: absolute; top: 140px; width: 420px; text-align: center; font-size: 26px; font-weight: 800; color: #112950; opacity: 0; }
+  .plabel span { display: inline-block; padding: 8px 20px; border-radius: 999px; background: #fff; border: 2px solid #E6EEF8; box-shadow: 0 8px 20px rgba(15, 61, 110, .08); }
+  #banner { position: absolute; left: 0; right: 0; top: 925px; display: flex; justify-content: center; opacity: 0; }
+  #banner div { display: flex; align-items: center; gap: 14px; padding: 16px 30px; border-radius: 999px; background: #DCFCE7; border: 2px solid #86EFAC;
+                font-size: 32px; font-weight: 800; color: #14653A; box-shadow: 0 14px 34px rgba(16, 185, 129, .2); }
+  #outroTag { max-width: 1300px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob" style="left:-160px;top:-200px;width:760px;height:760px;background:#CFE0FF"></div>
+  <div class="blob" style="right:-200px;bottom:-260px;width:820px;height:820px;background:#C9F2E3"></div>
+
+  <div id="caption"><div class="chip" id="chip"></div><div class="headline" id="headline"></div><div class="sub" id="sub"></div></div>
+  <div id="vw"><div id="vwIc"></div><div id="vwBars"></div><div id="vwLab"></div></div>
+  <div class="plabel" id="lab1" style="left:500px"><span>Téléphone de Mama</span></div>
+  <div class="plabel" id="lab2" style="left:1052px"><span>Téléphone de Salma</span></div>
+  <div id="banner"><div><i class="ion" data-i="checkmark-circle" style="font-size:40px;color:#167A45"></i>Hajja Zahra · Prise confirmée à 20h01</div></div>
+
+  <div id="phone"><div class="bezel"></div><div class="screen" id="screen"><div class="island"></div>
+    <div class="status" id="status1"><span id="clock">20:00</span><span class="row" style="gap:6px"><i class="ion" data-i="cellular" style="font-size:16px"></i><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
+  </div></div>
+  <div id="phone2"><div class="bezel"></div><div class="screen" id="screen2"><div class="island"></div>
+    <div class="status"><span>20:01</span><span class="row" style="gap:6px"><i class="ion" data-i="wifi" style="font-size:16px"></i><i class="ion" data-i="battery-full" style="font-size:22px"></i></span></div>
+  </div></div>
+  <div id="ripple"></div><div id="cursor"></div>
+
+  <div id="outro" class="full" style="display:none"><img id="outroLogo" src="../assets/neurocare-logo-transparent.png" style="width:470px" />
+    <div class="bigtag" id="outroTag">« La voix de ceux qui l’aiment, chaque jour à ses côtés. »</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const ION = window.ION || {};
+const ic = (name, size, colour) => `<i class="ion" style="font-size:${size}px;color:${colour}">${String.fromCodePoint(ION[name] || 0x3f)}</i>`;
+const $ = (id) => document.getElementById(id);
+
+/* Instants des voix et des sons : pitch/build/notif30/timeline.json (écrit par compose_notif30_audio.py --tts). */
+const V = { rappel: [1.0, 9.23], bravo: [14.35, 17.42] };
+const SFX = { chime: .4, tap: 13.75, confirm: 22.0 };
+
+/* Notification (i18n/fr/observance.ts : dueTitle, dueBody, listen). */
+function lockScreen() {
+  const bars = Array.from({ length: 22 }, (_, i) => `<i id="nb${i}"></i>`).join('');
+  return `<div class="scr" id="lock"><div class="lock"><div class="ldate">samedi 21 novembre</div><div class="ltime">20:00</div>
+    <div class="lhint">Touchez la notification pour ouvrir NeuroCare</div></div>
+    <div class="notif" id="lockNotif"><img src="../assets/neurocare-logo.png" /><div style="flex:1">
+      <div class="row" style="justify-content:space-between;font-size:13px;color:#55657E"><b style="color:#112950">NeuroCare</b><span>maintenant</span></div>
+      <div style="font-size:16px;font-weight:800;color:#112950">C'est l'heure de ton médicament</div>
+      <div style="font-size:14.5px">Metformine 850 mg — appuie sur « C'est fait »</div>
+      <div class="nplay">${ic('play-circle', 22, '#246BFD')}<span id="nLab">Écouter le message</span><div class="nwave">${bars}</div></div></div></div></div>`;
+}
+
+/* Espace senior (i18n/fr/observance.ts : hello, dueTitle, done, saved, next, call) — mode démo : Hajja Zahra, Salma. */
+function seniorScreen() {
+  const bars = Array.from({ length: 30 }, (_, i) => `<i id="bar${i}"></i>`).join('');
+  return `<div class="scr" id="senior"><div class="scroll" style="gap:14px">
+    <div style="font-size:24px;font-weight:700;color:#55657E;margin-top:6px">Bonjour Hajja Zahra</div>
+    <div class="senior-title">C’est l’heure de ton médicament</div>
+    <div class="card"><div class="row" style="gap:12px"><div style="width:58px;height:58px;border-radius:18px;background:#EBF2FF;display:flex;align-items:center;justify-content:center">${ic('medkit', 32, '#246BFD')}</div>
+      <div><div class="med">Metformine 850 mg</div><div style="font-size:19px;color:#55657E">1 comprimé · 20:00</div></div></div></div>
+    <div class="voice"><div class="row" style="gap:12px"><div class="avatar">S</div><div><div style="font-size:20px;font-weight:800;color:#112950">Salma, votre fille</div>
+      <div style="font-size:16px;color:#55657E" id="vState">Message vocal · 0:08</div></div></div>
+      <div class="wave">${bars}</div></div>
+    <div class="done" id="doneBtn" style="background:#10B981;box-shadow:0 10px 24px rgba(16,185,129,.4)">${ic('checkmark-circle', 44, '#fff')}<span id="doneTxt">C’est fait</span></div>
+    <div class="card row" style="gap:12px">${ic('alarm', 30, '#55657E')}<div><div style="font-size:18px;color:#55657E">Prochain rappel</div><div style="font-size:21px;font-weight:800;color:#112950">demain 08:00 · Metformine 850 mg</div></div></div>
+  </div></div>`;
+}
+
+/* Espace aidant : tableau de bord (i18n/fr/observance.ts : doseStatus, confirmedAt, summary). */
+function aidantScreen() {
+  const dose = (time, name, status, ok, id = '', last = false) => `<div class="dose" ${last ? 'style="border:0"' : ''}><div class="dot" ${id ? `id="${id}Dot"` : ''} style="background:${ok ? '#167A45' : '#6B7280'}"></div>
+    <div style="flex:1"><b style="color:#112950;font-size:17px">${time} · ${name}</b><div style="font-size:15px;color:${ok ? '#167A45' : '#55657E'};font-weight:${ok ? 800 : 400}" ${id ? `id="${id}Status"` : ''}>${status}</div></div></div>`;
+  return `<div class="scr"><div class="scroll" style="gap:14px">
+    <div class="row" style="gap:8px;margin-top:4px"><span class="badge" style="background:#FEF3C7;color:#8A4600">Mode démo hors ligne</span></div>
+    <div style="font-size:24px;font-weight:800;color:#112950">Mama · Hajja Zahra</div>
+    <div class="row" style="gap:8px"><span class="badge" style="background:#DCFCE7;color:#167A45">● Temps réel</span><span class="muted" style="font-size:15px">Aujourd’hui (21/11/2026)</span></div>
+    <div class="card" style="padding:6px 16px">
+      ${dose('08:00', 'Metformine 850 mg', 'Confirmé à 08:04', true)}
+      ${dose('13:00', 'Amlodipine 5 mg', 'Confirmé à 13:12', true)}
+      ${dose('20:00', 'Metformine 850 mg', 'En attente', false, 'a', true)}
+    </div>
+    <div class="muted" style="font-size:15px" id="aSummary">2 confirmé(s) · 0 sans réponse · 1 en attente</div>
+    <div class="card row" id="aToast" style="gap:10px;background:#DCFCE7;border-color:#BBF7D0">${ic('checkmark-circle', 30, '#167A45')}<div style="font-size:17px;font-weight:800;color:#14653A">Hajja Zahra a confirmé la prise de 20:00</div></div>
+  </div></div>`;
+}
+
+$('screen').insertAdjacentHTML('beforeend', lockScreen() + seniorScreen());
+$('screen2').insertAdjacentHTML('beforeend', aidantScreen());
+$('vwBars').innerHTML = Array.from({ length: 28 }, (_, i) => `<i id="vb${i}"></i>`).join('');
+document.querySelectorAll('[data-i]').forEach((el) => { el.textContent = String.fromCodePoint(ION[el.dataset.i] || 0x3f); });
+
+// ---------------------------------------------------------------- Outils d'animation
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eout = (x) => 1 - Math.pow(1 - x, 3);
+const eback = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const fadeIn = (t, a, d = .45) => eout(prog(t, a, a + d));
+const window_ = (t, a, b, d = .4) => Math.min(fadeIn(t, a, d), 1 - eio(prog(t, b - d, b)));
+const css = (el, o) => { const e = typeof el === 'string' ? $(el) : el; Object.assign(e.style, o); };
+const show = (el, op, dy = 0, sc = 1) => css(el, { opacity: op, transform: `translateY(${dy}px) scale(${sc})` });
+const speaking = (t, [a, b]) => t > a && t < b;
+/** Amplitude « vocale » : syllabes (~4,5 Hz) modulées par des respirations, nulle hors de la réplique. */
+const voiceLevel = (t, line, i) => (speaking(t, line) ? .25 + .75 * Math.abs(Math.sin(t * 14.1 + i * .7) * Math.sin(t * 2.9 + i * .23)) : 0);
+
+const PHONE = { x: 420, y: 110 };
+function at(id, fx = .5, fy = .5) {
+  const s = $('screen'), el = $(id), k = s.getBoundingClientRect().width / 392;
+  const host = el.closest('.scr'), hidden = host && host.style.display === 'none';
+  if (hidden) host.style.display = 'block';
+  const r = el.getBoundingClientRect(), o = s.getBoundingClientRect();
+  if (hidden) host.style.display = 'none';
+  return [(r.left - o.left + r.width * fx) / k, (r.top - o.top + r.height * fy) / k];
+}
+function camera(s, fx, fy) {
+  const ox = PHONE.x + 14 + 196, oy = PHONE.y + 14 + 416;
+  return { tx: ox - (14 + fx) * s, ty: oy - (14 + fy) * s };
+}
+function cursorAt(x, y, op, press = 0, ripple = 0) {
+  const ph = $('phone').getBoundingClientRect(), k = ph.width / 420;
+  const sx = ph.left + (14 + x) * k, sy = ph.top + (14 + y) * k;
+  css('cursor', { left: sx + 'px', top: sy + 'px', opacity: op, transform: `scale(${1 - .25 * press})` });
+  const r = 20 + 70 * ripple;
+  css('ripple', { left: sx - r + 'px', top: sy - r + 'px', width: 2 * r + 'px', height: 2 * r + 'px', opacity: ripple > 0 && ripple < 1 ? (1 - ripple) * .9 : 0, borderColor: '#10B981' });
+}
+function cursorPath(t, keys) {
+  let pos = null, press = 0, rip = 0;
+  for (let i = 0; i < keys.length; i++) {
+    const [tk, target, tap] = keys[i];
+    const p = typeof target === 'string' ? at(target) : target;
+    if (t >= tk) pos = p;
+    if (i + 1 < keys.length && t >= tk && t < keys[i + 1][0]) {
+      const [tn, tg2] = keys[i + 1];
+      const q = typeof tg2 === 'string' ? at(tg2) : tg2;
+      const x = eio(prog(t, tn - .7, tn));
+      pos = [lerp(p[0], q[0], x), lerp(p[1], q[1], x)];
+    }
+    if (tap) { const d = 1 - Math.abs(t - tk) / .14; press = Math.max(press, d > 0 ? d : 0); if (t >= tk && t < tk + .6) rip = (t - tk) / .6; }
+  }
+  return { pos, press, rip };
+}
+function caption(t, items) {
+  let cur = null;
+  for (const it of items) if (t >= it.a && t < it.b) cur = it;
+  if (!cur) { css('caption', { opacity: 0 }); return; }
+  $('chip').innerHTML = cur.chip; $('headline').innerHTML = cur.h; $('sub').innerHTML = cur.s;
+  css('caption', { opacity: window_(t, cur.a, cur.b, .45) });
+  show('chip', fadeIn(t, cur.a, .45), 16 * (1 - fadeIn(t, cur.a, .45)));
+  show('headline', fadeIn(t, cur.a + .1, .55), 30 * (1 - fadeIn(t, cur.a + .1, .55)));
+  show('sub', fadeIn(t, cur.a + .25, .55), 30 * (1 - fadeIn(t, cur.a + .25, .55)));
+}
+const CAPTIONS = [
+  { a: .5, b: 9.3, chip: 'Rappel de 20h00 · Metformine 850 mg', h: 'La voix de sa fille,<br><em>à l’heure exacte</em>.', s: '« Coucou Mama h’biba… il est vingt heures, c’est l’heure de ton comprimé du soir. »' },
+  { a: 9.5, b: 20.7, chip: 'Espace Senior · NeuroCare', h: 'Un seul bouton.<br><em>C’est fait.</em>', s: '' },
+];
+
+// ---------------------------------------------------------------- Timeline
+function renderFrame(t) {
+  // Fin : logo et slogan
+  const outro = eio(prog(t, 26.9, 27.45));
+  css('outro', { opacity: outro, display: outro > 0 ? 'flex' : 'none' });
+  show('outroLogo', fadeIn(t, 27.1, .7), 0, lerp(.88, 1, eback(prog(t, 27.1, 28.0))));
+  show('outroTag', fadeIn(t, 27.6, .55), 20 * (1 - fadeIn(t, 27.6, .55)));
+
+  // Écrans du téléphone de Mama
+  const sen = eio(prog(t, 9.25, 9.85));
+  // Ouverture de l'application : l'écran senior monte depuis le bas, l'écran verrouillé recule.
+  css('lock', { display: sen < 1 ? 'block' : 'none', opacity: 1 - .5 * sen, zIndex: 1, transform: `scale(${1 - .06 * sen})` });
+  css('senior', { display: sen > 0 ? 'block' : 'none', opacity: 1, zIndex: 2, transform: `translateY(${(1 - sen) * 832}px)`,
+                  borderRadius: `${30 * (1 - sen)}px`, boxShadow: sen < 1 ? '0 -10px 30px rgba(15,61,110,.25)' : 'none' });
+  const onLock = sen < .5;
+  css('status1', { background: onLock ? 'transparent' : '#F5F8FC', color: onLock ? '#fff' : '#112950' });
+  $('clock').textContent = t < 13.75 ? '20:00' : '20:01';
+
+  // Notification : arrivée + lecture du message vocal
+  const nIn = eback(prog(t, .35, .85));
+  css('lockNotif', { opacity: clamp(nIn * 1.4), transform: `translateY(${lerp(-150, 0, nIn)}px) scale(${1 - .035 * Math.max(0, 1 - Math.abs(t - 9.15) / .14)})` });
+  const play = speaking(t, V.rappel);
+  $('nLab').textContent = play ? 'Lecture…' : 'Écouter le message';
+  for (let i = 0; i < 22; i++) css('nb' + i, { height: 4 + 20 * voiceLevel(t, V.rappel, i) + 'px', opacity: play ? 1 : .35 });
+
+  // Espace senior : onde de la voix de Salma, appui sur « C'est fait »
+  for (let i = 0; i < 30; i++) {
+    const lv = voiceLevel(t, V.bravo, i);
+    css('bar' + i, { height: 6 + 34 * lv + 'px', opacity: speaking(t, V.bravo) ? 1 : .3 });
+  }
+  $('vState').textContent = speaking(t, V.bravo) ? 'Salma vous répond…' : 'Message vocal · 0:08';
+  const done = t >= SFX.tap + .03;
+  const press = Math.max(0, 1 - Math.abs(t - SFX.tap) / .14);
+  css('doneBtn', { background: done ? '#167A45' : '#10B981', transform: `scale(${1 - .06 * press + .03 * Math.sin(Math.PI * prog(t, SFX.tap + .05, SFX.tap + .45))})` });
+  $('doneTxt').textContent = done ? 'C’est noté. Merci !' : 'C’est fait';
+  css('doneTxt', { fontSize: done ? '28px' : '34px' });
+
+  // Caméra du téléphone de Mama, puis vue côte à côte (21 s → 27 s)
+  let s = 1, fx = 196, fy = 416;
+  const zoomTo = (a, b, sc, x, y, d = .8) => {
+    const k = Math.min(eio(prog(t, a, a + d)), 1 - eio(prog(t, b - d, b)));
+    if (k > 0) { s = lerp(s, sc, k); fx = lerp(fx, x, k); fy = lerp(fy, y, k); }
+  };
+  zoomTo(.9, 9.2, 1.2, 196, 330, 1.0);
+  zoomTo(10.0, 20.4, 1.12, 196, 470, 1.2);
+  const enter = eout(prog(t, 0, .45));
+  let { tx, ty } = camera(s, fx, fy);
+  const side = eio(prog(t, 20.6, 21.5));
+  tx = lerp(tx, 520, side); ty = lerp(ty, 205, side); s = lerp(s, .78, side);
+  css('phone', { transform: `translate(${tx - PHONE.x}px, ${ty - PHONE.y + (1 - enter) * 60}px) scale(${s})`, opacity: enter });
+  const p2 = eout(prog(t, 20.9, 21.7));
+  css('phone2', { opacity: p2, transform: `translate(${1072 - 420 + (1 - p2) * 160}px, ${205 - 110}px) scale(.78)` });
+  show('lab1', fadeIn(t, 21.2, .4), 12 * (1 - fadeIn(t, 21.2, .4)));
+  show('lab2', fadeIn(t, 21.4, .4), 12 * (1 - fadeIn(t, 21.4, .4)));
+
+  // Aidante : passage au vert en temps réel
+  const conf = t >= SFX.confirm;
+  css('aDot', { background: conf ? '#167A45' : '#6B7280', transform: `scale(${1 + .9 * Math.max(0, 1 - Math.abs(t - SFX.confirm - .1) / .3)})` });
+  $('aStatus').textContent = conf ? 'Confirmé à 20:01' : 'En attente';
+  css('aStatus', { color: conf ? '#167A45' : '#55657E', fontWeight: conf ? 800 : 400 });
+  $('aSummary').textContent = conf ? '3 confirmé(s) · 0 sans réponse · 0 en attente' : '2 confirmé(s) · 0 sans réponse · 1 en attente';
+  show('aToast', fadeIn(t, SFX.confirm + .15, .4), 20 * (1 - fadeIn(t, SFX.confirm + .15, .4)), lerp(.94, 1, eback(prog(t, SFX.confirm + .15, SFX.confirm + .6))));
+  css('banner', { opacity: fadeIn(t, 22.4, .5) * (1 - outro), transform: `translateY(${20 * (1 - fadeIn(t, 22.4, .5))}px)` });
+
+  // Onde vocale hors téléphone (scènes 1 et 2)
+  const vLine = t < 12 ? V.rappel : V.bravo;
+  const vOp = Math.max(window_(t, V.rappel[0] - .2, V.rappel[1] + .25, .3), window_(t, V.bravo[0] - .2, V.bravo[1] + .25, .3));
+  $('vwLab').textContent = 'Voix de Salma, sa fille';
+  $('vwIc').innerHTML = ic('volume-high', 32, '#fff');
+  css('vwIc', { background: t < 12 ? '#246BFD' : '#10B981' });
+  for (let i = 0; i < 28; i++) css('vb' + i, { height: 8 + 52 * voiceLevel(t, vLine, i) + 'px', background: t < 12 ? '#246BFD' : '#10B981' });
+  css('vw', { opacity: vOp * (1 - side), transform: `translateY(${18 * (1 - vOp)}px)` });
+  caption(t, CAPTIONS);
+  if (t >= 9.5 && t < 20.7) {  // scène 2 : le sous-titre suit l'action, la citation n'apparaît qu'avec la voix
+    const said = t >= V.bravo[0] - .1;
+    $('sub').innerHTML = said ? '« Bravo Mama, c’est bien noté ! Passe une belle soirée. »' : 'Hajja Zahra appuie sur le gros bouton vert.';
+    const k = said ? fadeIn(t, V.bravo[0] - .1, .45) : Math.min(fadeIn(t, 9.75, .55), 1 - eio(prog(t, V.bravo[0] - .45, V.bravo[0] - .1)));
+    show('sub', k, 20 * (1 - k));
+  }
+  css('caption', { opacity: parseFloat($('caption').style.opacity || 0) * (1 - side) });
+
+  // Doigt : ouverture de la notification, puis « C'est fait »
+  const paths = [
+    [8.4, 9.5, [[8.4, [300, 620], 0], [9.15, 'lockNotif', 1], [9.5, [320, 640], 0]]],
+    [12.7, 14.4, [[12.7, [310, 760], 0], [SFX.tap, 'doneBtn', 1], [14.4, [320, 780], 0]]],
+  ];
+  let cur = { pos: null }, op = 0;
+  for (const [a, b, keys] of paths) if (t >= a && t < b) { cur = cursorPath(t, keys); op = window_(t, a, b, .25); }
+  if (cur.pos) cursorAt(cur.pos[0], cur.pos[1], op, cur.press, cur.rip); else { css('cursor', { opacity: 0 }); css('ripple', { opacity: 0 }); }
+}
+window.renderFrame = renderFrame;
+window.renderStill = renderFrame;
+</script>
+</body>
+</html>

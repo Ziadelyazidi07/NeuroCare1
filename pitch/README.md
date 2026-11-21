@@ -76,3 +76,26 @@ Le script refuse de générer le deck si un texte parlé dépasse 2,7 mots/s ou 
 Dans la démo « voix de la fille », les voix sont synthétiques (edge-tts) : dans l'application, le rappel est lu avec
 la vraie voix enregistrée par le proche. Le « mot doux » de Salma est entendu en voix off ; l'application n'a pas
 (encore) de fonction d'envoi de message vocal de l'aidant vers le senior.
+
+## Vidéo autonome — notification vocale (30 s)
+
+`NeuroCare_Notification_Vocale_30s.mp4` : 30,00 s, 1920 × 1080, 60 i/s, H.264 `yuv420p` (CRF 17), AAC 48 kHz stéréo.
+
+| Temps | Scène |
+|---|---|
+| 0:00 – 0:09 | Téléphone de Mama, 20:00 : notification NeuroCare (carillon), message vocal de Salma avec onde animée |
+| 0:09 – 0:21 | L'application s'ouvre sur l'espace senior : appui sur « C'est fait » (clic), « Bravo Mama, c'est bien noté ! » |
+| 0:21 – 0:27 | Vue côte à côte : le tableau de bord de Salma passe au vert (« Confirmé à 20:01 »), bandeau « Prise confirmée à 20h01 » |
+| 0:27 – 0:30 | Logo NeuroCare et slogan « La voix de ceux qui l'aiment, chaque jour à ses côtés. » |
+
+```bash
+python pitch/scripts/compose_notif30_audio.py --tts      # voix (fr-FR-VivienneMultilingualNeural, -6 %), phrase par phrase
+python pitch/scripts/render_video.py --scene notif30     # images -> pitch/NeuroCare_Notification_Vocale_30s.mp4 (≈ 2 min)
+python pitch/scripts/compose_notif30_audio.py            # voix + carillon + clic + ambiance, mixés dans la vidéo
+```
+
+edge-tts n'accepte pas de SSML personnalisé : les pauses respiratoires (350 ms) sont obtenues en générant chaque
+phrase séparément puis en les assemblant avec de vrais silences. Les sons (carillon, clic, confirmation) et l'ambiance
+sont synthétisés (numpy). Différences volontaires avec l'application : le bouton « C'est fait » est vert dans la vidéo
+(bleu `#1847B8` dans l'app), et la réponse vocale de Salma après la confirmation n'existe pas encore dans l'app (qui
+affiche « C'est noté. Merci ! »).

@@ -5,6 +5,7 @@ FFmpeg (binaire fourni par imageio-ffmpeg). Le rendu est déterministe : aucune 
 
 Usage :
   python pitch/scripts/render_video.py                 # démo « voix de la fille » -> pitch/NeuroCare_Demo_45s.mp4
+  python pitch/scripts/render_video.py --scene notif30 # notification vocale 30 s -> pitch/NeuroCare_Notification_Vocale_30s.mp4
   python pitch/scripts/render_video.py --scene modules # démo des 6 modules -> pitch/NeuroCare_Demo_Modules_45s.mp4
   python pitch/scripts/render_video.py --preview 3 9.8 # images PNG de contrôle -> pitch/build/preview/
   python pitch/scripts/render_video.py --scene modules --stills  # captures d'écrans du téléphone pour le deck
@@ -24,7 +25,8 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[2]
 PITCH = ROOT / 'pitch'
 # Deux scènes : « voix » (démo de la finale, voix de la fille) et « modules » (démo des 6 modules du pitch de 5 min).
-SCENES = {'voix': ('demo_voix.html', 'NeuroCare_Demo_45s.mp4'), 'modules': ('demo.html', 'NeuroCare_Demo_Modules_45s.mp4')}
+SCENES = {'voix': ('demo_voix.html', 'NeuroCare_Demo_45s.mp4', 45), 'modules': ('demo.html', 'NeuroCare_Demo_Modules_45s.mp4', 45),
+          'notif30': ('demo_notif30.html', 'NeuroCare_Notification_Vocale_30s.mp4', 30)}
 HTML = PITCH / 'video' / SCENES['voix'][0]
 OUT = PITCH / SCENES['voix'][1]
 BUILD = PITCH / 'build'
@@ -113,6 +115,7 @@ if __name__ == '__main__':
     args = ap.parse_args()
     HTML = PITCH / 'video' / SCENES[args.scene][0]
     OUT = PITCH / SCENES[args.scene][1]
+    DURATION = SCENES[args.scene][2]
     if args.preview is not None:
         preview(args.preview or [1, 2.8, 3.6, 5.45, 6.3, 7.0, 8.6, 10.5, 13.5, 16.6, 18.5, 19.95, 22, 25.2, 27, 30, 32.5, 34.2, 36, 38.9, 42, 44.5])
     elif args.stills:
